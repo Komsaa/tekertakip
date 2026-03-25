@@ -1,26 +1,10 @@
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
-import {
-  getDocStatus,
-  getDocStatusColor,
-  getDocStatusLabel,
-  formatDate,
-  getDaysLeft,
-} from "@/lib/utils";
+import { formatDate } from "@/lib/utils";
 import Link from "next/link";
-import {
-  ArrowLeft,
-  Phone,
-  FileText,
-  Car,
-  CheckCircle,
-  XCircle,
-  AlertTriangle,
-  Clock,
-  Edit,
-} from "lucide-react";
+import { ArrowLeft, Phone, FileText, Car, Clock } from "lucide-react";
 import EditDriverForm from "./EditDriverForm";
-import DocUploadButton from "@/components/DocUploadButton";
+import DocRow from "@/components/DocRow";
 
 interface Props {
   params: { id: string };
@@ -45,75 +29,6 @@ async function getDriver(id: string) {
   });
 }
 
-function DocRow({
-  label,
-  expiry,
-  fileUrl,
-  entityId,
-  docType,
-  notes,
-}: {
-  label: string;
-  expiry: Date | null | undefined;
-  fileUrl?: string | null;
-  entityId: string;
-  docType: string;
-  notes?: string;
-}) {
-  const status = getDocStatus(expiry);
-  const colorClass = getDocStatusColor(status);
-  const daysLeft = getDaysLeft(expiry);
-
-  return (
-    <div className="flex items-center justify-between py-3 border-b border-slate-50 last:border-0">
-      <div className="flex items-center gap-3">
-        <div
-          className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-            status === "valid"
-              ? "bg-green-50"
-              : status === "missing"
-              ? "bg-gray-50"
-              : "bg-red-50"
-          }`}
-        >
-          {status === "valid" ? (
-            <CheckCircle className="w-4 h-4 text-green-500" />
-          ) : status === "missing" ? (
-            <FileText className="w-4 h-4 text-gray-400" />
-          ) : (
-            <AlertTriangle className="w-4 h-4 text-red-500" />
-          )}
-        </div>
-        <div>
-          <div className="text-sm font-semibold text-slate-700">{label}</div>
-          {notes && <div className="text-xs text-slate-400">{notes}</div>}
-        </div>
-      </div>
-      <div className="flex items-center gap-3">
-        {expiry ? (
-          <div className="text-right">
-            <div className="text-sm font-medium text-slate-700">{formatDate(expiry)}</div>
-            {daysLeft !== null && (
-              <div
-                className={`text-xs ${
-                  daysLeft < 0 ? "text-red-600" : daysLeft <= 30 ? "text-amber-600" : "text-slate-400"
-                }`}
-              >
-                {daysLeft < 0 ? `${Math.abs(daysLeft)} gün geçti` : `${daysLeft} gün kaldı`}
-              </div>
-            )}
-          </div>
-        ) : (
-          <span className="text-xs text-slate-400">Tarih girilmedi</span>
-        )}
-        <span className={`text-xs px-2 py-1 rounded-full border font-medium ${colorClass}`}>
-          {getDocStatusLabel(status)}
-        </span>
-        <DocUploadButton entityType="driver" entityId={entityId} docType={docType} fileUrl={fileUrl} />
-      </div>
-    </div>
-  );
-}
 
 export default async function DriverDetailPage({ params }: Props) {
   const driver = await getDriver(params.id);
