@@ -88,12 +88,12 @@ export default async function DriverDetailPage({ params }: Props) {
               <FileText className="w-5 h-5 text-[#DC2626]" />
               Şöför Belgeleri
             </h2>
-            <DocRow label="SRC-2 Mesleki Yeterlilik" expiry={driver.srcExpiry} entityId={driver.id} docType="src" fileUrl={driver.srcFile} notes="5 yılda bir yenilenir" />
-            <DocRow label="Psikoteknik Belgesi" expiry={driver.psychotechExpiry} entityId={driver.id} docType="psychotech" fileUrl={driver.psychotechFile} notes="5 yılda bir (bazı bölgelerde 2 yılda)" />
-            <DocRow label="Adli Sicil Kaydı" expiry={driver.criminalRecordExpiry} entityId={driver.id} docType="criminalRecord" fileUrl={driver.criminalRecordFile} notes={`Alınma: ${formatDate(driver.criminalRecordDate)} · 3 ayda bir yenilenir`} />
-            <DocRow label="Sağlık Raporu" expiry={driver.healthReportExpiry} entityId={driver.id} docType="healthReport" fileUrl={driver.healthReportFile} notes="Yıllık yenilenir" />
-            <DocRow label="Ehliyet" expiry={driver.licenseExpiry} entityId={driver.id} docType="license" fileUrl={driver.licenseFile} notes={`Sınıf: ${driver.licenseClass ?? "-"} · ${driver.licenseNumber ?? ""}`} />
-            <DocRow label="İkametgah Belgesi" expiry={driver.residenceDocDate} entityId={driver.id} docType="residenceDoc" fileUrl={driver.residenceDocFile} notes={driver.address ?? ""} />
+            <DocRow label="SRC-2 Mesleki Yeterlilik" expiry={driver.srcExpiry} entityType="driver" entityId={driver.id} docType="src" fileUrl={driver.srcFile} notes="5 yılda bir yenilenir" />
+            <DocRow label="Psikoteknik Belgesi" expiry={driver.psychotechExpiry} entityType="driver" entityId={driver.id} docType="psychotech" fileUrl={driver.psychotechFile} notes="5 yılda bir (bazı bölgelerde 2 yılda)" />
+            <DocRow label="Adli Sicil Kaydı" expiry={driver.criminalRecordExpiry} entityType="driver" entityId={driver.id} docType="criminalRecord" fileUrl={driver.criminalRecordFile} notes={`Alınma: ${formatDate(driver.criminalRecordDate)} · 3 ayda bir yenilenir`} />
+            <DocRow label="Sağlık Raporu" expiry={driver.healthReportExpiry} entityType="driver" entityId={driver.id} docType="healthReport" fileUrl={driver.healthReportFile} notes="Yıllık yenilenir" />
+            <DocRow label="Ehliyet" expiry={driver.licenseExpiry} entityType="driver" entityId={driver.id} docType="license" fileUrl={driver.licenseFile} notes={`Sınıf: ${driver.licenseClass ?? "-"} · ${driver.licenseNumber ?? ""}`} />
+            <DocRow label="İkametgah Belgesi" expiry={driver.residenceDocDate} entityType="driver" entityId={driver.id} docType="residenceDoc" fileUrl={driver.residenceDocFile} notes={driver.address ?? ""} />
           </div>
 
           {/* Son Seferler */}

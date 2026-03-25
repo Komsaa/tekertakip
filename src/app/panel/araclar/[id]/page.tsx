@@ -50,11 +50,11 @@ export default async function VehicleDetailPage({ params }: Props) {
               <FileText className="w-5 h-5 text-[#DC2626]" />
               Araç Belgeleri
             </h2>
-            <DocRow label="Teknik Muayene (TÜVTÜRK)" expiry={vehicle.inspectionExpiry} entityId={vehicle.id} docType="inspection" fileUrl={vehicle.inspectionFile} notes="Ticari araçlar 6 ayda bir — ÇOK ÖNEMLİ!" />
-            <DocRow label="Zorunlu Trafik Sigortası" expiry={vehicle.insuranceExpiry} entityId={vehicle.id} docType="insurance" fileUrl={vehicle.insuranceFile} notes={vehicle.insurancePolicyNo ? `Poliçe: ${vehicle.insurancePolicyNo}` : undefined} />
-            <DocRow label="Güzergah İzin Belgesi" expiry={vehicle.routePermitExpiry} entityId={vehicle.id} docType="routePermit" fileUrl={vehicle.routePermitFile} />
-            <DocRow label="Okul Servisi Uygunluk / J Plaka" expiry={vehicle.approvalExpiry} entityId={vehicle.id} docType="approval" fileUrl={vehicle.approvalFile} notes="Her yıl Eylülde yenilenir" />
-            <DocRow label="Kasko" expiry={vehicle.kaskoExpiry} entityId={vehicle.id} docType="kasko" fileUrl={vehicle.kaskoFile} />
+            <DocRow label="Teknik Muayene (TÜVTÜRK)" expiry={vehicle.inspectionExpiry} entityType="vehicle" entityId={vehicle.id} docType="inspection" fileUrl={vehicle.inspectionFile} notes="Ticari araçlar 6 ayda bir — ÇOK ÖNEMLİ!" />
+            <DocRow label="Zorunlu Trafik Sigortası" expiry={vehicle.insuranceExpiry} entityType="vehicle" entityId={vehicle.id} docType="insurance" fileUrl={vehicle.insuranceFile} notes={vehicle.insurancePolicyNo ? `Poliçe: ${vehicle.insurancePolicyNo}` : undefined} />
+            <DocRow label="Güzergah İzin Belgesi" expiry={vehicle.routePermitExpiry} entityType="vehicle" entityId={vehicle.id} docType="routePermit" fileUrl={vehicle.routePermitFile} />
+            <DocRow label="Okul Servisi Uygunluk / J Plaka" expiry={vehicle.approvalExpiry} entityType="vehicle" entityId={vehicle.id} docType="approval" fileUrl={vehicle.approvalFile} notes="Her yıl Eylülde yenilenir" />
+            <DocRow label="Kasko" expiry={vehicle.kaskoExpiry} entityType="vehicle" entityId={vehicle.id} docType="kasko" fileUrl={vehicle.kaskoFile} />
           </div>
 
           {/* Yakıt Geçmişi */}
