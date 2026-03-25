@@ -20,6 +20,8 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
         clientName: b.clientName || null,
         driverId: b.driverId || null,
         vehicleId: b.vehicleId || null,
+        startLocation: b.startLocation || null,
+        endLocation: b.endLocation || null,
         route: b.route || null,
         revenue: b.revenue ? parseFloat(b.revenue) : null,
         notes: b.notes || null,

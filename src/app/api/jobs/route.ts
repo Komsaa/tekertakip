@@ -14,22 +14,39 @@ export async function POST(req: NextRequest) {
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   try {
     const b = await req.json();
-    const job = await prisma.job.create({
-      data: {
-        title: b.title,
-        type: b.type || "okul",
-        clientName: b.clientName || null,
-        date: new Date(b.date),
-        startTime: b.startTime,
-        endTime: b.endTime || null,
-        driverId: b.driverId || null,
-        vehicleId: b.vehicleId || null,
-        route: b.route || null,
-        revenue: b.revenue ? parseFloat(b.revenue) : null,
-        status: b.status || "planned",
-        notes: b.notes || null,
-      },
-    });
+
+    const baseData = {
+      title: b.title,
+      type: b.type || "okul",
+      clientName: b.clientName || null,
+      startTime: b.startTime,
+      endTime: b.endTime || null,
+      driverId: b.driverId || null,
+      vehicleId: b.vehicleId || null,
+      startLocation: b.startLocation || null,
+      endLocation: b.endLocation || null,
+      route: b.route || null,
+      revenue: b.revenue ? parseFloat(b.revenue) : null,
+      status: "planned",
+      notes: b.notes || null,
+    };
+
+    const repeatDays = parseInt(b.repeatDays) || 0;
+
+    if (repeatDays > 0) {
+      // Tekrarlayan: başlangıç tarihinden itibaren repeatDays gün boyunca oluştur
+      const startDate = new Date(b.date);
+      const creates = [];
+      for (let i = 0; i < repeatDays; i++) {
+        const d = new Date(startDate);
+        d.setDate(d.getDate() + i);
+        creates.push({ ...baseData, date: d });
+      }
+      await prisma.job.createMany({ data: creates });
+      return NextResponse.json({ created: creates.length }, { status: 201 });
+    }
+
+    const job = await prisma.job.create({ data: { ...baseData, date: new Date(b.date) } });
     return NextResponse.json(job, { status: 201 });
   } catch (e) {
     console.error(e);

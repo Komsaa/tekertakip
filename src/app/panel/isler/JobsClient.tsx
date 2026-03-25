@@ -16,6 +16,8 @@ type Job = {
   startTime: string;
   endTime: string | null;
   status: string;
+  startLocation: string | null;
+  endLocation: string | null;
   route: string | null;
   revenue: number | null;
   notes: string | null;
@@ -50,17 +52,20 @@ interface Props {
 
 const emptyForm = {
   title: "",
-  type: "okul",
+  type: "personel",
   clientName: "",
   date: format(new Date(), "yyyy-MM-dd"),
   startTime: "07:30",
   endTime: "",
   driverId: "",
   vehicleId: "",
+  startLocation: "",
+  endLocation: "",
   route: "",
   revenue: "",
   status: "planned",
   notes: "",
+  repeatDays: "0",
 };
 
 export default function JobsClient({ jobs: initialJobs, drivers, vehicles }: Props) {
@@ -99,10 +104,13 @@ export default function JobsClient({ jobs: initialJobs, drivers, vehicles }: Pro
       endTime: job.endTime ?? "",
       driverId: job.driver?.id ?? "",
       vehicleId: job.vehicle?.id ?? "",
+      startLocation: job.startLocation ?? "",
+      endLocation: job.endLocation ?? "",
       route: job.route ?? "",
       revenue: job.revenue?.toString() ?? "",
       status: job.status,
       notes: job.notes ?? "",
+      repeatDays: "0",
     });
     setShowModal(true);
   }
@@ -249,7 +257,12 @@ export default function JobsClient({ jobs: initialJobs, drivers, vehicles }: Pro
                     {job.vehicle && <span className="flex items-center gap-1"><Truck className="w-3.5 h-3.5" />{job.vehicle.plate}</span>}
                     {job.clientName && <span className="text-slate-400">{job.clientName}</span>}
                   </div>
-                  {job.route && <p className="text-xs text-slate-400 mt-2">{job.route}</p>}
+                  {(job.startLocation || job.endLocation) && (
+                    <p className="text-xs text-slate-500 mt-1.5 flex items-center gap-1">
+                      📍 {job.startLocation}{job.startLocation && job.endLocation && " → "}{job.endLocation}
+                    </p>
+                  )}
+                  {job.route && <p className="text-xs text-slate-400 mt-1">{job.route}</p>}
                 </div>
                 <div className="flex items-center gap-1 ml-4 flex-shrink-0">
                   {job.status === "planned" && (
@@ -402,14 +415,46 @@ export default function JobsClient({ jobs: initialJobs, drivers, vehicles }: Pro
                   </select>
                 </div>
               </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label>Kalkış Noktası</label>
+                  <input type="text" value={form.startLocation} onChange={(e) => set("startLocation", e.target.value)} placeholder="Gölmarmara" />
+                </div>
+                <div>
+                  <label>Varış Noktası</label>
+                  <input type="text" value={form.endLocation} onChange={(e) => set("endLocation", e.target.value)} placeholder="Akhisar OSB" />
+                </div>
+              </div>
               <div>
-                <label>Güzergah</label>
-                <input type="text" value={form.route} onChange={(e) => set("route", e.target.value)} placeholder="Atatürk Mah. → Okul..." />
+                <label>Güzergah / Açıklama</label>
+                <input type="text" value={form.route} onChange={(e) => set("route", e.target.value)} placeholder="Atatürk Mah. → Fabrika..." />
               </div>
               <div>
                 <label>Gelir (₺)</label>
                 <input type="number" value={form.revenue} onChange={(e) => set("revenue", e.target.value)} placeholder="0" step="0.01" />
               </div>
+              {!editJob && (
+                <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
+                  <label className="text-blue-800 font-semibold text-sm mb-2 block">Tekrarlayan Sefer</label>
+                  <p className="text-xs text-blue-600 mb-3">Her gün aynı saatte gidiyorsa, kaç gün boyunca otomatik oluşturulsun?</p>
+                  <div className="flex gap-2">
+                    {[["0", "Tek seferlik"], ["30", "30 gün"], ["60", "60 gün"], ["90", "90 gün"]].map(([val, label]) => (
+                      <button
+                        key={val}
+                        type="button"
+                        onClick={() => set("repeatDays", val)}
+                        className={`flex-1 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
+                          form.repeatDays === val
+                            ? "bg-blue-600 text-white border-blue-600"
+                            : "bg-white text-blue-700 border-blue-200 hover:bg-blue-50"
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div>
                 <label>Notlar</label>
                 <textarea value={form.notes} onChange={(e) => set("notes", e.target.value)} rows={2} className="resize-none" />
