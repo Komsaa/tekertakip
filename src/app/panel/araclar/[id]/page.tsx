@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import { formatDate, formatCurrency } from "@/lib/utils";
 import Link from "next/link";
-import { ArrowLeft, Fuel, User } from "lucide-react";
+import { ArrowLeft, Fuel, FileText, User } from "lucide-react";
 import EditVehicleForm from "./EditVehicleForm";
 import DocRow from "@/components/DocRow";
 
