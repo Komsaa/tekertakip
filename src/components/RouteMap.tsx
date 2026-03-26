@@ -57,7 +57,7 @@ export default function RouteMap({ stops, currentStopIndex, interactive, onMapCl
 
       const validStops = stops.filter((s) => s.lat != null && s.lng != null);
 
-      const center =
+      const center: [number, number] =
         validStops.length > 0
           ? [
               validStops.reduce((s, p) => s + p.lat!, 0) / validStops.length,
