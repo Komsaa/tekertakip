@@ -148,10 +148,21 @@ async function getDashboardData() {
     (d) => getDocStatus(d.expiryDate) === "warning"
   ).length;
 
+  // Bugün aktif/planlanmış seferlerde kullanılan araç ID'leri
+  const busyVehicleIds = new Set(
+    todayJobs
+      .filter((j) => j.status !== "completed" && j.status !== "cancelled" && j.vehicleId)
+      .map((j) => j.vehicleId!)
+  );
+  const availableVehicles = vehicles.filter((v) => !busyVehicleIds.has(v.id));
+  const busyVehicles = vehicles.filter((v) => busyVehicleIds.has(v.id));
+
   return {
     driverCount: drivers.length,
     vehicleCount: vehicles.length,
     todayJobs,
+    availableVehicles,
+    busyVehicles,
     monthFuel: monthFuel._sum.totalAmount ?? 0,
     monthFuelLiters: monthFuel._sum.liters ?? 0,
     monthIncome: monthIncome._sum.amount ?? 0,
@@ -278,6 +289,50 @@ export default async function DashboardPage() {
           <div className="flex-1 overflow-y-auto" style={{ maxHeight: 380 }}>
             <TodayJobs initialJobs={data.todayJobs} />
           </div>
+        </div>
+      </div>
+
+      {/* ===== MÜSAİT ARAÇLAR ===== */}
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-100">
+        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+          <h2 className="font-bold text-slate-800 flex items-center gap-2">
+            <CheckCircle className="w-5 h-5 text-green-500" />
+            Araç Durumu
+          </h2>
+          <div className="flex items-center gap-3 text-xs">
+            <span className="flex items-center gap-1.5 text-green-700 font-medium">
+              <span className="w-2 h-2 rounded-full bg-green-500 inline-block" />
+              {data.availableVehicles.length} müsait
+            </span>
+            <span className="flex items-center gap-1.5 text-slate-500 font-medium">
+              <span className="w-2 h-2 rounded-full bg-slate-400 inline-block" />
+              {data.busyVehicles.length} seferde
+            </span>
+          </div>
+        </div>
+        <div className="p-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
+          {[...data.availableVehicles.map(v => ({ ...v, busy: false })), ...data.busyVehicles.map(v => ({ ...v, busy: true }))].map((v) => (
+            <Link
+              key={v.id}
+              href={`/panel/araclar/${v.id}`}
+              className={`flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all hover:shadow-sm ${
+                v.busy
+                  ? "border-slate-200 bg-slate-50 opacity-70 hover:opacity-100"
+                  : "border-green-200 bg-green-50 hover:border-green-300"
+              }`}
+            >
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white text-xs font-bold ${v.busy ? "bg-slate-400" : "bg-green-500"}`}>
+                {v.plate.slice(-3)}
+              </div>
+              <div className="text-center">
+                <div className="text-xs font-bold text-slate-700 leading-tight">{v.plate}</div>
+                <div className="text-xs text-slate-400 mt-0.5">{v.busy ? "Seferde" : "Müsait"}</div>
+              </div>
+            </Link>
+          ))}
+          {data.availableVehicles.length === 0 && data.busyVehicles.length === 0 && (
+            <p className="col-span-full text-sm text-slate-400 text-center py-4">Aktif araç yok</p>
+          )}
         </div>
       </div>
 
