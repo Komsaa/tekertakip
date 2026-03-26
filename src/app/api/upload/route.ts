@@ -20,6 +20,8 @@ const VEHICLE_FILE_FIELDS: Record<string, string> = {
   routePermit: "routePermitFile",
   approval: "approvalFile",
   kasko: "kaskoFile",
+  ruhsat: "ruhsatFile",
+  photo: "photo",
 };
 
 export async function POST(request: Request) {

@@ -106,7 +106,7 @@ async function getDashboardData() {
   // Araç belgeleri
   for (const v of vehicles) {
     const vehicleDocs = [
-      { key: "inspection", label: "Muayene (6 ay)", expiry: v.inspectionExpiry },
+      { key: "inspection", label: "Muayene (1 yıl)", expiry: v.inspectionExpiry },
       { key: "insurance", label: "Trafik Sigortası", expiry: v.insuranceExpiry },
       { key: "routePermit", label: "Güzergah İzni", expiry: v.routePermitExpiry },
       { key: "approval", label: "Uygunluk Belgesi", expiry: v.approvalExpiry },

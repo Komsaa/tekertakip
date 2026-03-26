@@ -122,9 +122,12 @@ model Vehicle {
   routePermitExpiry DateTime?
   routePermitFile   String?
 
-  // Teknik Muayene - TÜVTÜRK (ticari araçlar 6 ayda bir!)
+  // Teknik Muayene - TÜVTÜRK (yıllık)
   inspectionExpiry DateTime?
   inspectionFile   String?
+
+  // Araç Ruhsatı
+  ruhsatFile String?
 
   // Zorunlu Trafik Sigortası (yıllık)
   insuranceCompany  String?

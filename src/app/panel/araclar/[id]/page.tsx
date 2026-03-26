@@ -6,6 +6,7 @@ import { ArrowLeft, Fuel, FileText, User } from "lucide-react";
 import EditVehicleForm from "./EditVehicleForm";
 import DocRow from "@/components/DocRow";
 import ExtraDocuments from "@/components/ExtraDocuments";
+import VehiclePhoto from "./VehiclePhoto";
 
 interface Props { params: { id: string } }
 
@@ -53,13 +54,25 @@ export default async function VehicleDetailPage({ params }: Props) {
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         <div className="xl:col-span-2 space-y-4">
+          {/* Fotoğraf + Ruhsat */}
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+            <h2 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
+              <User className="w-5 h-5 text-slate-500" />
+              Araç Fotoğrafı ve Ruhsat
+            </h2>
+            <VehiclePhoto vehicleId={vehicle.id} photoUrl={vehicle.photo ?? null} />
+            <div className="mt-4">
+              <DocRow label="Araç Ruhsatı" expiry={null} entityType="vehicle" entityId={vehicle.id} docType="ruhsat" fileUrl={vehicle.ruhsatFile ?? null} />
+            </div>
+          </div>
+
           {/* Belgeler */}
           <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
             <h2 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
               <FileText className="w-5 h-5 text-[#DC2626]" />
               Araç Belgeleri
             </h2>
-            <DocRow label="Teknik Muayene (TÜVTÜRK)" expiry={vehicle.inspectionExpiry} entityType="vehicle" entityId={vehicle.id} docType="inspection" fileUrl={vehicle.inspectionFile} notes="Ticari araçlar 6 ayda bir — ÇOK ÖNEMLİ!" />
+            <DocRow label="Teknik Muayene (TÜVTÜRK)" expiry={vehicle.inspectionExpiry} entityType="vehicle" entityId={vehicle.id} docType="inspection" fileUrl={vehicle.inspectionFile} notes="Yılda bir yenilenir" />
             <DocRow label="Zorunlu Trafik Sigortası" expiry={vehicle.insuranceExpiry} entityType="vehicle" entityId={vehicle.id} docType="insurance" fileUrl={vehicle.insuranceFile} notes={vehicle.insurancePolicyNo ? `Poliçe: ${vehicle.insurancePolicyNo}` : undefined} />
             <DocRow label="Güzergah İzin Belgesi" expiry={vehicle.routePermitExpiry} entityType="vehicle" entityId={vehicle.id} docType="routePermit" fileUrl={vehicle.routePermitFile} />
             <DocRow label="Okul Servisi Uygunluk / J Plaka" expiry={vehicle.approvalExpiry} entityType="vehicle" entityId={vehicle.id} docType="approval" fileUrl={vehicle.approvalFile} notes="Her yıl Eylülde yenilenir" />
