@@ -35,10 +35,13 @@ export default async function DriverDetailPage({ params }: Props) {
   const driver = await getDriver(params.id);
   if (!driver) notFound();
 
-  const extraDocs = await (await import("@/lib/prisma")).prisma.document.findMany({
-    where: { entityType: "driver", entityId: params.id },
-    orderBy: { createdAt: "desc" },
-  });
+  let extraDocs: Awaited<ReturnType<typeof prisma.document.findMany>> = [];
+  try {
+    extraDocs = await prisma.document.findMany({
+      where: { entityType: "driver", entityId: params.id },
+      orderBy: { createdAt: "desc" },
+    });
+  } catch { /* Document tablosu henüz oluşmadıysa sessizce geç */ }
 
   const statusLabels: Record<string, string> = {
     planned: "Planlandı",

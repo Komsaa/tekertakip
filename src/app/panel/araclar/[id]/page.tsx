@@ -25,10 +25,13 @@ export default async function VehicleDetailPage({ params }: Props) {
   const vehicle = await getVehicle(params.id);
   if (!vehicle) notFound();
 
-  const extraDocs = await (await import("@/lib/prisma")).prisma.document.findMany({
-    where: { entityType: "vehicle", entityId: params.id },
-    orderBy: { createdAt: "desc" },
-  });
+  let extraDocs: Awaited<ReturnType<typeof prisma.document.findMany>> = [];
+  try {
+    extraDocs = await prisma.document.findMany({
+      where: { entityType: "vehicle", entityId: params.id },
+      orderBy: { createdAt: "desc" },
+    });
+  } catch { /* Document tablosu henüz oluşmadıysa sessizce geç */ }
 
   const totalFuel = vehicle.fuelEntries.reduce((s, e) => s + e.totalAmount, 0);
   const totalLiters = vehicle.fuelEntries.reduce((s, e) => s + e.liters, 0);
