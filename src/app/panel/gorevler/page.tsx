@@ -24,11 +24,11 @@ async function getData() {
     const monthEnd = endOfMonth(now);
     const q3Start = subMonths(now, 3);
 
-    function inRange(t: typeof tasks[0], start: Date, end: Date) {
+    const inRange = (t: typeof tasks[0], start: Date, end: Date) => {
       if (!t.dueDate) return false;
       const d = new Date(t.dueDate);
       return d >= start && d <= end;
-    }
+    };
 
     const summaries = {
       daily: {
