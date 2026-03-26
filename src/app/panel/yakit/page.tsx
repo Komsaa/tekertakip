@@ -10,8 +10,8 @@ async function getData() {
       take: 100,
       include: { vehicle: true, driver: true },
     }),
-    prisma.vehicle.findMany({ where: { status: "active" }, orderBy: { plate: "asc" }, select: { id: true, plate: true, brand: true, model: true } }),
-    prisma.driver.findMany({ where: { status: "active" }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    prisma.vehicle.findMany({ where: { status: "active" }, orderBy: { plate: "asc" }, select: { id: true, plate: true, brand: true, model: true } }).catch(() => []),
+    prisma.driver.findMany({ where: { status: "active" }, orderBy: { name: "asc" }, select: { id: true, name: true } }).catch(() => []),
     prisma.fuelEntry.groupBy({
       by: ["vehicleId"],
       _sum: { totalAmount: true, liters: true },

@@ -19,7 +19,7 @@ async function getData() {
       where: { status: "active" },
       select: { id: true, name: true },
       orderBy: { name: "asc" },
-    }),
+    }).catch(() => []),
   ]);
 
   // Son 6 ayın aylık özeti

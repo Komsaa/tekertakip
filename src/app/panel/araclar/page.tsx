@@ -11,7 +11,7 @@ async function getVehicles() {
       drivers: { select: { id: true, name: true } },
       _count: { select: { jobs: true, fuelEntries: true } },
     },
-  });
+  }).catch(() => []);
 }
 
 export default async function VehiclesPage() {

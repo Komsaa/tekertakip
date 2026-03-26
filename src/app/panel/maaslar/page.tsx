@@ -7,7 +7,7 @@ async function getData() {
       where: { status: "active" },
       orderBy: { name: "asc" },
       select: { id: true, name: true, phone: true },
-    }),
+    }).catch(() => []),
     prisma.salary.findMany({
       include: { driver: { select: { id: true, name: true } } },
       orderBy: [{ year: "desc" }, { month: "desc" }],

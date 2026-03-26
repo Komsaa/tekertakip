@@ -12,8 +12,8 @@ async function getData() {
 
   const [tasks, vehicles, drivers] = await Promise.all([
     prisma.task.findMany({ orderBy: [{ status: "asc" }, { dueDate: "asc" }] }),
-    prisma.vehicle.findMany({ where: { status: "active" }, select: { id: true, plate: true } }),
-    prisma.driver.findMany({ where: { status: "active" }, select: { id: true, name: true } }),
+    prisma.vehicle.findMany({ where: { status: "active" }, select: { id: true, plate: true } }).catch(() => []),
+    prisma.driver.findMany({ where: { status: "active" }, select: { id: true, name: true } }).catch(() => []),
   ]);
 
   // Özet hesaplamaları

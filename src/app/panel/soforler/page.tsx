@@ -17,7 +17,7 @@ async function getDrivers() {
   return prisma.driver.findMany({
     orderBy: { name: "asc" },
     include: { vehicle: true, _count: { select: { jobs: true } } },
-  });
+  }).catch(() => []);
 }
 
 function DocBadge({

@@ -13,12 +13,12 @@ async function getData() {
       where: { status: "active" },
       orderBy: { name: "asc" },
       select: { id: true, name: true },
-    }),
+    }).catch(() => []),
     prisma.vehicle.findMany({
       where: { status: "active" },
       orderBy: { plate: "asc" },
       select: { id: true, plate: true, brand: true, model: true },
-    }),
+    }).catch(() => []),
   ]);
   return { jobs, drivers, vehicles };
 }
