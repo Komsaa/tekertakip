@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, MapPin, Trash2, Edit2, CheckCircle, Clock, ChevronDown, ChevronUp, Search, X, GripVertical } from "lucide-react";
+import { Plus, MapPin, Trash2, Edit2, CheckCircle, Clock, ChevronDown, ChevronUp, Search, X, GripVertical, Link2 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { computeLiveStatus, type RouteStop } from "@/lib/routeStatus";
 
@@ -51,6 +51,10 @@ export default function GuzergahlarClient({
   const [notes, setNotes] = useState("");
   const [stops, setStops] = useState<Stop[]>([]);
   const [saving, setSaving] = useState(false);
+
+  // Google Maps import
+  const [gmapsUrl, setGmapsUrl] = useState("");
+  const [gmapsLoading, setGmapsLoading] = useState(false);
 
   // Harita stop ekleme
   const [pendingStopIdx, setPendingStopIdx] = useState<number | null>(null);
@@ -103,6 +107,34 @@ export default function GuzergahlarClient({
     const next = [...stops];
     [next[i], next[j]] = [next[j], next[i]];
     setStops(next.map((s, idx) => ({ ...s, order: idx })));
+  }
+
+  async function importFromGmaps() {
+    if (!gmapsUrl.trim()) return;
+    setGmapsLoading(true);
+    try {
+      const res = await fetch("/api/parse-gmaps-route", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: gmapsUrl.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) { alert(data.error ?? "Hata"); return; }
+      const imported = (data.stops as { name: string; lat: number | null; lng: number | null }[]).map((s, i) => ({
+        order: i,
+        name: s.name,
+        lat: s.lat,
+        lng: s.lng,
+        estimatedTime: "",
+      }));
+      setStops(imported);
+      setGmapsUrl("");
+      alert(`${imported.length} durak aktarıldı! Şimdi saatleri gir.`);
+    } catch {
+      alert("Bağlantı hatası");
+    } finally {
+      setGmapsLoading(false);
+    }
   }
 
   async function geocode(i: number) {
@@ -346,6 +378,38 @@ export default function GuzergahlarClient({
                     <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} className="w-4 h-4 accent-[#DC2626]" />
                     <span className="text-sm text-slate-700">Aktif</span>
                   </label>
+                </div>
+              </div>
+
+              {/* Google Maps'ten yükle */}
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Link2 className="w-4 h-4 text-blue-600" />
+                  <span className="text-sm font-semibold text-blue-800">Google Maps&apos;ten Güzergah Yükle</span>
+                </div>
+                <p className="text-xs text-blue-600 mb-3">
+                  Google Maps&apos;te yol tarifi oluştur → Paylaş → linki buraya yapıştır. Duraklar otomatik gelir, sadece saatleri girersin.
+                </p>
+                <div className="flex gap-2">
+                  <input
+                    value={gmapsUrl}
+                    onChange={(e) => setGmapsUrl(e.target.value)}
+                    placeholder="https://maps.app.goo.gl/... veya https://www.google.com/maps/dir/..."
+                    className="flex-1 border border-blue-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
+                    onKeyDown={(e) => e.key === "Enter" && importFromGmaps()}
+                  />
+                  <button
+                    onClick={importFromGmaps}
+                    disabled={gmapsLoading || !gmapsUrl.trim()}
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold disabled:opacity-50 transition-colors"
+                  >
+                    {gmapsLoading ? (
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <Link2 className="w-4 h-4" />
+                    )}
+                    {gmapsLoading ? "Yükleniyor..." : "Yükle"}
+                  </button>
                 </div>
               </div>
 
