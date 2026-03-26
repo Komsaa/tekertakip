@@ -25,7 +25,7 @@ async function getDashboardData() {
   const monthStart = startOfMonth(today);
   const monthEnd = endOfMonth(today);
 
-  const [drivers, vehicles, todayJobs, monthFuel, monthIncome, monthExpense, recentFuel, urgentTasks, activeRoutes] =
+  const [drivers, vehicles, todayJobs, monthFuel, monthIncome, monthExpense, recentFuel, activeRoutes, urgentTasks] =
     await Promise.all([
       prisma.driver.findMany({ where: { status: "active" } }),
       prisma.vehicle.findMany({ where: { status: "active" } }),
