@@ -3,10 +3,8 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, MapPin, Trash2, Edit2, CheckCircle, Clock, ChevronDown, ChevronUp, Search, X, GripVertical, Link2 } from "lucide-react";
-import dynamic from "next/dynamic";
 import { computeLiveStatus, type RouteStop } from "@/lib/routeStatus";
-
-const RouteMap = dynamic(() => import("@/components/RouteMap"), { ssr: false });
+import RouteMap from "@/components/RouteMap";
 
 interface Driver { id: string; name: string }
 interface Vehicle { id: string; plate: string; brand?: string | null; model?: string | null }
