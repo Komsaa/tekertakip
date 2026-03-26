@@ -10,16 +10,7 @@ import VehiclePhoto from "./VehiclePhoto";
 
 interface Props { params: { id: string } }
 
-type VehicleWithRelations = NonNullable<Awaited<ReturnType<typeof prisma.vehicle.findUnique<{
-  where: { id: string };
-  include: {
-    drivers: true;
-    jobs: { take: 10; orderBy: { date: "desc" }; include: { driver: true } };
-    fuelEntries: { take: 10; orderBy: { date: "desc" }; include: { driver: true } };
-  };
-}>>>;
-
-async function getVehicle(id: string): Promise<VehicleWithRelations | null> {
+async function getVehicle(id: string) {
   try {
     return await prisma.vehicle.findUnique({
       where: { id },
@@ -34,7 +25,7 @@ async function getVehicle(id: string): Promise<VehicleWithRelations | null> {
     try {
       const v = await prisma.vehicle.findUnique({ where: { id } });
       if (!v) return null;
-      return { ...v, drivers: [], jobs: [], fuelEntries: [] } as unknown as VehicleWithRelations;
+      return { ...v, drivers: [] as any[], jobs: [] as any[], fuelEntries: [] as any[] };
     } catch {
       return null;
     }

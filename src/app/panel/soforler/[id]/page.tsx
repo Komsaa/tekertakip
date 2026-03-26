@@ -11,16 +11,7 @@ interface Props {
   params: { id: string };
 }
 
-type DriverWithRelations = NonNullable<Awaited<ReturnType<typeof prisma.driver.findUnique<{
-  where: { id: string };
-  include: {
-    vehicle: true;
-    jobs: { take: 10; orderBy: { date: "desc" }; include: { vehicle: true } };
-    fuelEntries: { take: 5; orderBy: { createdAt: "desc" }; include: { vehicle: true } };
-  };
-}>>>;
-
-async function getDriver(id: string): Promise<DriverWithRelations | null> {
+async function getDriver(id: string) {
   try {
     return await prisma.driver.findUnique({
       where: { id },
@@ -35,7 +26,7 @@ async function getDriver(id: string): Promise<DriverWithRelations | null> {
     try {
       const d = await prisma.driver.findUnique({ where: { id } });
       if (!d) return null;
-      return { ...d, vehicle: null, jobs: [], fuelEntries: [] } as unknown as DriverWithRelations;
+      return { ...d, vehicle: null as any, jobs: [] as any[], fuelEntries: [] as any[] };
     } catch {
       return null;
     }
