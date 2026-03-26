@@ -34,12 +34,14 @@ export async function POST(req: NextRequest) {
     const repeatDays = parseInt(b.repeatDays) || 0;
 
     if (repeatDays > 0) {
-      // Tekrarlayan: başlangıç tarihinden itibaren repeatDays gün boyunca oluştur
       const startDate = new Date(b.date);
+      const weekdaysOnly = b.weekdaysOnly === true;
       const creates = [];
       for (let i = 0; i < repeatDays; i++) {
         const d = new Date(startDate);
         d.setDate(d.getDate() + i);
+        const dow = d.getDay(); // 0=Pazar, 6=Cumartesi
+        if (weekdaysOnly && (dow === 0 || dow === 6)) continue;
         creates.push({ ...baseData, date: d });
       }
       await prisma.job.createMany({ data: creates });

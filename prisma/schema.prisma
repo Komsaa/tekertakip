@@ -99,6 +99,7 @@ model Driver {
   jobs        Job[]
   fuelEntries FuelEntry[]
   salaries    Salary[]
+  routes      Route[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -148,6 +149,7 @@ model Vehicle {
   drivers     Driver[]
   jobs        Job[]
   fuelEntries FuelEntry[]
+  routes      Route[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -363,6 +365,35 @@ model Document {
   entityId   String
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
+}
+
+// ============ GÜZERGAHLAR ============
+model Route {
+  id           String      @id @default(cuid())
+  name         String
+  type         String      @default("okul") // okul, personel, özel, transfer
+  driverId     String?
+  vehicleId    String?
+  weekdaysOnly Boolean     @default(true)
+  active       Boolean     @default(true)
+  notes        String?     @db.Text
+  driver       Driver?     @relation(fields: [driverId], references: [id])
+  vehicle      Vehicle?    @relation(fields: [vehicleId], references: [id])
+  stops        RouteStop[]
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+}
+
+model RouteStop {
+  id            String  @id @default(cuid())
+  routeId       String
+  route         Route   @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  order         Int
+  name          String
+  lat           Float?
+  lng           Float?
+  estimatedTime String  // "07:30"
+  notes         String?
 }
 
 // ============ AYARLAR ============

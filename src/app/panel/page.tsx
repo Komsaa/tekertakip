@@ -18,13 +18,14 @@ import Link from "next/link";
 import { startOfMonth, endOfMonth, endOfDay } from "date-fns";
 import { CheckSquare } from "lucide-react";
 import TodayJobs from "@/components/TodayJobs";
+import LiveRoutes from "@/components/LiveRoutes";
 
 async function getDashboardData() {
   const today = new Date();
   const monthStart = startOfMonth(today);
   const monthEnd = endOfMonth(today);
 
-  const [drivers, vehicles, todayJobs, monthFuel, monthIncome, monthExpense, recentFuel, urgentTasks] =
+  const [drivers, vehicles, todayJobs, monthFuel, monthIncome, monthExpense, recentFuel, urgentTasks, activeRoutes] =
     await Promise.all([
       prisma.driver.findMany({ where: { status: "active" } }),
       prisma.vehicle.findMany({ where: { status: "active" } }),
@@ -54,6 +55,12 @@ async function getDashboardData() {
         take: 5,
         orderBy: { createdAt: "desc" },
         include: { vehicle: true, driver: true },
+      }),
+      // Aktif güzergahlar
+      prisma.route.findMany({
+        where: { active: true },
+        include: { driver: true, vehicle: true, stops: { orderBy: { order: "asc" } } },
+        orderBy: { createdAt: "asc" },
       }),
       // Acil + bugün vadesi gelen görevler
       prisma.task.findMany({
@@ -163,6 +170,7 @@ async function getDashboardData() {
     todayJobs,
     availableVehicles,
     busyVehicles,
+    activeRoutes,
     monthFuel: monthFuel._sum.totalAmount ?? 0,
     monthFuelLiters: monthFuel._sum.liters ?? 0,
     monthIncome: monthIncome._sum.amount ?? 0,
@@ -257,7 +265,7 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      {/* ===== HARİTA + ARAÇ DURUMU ===== */}
+      {/* ===== HARİTA + CANLÜ GÜZERGAHLAR + ARAÇ DURUMU ===== */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         {/* Harita */}
         <div className="xl:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
@@ -266,7 +274,7 @@ export default async function DashboardPage() {
               <MapPin className="w-5 h-5 text-[#DC2626]" />
               Filom
             </h2>
-            <span className="text-xs text-slate-400 bg-slate-50 px-2 py-1 rounded-full">Canlı takip: Arvento entegrasyonu yakında</span>
+            <span className="text-xs text-slate-400 bg-slate-50 px-2 py-1 rounded-full">Canlı GPS: Arvento entegrasyonu yakında</span>
           </div>
           <div className="relative" style={{ height: 380 }}>
             <iframe
@@ -277,18 +285,32 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        {/* Bugünkü Araçlar */}
+        {/* Canlı Güzergahlar */}
         <div className="bg-white rounded-2xl shadow-sm border border-slate-100 flex flex-col">
           <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
             <h2 className="font-bold text-slate-800 flex items-center gap-2">
-              <Clock className="w-5 h-5 text-blue-500" />
-              Bugünkü Seferler
+              <MapPin className="w-5 h-5 text-green-500" />
+              Canlı Güzergahlar
             </h2>
-            <Link href="/panel/isler" className="text-xs text-[#DC2626] hover:underline font-medium">Tümü</Link>
+            <Link href="/panel/guzergahlar" className="text-xs text-[#DC2626] hover:underline font-medium">Yönet</Link>
           </div>
           <div className="flex-1 overflow-y-auto" style={{ maxHeight: 380 }}>
-            <TodayJobs initialJobs={data.todayJobs} />
+            <LiveRoutes initialRoutes={data.activeRoutes} />
           </div>
+        </div>
+      </div>
+
+      {/* ===== BUGÜNKÜ SEFERLER (manuel) ===== */}
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-100">
+        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+          <h2 className="font-bold text-slate-800 flex items-center gap-2">
+            <Clock className="w-5 h-5 text-blue-500" />
+            Bugünkü Manuel Seferler
+          </h2>
+          <Link href="/panel/isler" className="text-xs text-[#DC2626] hover:underline font-medium">Tümü</Link>
+        </div>
+        <div className="max-h-72 overflow-y-auto">
+          <TodayJobs initialJobs={data.todayJobs} />
         </div>
       </div>
 
@@ -411,82 +433,6 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        {/* Bugünkü Seferler */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100">
-          <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-            <h2 className="font-bold text-slate-800 flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-blue-500" />
-              Bugünkü Seferler
-            </h2>
-            <Link
-              href="/panel/isler"
-              className="text-xs text-[#DC2626] hover:underline font-medium"
-            >
-              Tümünü gör
-            </Link>
-          </div>
-
-          <div className="divide-y divide-slate-50">
-            {data.todayJobs.length === 0 ? (
-              <div className="px-6 py-8 text-center text-slate-400">
-                <Calendar className="w-10 h-10 text-slate-200 mx-auto mb-2" />
-                <p className="font-medium text-slate-500">Bugün sefer yok</p>
-                <Link
-                  href="/panel/isler"
-                  className="text-sm text-[#DC2626] hover:underline mt-1 inline-block"
-                >
-                  Sefer ekle
-                </Link>
-              </div>
-            ) : (
-              data.todayJobs.map((job) => {
-                const statusColors: Record<string, string> = {
-                  planned: "bg-blue-100 text-blue-700",
-                  active: "bg-green-100 text-green-700",
-                  completed: "bg-slate-100 text-slate-500",
-                  cancelled: "bg-red-100 text-red-600",
-                };
-                const statusLabels: Record<string, string> = {
-                  planned: "Planlandı",
-                  active: "Aktif",
-                  completed: "Tamamlandı",
-                  cancelled: "İptal",
-                };
-                return (
-                  <div
-                    key={job.id}
-                    className="px-6 py-3.5 flex items-center gap-4"
-                  >
-                    <div className="flex-shrink-0 text-center">
-                      <div className="text-sm font-bold text-slate-700">
-                        {job.startTime}
-                      </div>
-                      {job.endTime && (
-                        <div className="text-xs text-slate-400">{job.endTime}</div>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-slate-800 text-sm truncate">
-                        {job.title}
-                      </div>
-                      <div className="text-xs text-slate-500">
-                        {job.driver?.name ?? "Şöför atanmadı"} ·{" "}
-                        {job.vehicle?.plate ?? "Araç atanmadı"}
-                      </div>
-                    </div>
-                    <span
-                      className={`text-xs px-2 py-1 rounded-full font-medium flex-shrink-0 ${
-                        statusColors[job.status] ?? "bg-slate-100 text-slate-500"
-                      }`}
-                    >
-                      {statusLabels[job.status] ?? job.status}
-                    </span>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </div>
       </div>
 
       {/* ===== SON YAKIT GİRİŞLERİ ===== */}

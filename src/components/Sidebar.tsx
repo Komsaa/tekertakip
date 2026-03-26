@@ -18,6 +18,7 @@ import {
   Menu,
   X,
   Banknote,
+  Route,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -43,6 +44,11 @@ const navItems = [
     href: "/panel/isler",
     icon: ClipboardList,
     label: "İşler / Seferler",
+  },
+  {
+    href: "/panel/guzergahlar",
+    icon: Route,
+    label: "Güzergahlar",
   },
   {
     href: "/panel/yakit",

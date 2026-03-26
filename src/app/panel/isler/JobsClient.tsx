@@ -66,6 +66,7 @@ const emptyForm = {
   status: "planned",
   notes: "",
   repeatDays: "0",
+  weekdaysOnly: false,
 };
 
 export default function JobsClient({ jobs: initialJobs, drivers, vehicles }: Props) {
@@ -111,6 +112,7 @@ export default function JobsClient({ jobs: initialJobs, drivers, vehicles }: Pro
       status: job.status,
       notes: job.notes ?? "",
       repeatDays: "0",
+      weekdaysOnly: false,
     });
     setShowModal(true);
   }
@@ -125,7 +127,7 @@ export default function JobsClient({ jobs: initialJobs, drivers, vehicles }: Pro
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, weekdaysOnly: form.weekdaysOnly }),
       });
       if (!res.ok) throw new Error();
       toast.success(editJob ? "Güncellendi!" : "İş eklendi!");
@@ -434,25 +436,56 @@ export default function JobsClient({ jobs: initialJobs, drivers, vehicles }: Pro
                 <input type="number" value={form.revenue} onChange={(e) => set("revenue", e.target.value)} placeholder="0" step="0.01" />
               </div>
               {!editJob && (
-                <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
-                  <label className="text-blue-800 font-semibold text-sm mb-2 block">Tekrarlayan Sefer</label>
-                  <p className="text-xs text-blue-600 mb-3">Her gün aynı saatte gidiyorsa, kaç gün boyunca otomatik oluşturulsun?</p>
-                  <div className="flex gap-2">
-                    {[["0", "Tek seferlik"], ["30", "30 gün"], ["60", "60 gün"], ["90", "90 gün"]].map(([val, label]) => (
-                      <button
-                        key={val}
-                        type="button"
-                        onClick={() => set("repeatDays", val)}
-                        className={`flex-1 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
-                          form.repeatDays === val
-                            ? "bg-blue-600 text-white border-blue-600"
-                            : "bg-white text-blue-700 border-blue-200 hover:bg-blue-50"
-                        }`}
-                      >
-                        {label}
-                      </button>
-                    ))}
+                <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 space-y-3">
+                  <div>
+                    <label className="text-blue-800 font-semibold text-sm mb-2 block">Tekrarlayan Sefer</label>
+                    <p className="text-xs text-blue-600 mb-2">Kaç gün boyunca otomatik oluşturulsun?</p>
+                    <div className="flex gap-2">
+                      {[["0", "Tek seferlik"], ["30", "30 gün"], ["60", "60 gün"], ["90", "90 gün"]].map(([val, lbl]) => (
+                        <button
+                          key={val}
+                          type="button"
+                          onClick={() => set("repeatDays", val)}
+                          className={`flex-1 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
+                            form.repeatDays === val
+                              ? "bg-blue-600 text-white border-blue-600"
+                              : "bg-white text-blue-700 border-blue-200 hover:bg-blue-50"
+                          }`}
+                        >
+                          {lbl}
+                        </button>
+                      ))}
+                    </div>
                   </div>
+                  {form.repeatDays !== "0" && (
+                    <div>
+                      <label className="text-blue-800 font-semibold text-sm mb-2 block">Hangi günler?</label>
+                      <div className="flex gap-2">
+                        {[
+                          [false, "Her gün"],
+                          [true, "Hafta içi (Pzt–Cum)"],
+                        ].map(([val, lbl]) => (
+                          <button
+                            key={String(val)}
+                            type="button"
+                            onClick={() => setForm((f) => ({ ...f, weekdaysOnly: val as boolean }))}
+                            className={`flex-1 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
+                              form.weekdaysOnly === val
+                                ? "bg-blue-600 text-white border-blue-600"
+                                : "bg-white text-blue-700 border-blue-200 hover:bg-blue-50"
+                            }`}
+                          >
+                            {lbl as string}
+                          </button>
+                        ))}
+                      </div>
+                      <p className="text-xs text-blue-500 mt-1.5">
+                        {form.weekdaysOnly
+                          ? "Cumartesi ve Pazar atlanır — okul/personel servisi için ideal"
+                          : "Cumartesi ve Pazar dahil her gün oluşturulur"}
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
               <div>
