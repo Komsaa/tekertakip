@@ -3,11 +3,8 @@
 
 const { PrismaClient } = require("@prisma/client");
 
-const OLD_DB = process.env.OLD_DB;
-if (!OLD_DB) {
-  console.error("OLD_DB env değişkeni gerekli");
-  process.exit(1);
-}
+const OLD_DB = process.env.OLD_DB ||
+  "postgres://postgres:rSrHaPt2K4NnAxeTcenGb2g92eWk9RKjVpwJ9tOc3bkAyJfB10xmwywpo0YmVH29@skk8gcco0w0c8cgwwkksoc84:5432/postgres";
 
 const src = new PrismaClient({ datasources: { db: { url: OLD_DB } } });
 const dst = new PrismaClient(); // DATABASE_URL kullanır
