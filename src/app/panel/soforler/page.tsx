@@ -16,8 +16,12 @@ import AddDriverModal from "./AddDriverModal";
 async function getDrivers() {
   return prisma.driver.findMany({
     orderBy: { name: "asc" },
-    include: { vehicle: true, _count: { select: { jobs: true } } },
+    include: { vehicle: true, company: { select: { id: true, name: true } }, _count: { select: { jobs: true } } },
   }).catch(() => []);
+}
+
+async function getCompanies() {
+  return prisma.company.findMany({ where: { active: true }, orderBy: { name: "asc" }, select: { id: true, name: true, code: true } }).catch(() => []);
 }
 
 function DocBadge({
@@ -51,7 +55,7 @@ function DocBadge({
 }
 
 export default async function DriversPage() {
-  const drivers = await getDrivers();
+  const [drivers, companies] = await Promise.all([getDrivers(), getCompanies()]);
 
   const activeCount = drivers.filter((d) => d.status === "active").length;
   const hasAlertCount = drivers.filter((d) => {
@@ -76,7 +80,7 @@ export default async function DriversPage() {
             )}
           </p>
         </div>
-        <AddDriverModal />
+        <AddDriverModal companies={companies} />
       </div>
 
       {/* Şöför Kartları */}
@@ -85,7 +89,7 @@ export default async function DriversPage() {
           <User className="w-16 h-16 text-slate-200 mx-auto mb-4" />
           <h3 className="text-lg font-bold text-slate-600 mb-2">Henüz şöför eklenmedi</h3>
           <p className="text-slate-400 text-sm mb-6">İlk şöförünüzü ekleyin</p>
-          <AddDriverModal />
+          <AddDriverModal companies={companies} />
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

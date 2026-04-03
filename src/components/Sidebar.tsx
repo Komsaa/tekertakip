@@ -20,6 +20,8 @@ import {
   Banknote,
   Route,
   CreditCard,
+  CalendarDays,
+  Building2,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -77,9 +79,19 @@ const navItems = [
     label: "Kredi Kartları",
   },
   {
+    href: "/panel/takvim",
+    icon: CalendarDays,
+    label: "Ödeme Takvimi",
+  },
+  {
     href: "/panel/gorevler",
     icon: CheckSquare,
     label: "Görevlerim",
+  },
+  {
+    href: "/panel/sirketler",
+    icon: Building2,
+    label: "Şirketler",
   },
   {
     href: "/panel/ayarlar",
@@ -106,18 +118,14 @@ export default function Sidebar({ userName }: SidebarProps) {
       {/* Logo */}
       <div className="p-5 border-b border-white/10">
         <Link href="/panel" className="flex items-center gap-3" onClick={() => setMobileOpen(false)}>
-          <Image
-            src="/logo.png"
-            alt="Mert Tur"
-            width={40}
-            height={40}
-            className="rounded-xl"
-          />
+          <div className="w-9 h-9 bg-[#DC2626] rounded-xl flex items-center justify-center flex-shrink-0">
+            <span className="text-white font-black text-sm">TT</span>
+          </div>
           <div>
-            <div className="text-white font-black text-lg leading-tight">
-              MERT <span className="font-light">TUR</span>
+            <div className="text-white font-black text-base leading-tight">
+              teker<span className="text-[#DC2626]">takip</span>
             </div>
-            <div className="text-slate-400 text-xs">Yönetim Paneli</div>
+            <div className="text-slate-500 text-xs">tekertakip.com</div>
           </div>
         </Link>
       </div>

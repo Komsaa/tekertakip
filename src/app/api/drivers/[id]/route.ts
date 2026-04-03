@@ -39,6 +39,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
         healthReportExpiry: parseDate(body.healthReportExpiry),
         address: body.address || null,
         notes: body.notes || null,
+        ...(body.mobilePin !== undefined && { mobilePin: body.mobilePin || null }),
       },
     });
     return NextResponse.json(driver);

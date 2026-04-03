@@ -5,7 +5,9 @@ import { Plus, X, User } from "lucide-react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 
-export default function AddDriverModal() {
+type Company = { id: string; name: string; code: string };
+
+export default function AddDriverModal({ companies = [] }: { companies?: Company[] }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -19,6 +21,7 @@ export default function AddDriverModal() {
     criminalRecordExpiry: "",
     healthReportExpiry: "",
     notes: "",
+    companyId: companies[0]?.id ?? "",
   });
 
   function set(field: string, value: string) {
@@ -51,6 +54,7 @@ export default function AddDriverModal() {
         criminalRecordExpiry: "",
         healthReportExpiry: "",
         notes: "",
+        companyId: companies[0]?.id ?? "",
       });
       router.refresh();
     } catch {
@@ -115,6 +119,17 @@ export default function AddDriverModal() {
                     placeholder="05XX XXX XX XX"
                   />
                 </div>
+                {companies.length > 0 && (
+                  <div className="col-span-2">
+                    <label>Şirket</label>
+                    <select value={form.companyId} onChange={(e) => set("companyId", e.target.value)}>
+                      <option value="">Seçin...</option>
+                      {companies.map((c) => (
+                        <option key={c.id} value={c.id}>{c.name} ({c.code})</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 <div>
                   <label>Ehliyet Sınıfı</label>
                   <select

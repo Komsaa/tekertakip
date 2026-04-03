@@ -37,6 +37,7 @@ export async function POST(req: NextRequest) {
         address: body.address || null,
         notes: body.notes || null,
         status: body.status || "active",
+        companyId: body.companyId || null,
       },
     });
     return NextResponse.json(driver, { status: 201 });

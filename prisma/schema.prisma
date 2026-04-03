@@ -7,6 +7,19 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ============ ŞİRKETLER (Multi-tenant) ============
+model Company {
+  id           String   @id @default(cuid())
+  name         String                        // "Mert Tur"
+  code         String   @unique             // giriş kodu: "MT2024" - şöförler bunu kullanır
+  driverLimit  Int      @default(10)        // max kaç şöför ekleyebilir
+  active       Boolean  @default(true)
+  notes        String?  @db.Text
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  drivers      Driver[]
+}
+
 // ============ AUTH (NextAuth) ============
 model Account {
   id                String  @id @default(cuid())
@@ -92,6 +105,14 @@ model Driver {
   address          String?
   residenceDocDate DateTime?
   residenceDocFile String?
+
+  // Mobil uygulama erişimi
+  mobilePin   String? // şöförün mobil şifresi (admin tarafından atanır)
+  mobileToken String? @unique // login sonrası oluşturulan token
+
+  // Şirket ilişkisi
+  companyId   String?
+  company     Company? @relation(fields: [companyId], references: [id])
 
   // İlişkiler
   vehicleId   String?
@@ -434,4 +455,22 @@ model Setting {
   id    String @id @default(cuid())
   key   String @unique
   value String @db.Text
+}
+
+// ============ ÖDEME TAKVİMİ ============
+model PaymentCalendar {
+  id            String   @id @default(cuid())
+  title         String
+  day           Int      // ay günü (1-31)
+  amount        Float?
+  category      String   @default("diger") // banka, maas, cek, taksit, hatirlatma, diger
+  person        String?
+  notes         String?  @db.Text
+  status        String   @default("bekliyor") // bekliyor, tamamlandi, iptal
+  recurring     Boolean  @default(true)
+  specificMonth Int?     // recurring=false ise hangi ay (1-12)
+  specificYear  Int?     // recurring=false ise hangi yıl
+  color         String   @default("#DC2626")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }

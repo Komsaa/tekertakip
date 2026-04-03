@@ -3,13 +3,25 @@ import path from "path";
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { path: string[] } }
 ) {
   const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  // Mobil uygulama Bearer token ile de erişebilir
+  if (!session) {
+    const auth = request.headers.get("Authorization");
+    if (auth?.startsWith("Bearer ")) {
+      const token = auth.slice(7);
+      const driver = await prisma.driver.findUnique({ where: { mobileToken: token }, select: { id: true } });
+      if (!driver) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    } else {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+  }
 
   // Güvenlik: path traversal engelle
   const segments = params.path.map((s) => s.replace(/\.\./g, ""));

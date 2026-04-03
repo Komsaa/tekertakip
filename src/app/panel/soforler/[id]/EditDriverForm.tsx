@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Edit, X, Save, Trash2 } from "lucide-react";
+import { Edit, X, Save, Trash2, Smartphone } from "lucide-react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { Driver, Vehicle } from "@prisma/client";
@@ -38,6 +38,7 @@ export default function EditDriverForm({ driver }: Props) {
       : "",
     address: driver.address ?? "",
     notes: driver.notes ?? "",
+    mobilePin: (driver as any).mobilePin ?? "",
   });
 
   function set(field: string, value: string) {
@@ -183,6 +184,24 @@ export default function EditDriverForm({ driver }: Props) {
                     <label>Ehliyet Yenileme</label>
                     <input type="date" value={form.licenseExpiry} onChange={(e) => set("licenseExpiry", e.target.value)} />
                   </div>
+                </div>
+              </div>
+
+              <div className="border-t border-slate-100 pt-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Smartphone className="w-4 h-4 text-slate-400" />
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Mobil Uygulama</p>
+                </div>
+                <div>
+                  <label>Mobil Şifre</label>
+                  <input
+                    type="text"
+                    value={form.mobilePin}
+                    onChange={(e) => set("mobilePin", e.target.value)}
+                    placeholder="örn: 1234 veya şemsi99"
+                    className="max-w-[200px]"
+                  />
+                  <p className="text-xs text-slate-400 mt-1">Şöförün uygulamaya giriş şifresi</p>
                 </div>
               </div>
 
