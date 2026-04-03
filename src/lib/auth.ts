@@ -18,33 +18,28 @@ export const authOptions: NextAuthOptions = {
     CredentialsProvider({
       name: "credentials",
       credentials: {
-        email: { label: "E-posta", type: "email" },
+        username: { label: "Kullanıcı Adı", type: "text" },
         password: { label: "Şifre", type: "password" },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          throw new Error("E-posta ve şifre gerekli");
+        if (!credentials?.username || !credentials?.password) {
+          throw new Error("Kullanıcı adı ve şifre gerekli");
         }
 
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email },
-        });
-
-        if (!user || !user.password) {
-          throw new Error("Kullanıcı bulunamadı");
+        // Env'deki admin hesaplarını kontrol et
+        for (let i = 1; i <= 5; i++) {
+          const envUser = process.env[`ADMIN${i}_USERNAME`];
+          const envPass = process.env[`ADMIN${i}_PASSWORD`];
+          if (!envUser) break;
+          if (
+            credentials.username === envUser &&
+            credentials.password === envPass
+          ) {
+            return { id: `admin${i}`, name: envUser, email: `${envUser}@tekertakip.com`, role: "admin" };
+          }
         }
 
-        const isValid = await bcrypt.compare(credentials.password, user.password);
-        if (!isValid) {
-          throw new Error("Şifre yanlış");
-        }
-
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          role: user.role,
-        };
+        throw new Error("Kullanıcı adı veya şifre yanlış");
       },
     }),
   ],

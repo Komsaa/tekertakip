@@ -8,7 +8,7 @@ import { Eye, EyeOff, LogIn, AlertCircle } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
@@ -21,13 +21,13 @@ export default function LoginPage() {
 
     try {
       const result = await signIn("credentials", {
-        email,
+        username,
         password,
         redirect: false,
       });
 
       if (result?.error) {
-        setError("E-posta veya şifre yanlış.");
+        setError("Kullanıcı adı veya şifre yanlış.");
       } else {
         router.push("/panel");
         router.refresh();
@@ -65,8 +65,8 @@ export default function LoginPage() {
               priority
             />
           </div>
-          <h1 className="text-white font-black text-3xl">
-            MERT <span className="font-light">TUR</span>
+          <h1 className="text-white font-black text-3xl tracking-wide">
+            teker<span className="text-[#DC2626]">takip</span>
           </h1>
           <p className="text-slate-400 text-sm mt-2">Yönetim Paneli</p>
         </div>
@@ -84,15 +84,15 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label htmlFor="email">E-posta Adresi</label>
+              <label htmlFor="username">Kullanıcı Adı</label>
               <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="ornek@merttur.com"
+                id="username"
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="admin"
                 required
-                autoComplete="email"
+                autoComplete="username"
                 className="mt-1"
               />
             </div>
