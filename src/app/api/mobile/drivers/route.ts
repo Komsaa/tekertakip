@@ -1,4 +1,5 @@
-// Mobil uygulama: şöför listesi (PIN girmeden önce kim olduğunu seçmek için)
+export const dynamic = "force-dynamic";
+
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 

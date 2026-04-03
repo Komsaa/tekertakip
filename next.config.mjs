@@ -6,7 +6,7 @@ const nextConfig = {
   },
   images: {
     remotePatterns: [
-      { protocol: "https", hostname: "merttur.com" },
+      { protocol: "https", hostname: "tekertakip.com" },
     ],
   },
 };
