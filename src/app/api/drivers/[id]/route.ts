@@ -40,6 +40,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
         address: body.address || null,
         notes: body.notes || null,
         ...(body.mobilePin !== undefined && { mobilePin: body.mobilePin || null }),
+        ...(body.mobileUsername !== undefined && { mobileUsername: body.mobileUsername || null }),
       },
     });
     return NextResponse.json(driver);

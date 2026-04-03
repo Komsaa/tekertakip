@@ -107,8 +107,9 @@ model Driver {
   residenceDocFile String?
 
   // Mobil uygulama erişimi
-  mobilePin   String? // şöförün mobil şifresi (admin tarafından atanır)
-  mobileToken String? @unique // login sonrası oluşturulan token
+  mobileUsername String? // özel kullanıcı adı (boşsa ad soyad kullanılır)
+  mobilePin      String? // şöförün mobil şifresi (admin tarafından atanır)
+  mobileToken    String? @unique // login sonrası oluşturulan token
 
   // Canlı konum (GPS takip)
   latitude       Float?

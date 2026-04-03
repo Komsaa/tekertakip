@@ -39,6 +39,7 @@ export default function EditDriverForm({ driver }: Props) {
     address: driver.address ?? "",
     notes: driver.notes ?? "",
     mobilePin: (driver as any).mobilePin ?? "",
+    mobileUsername: (driver as any).mobileUsername ?? "",
   });
 
   function set(field: string, value: string) {
@@ -192,16 +193,27 @@ export default function EditDriverForm({ driver }: Props) {
                   <Smartphone className="w-4 h-4 text-slate-400" />
                   <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Mobil Uygulama</p>
                 </div>
-                <div>
-                  <label>Mobil Şifre</label>
-                  <input
-                    type="text"
-                    value={form.mobilePin}
-                    onChange={(e) => set("mobilePin", e.target.value)}
-                    placeholder="örn: 1234 veya şemsi99"
-                    className="max-w-[200px]"
-                  />
-                  <p className="text-xs text-slate-400 mt-1">Şöförün uygulamaya giriş şifresi</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label>Mobil Kullanıcı Adı</label>
+                    <input
+                      type="text"
+                      value={form.mobileUsername}
+                      onChange={(e) => set("mobileUsername", e.target.value)}
+                      placeholder="mert"
+                    />
+                    <p className="text-xs text-slate-400 mt-1">Boşsa ad soyad kullanılır</p>
+                  </div>
+                  <div>
+                    <label>Mobil Şifre</label>
+                    <input
+                      type="text"
+                      value={form.mobilePin}
+                      onChange={(e) => set("mobilePin", e.target.value)}
+                      placeholder="örn: 1234"
+                    />
+                    <p className="text-xs text-slate-400 mt-1">Uygulamaya giriş şifresi</p>
+                  </div>
                 </div>
               </div>
 

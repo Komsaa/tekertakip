@@ -25,12 +25,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Bu işletmenin erişimi askıya alınmış" }, { status: 403 });
     }
 
-    // Şirkete ait, ada göre şöför ara (büyük/küçük harf fark etmez)
+    // Şirkete ait şöförü ara: önce mobileUsername, sonra ad soyad ile
     const drivers = await prisma.driver.findMany({
       where: {
         companyId: company.id,
         status: "active",
-        name: { equals: name.trim(), mode: "insensitive" },
+        OR: [
+          { mobileUsername: { equals: name.trim(), mode: "insensitive" } },
+          { name: { equals: name.trim(), mode: "insensitive" } },
+        ],
       },
       select: {
         id: true,
@@ -41,7 +44,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (drivers.length === 0) {
-      return NextResponse.json({ error: "Bu isimde aktif şöför bulunamadı" }, { status: 404 });
+      return NextResponse.json({ error: "Kullanıcı adı veya şifre hatalı" }, { status: 404 });
     }
 
     // Şifreyi kontrol et (aynı isimde birden fazla varsa hepsini dene)
