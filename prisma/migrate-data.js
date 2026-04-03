@@ -27,11 +27,7 @@ async function main() {
     return rows.length;
   });
 
-  await copy("Company", async () => {
-    const rows = await src.company.findMany();
-    for (const r of rows) await dst.company.upsert({ where: { id: r.id }, update: r, create: r });
-    return rows.length;
-  });
+  await copy("Company (atlandı - eski DB'de yok)", async () => 0);
 
   await copy("Vehicle", async () => {
     const rows = await src.vehicle.findMany();
@@ -40,8 +36,23 @@ async function main() {
   });
 
   await copy("Driver", async () => {
-    const rows = await src.driver.findMany();
-    for (const r of rows) await dst.driver.upsert({ where: { id: r.id }, update: r, create: r });
+    // Eski DB'de mobilePin/mobileToken/companyId yok, raw SQL ile çek
+    const rows = await src.$queryRawUnsafe(`
+      SELECT id, name, phone, photo, status, notes,
+        "licenseNumber", "licenseClass", "licenseExpiry", "licenseFile",
+        "srcNumber", "srcExpiry", "srcFile",
+        "psychotechExpiry", "psychotechFile",
+        "criminalRecordDate", "criminalRecordExpiry", "criminalRecordFile",
+        "healthReportExpiry", "healthReportFile",
+        address, "residenceDocDate", "residenceDocFile",
+        "vehicleId", "createdAt", "updatedAt"
+      FROM "Driver"
+    `);
+    for (const r of rows) {
+      const data = { ...r, mobilePin: null, mobileToken: null, companyId: null,
+        latitude: null, longitude: null, lastLocationAt: null, isTracking: false };
+      await dst.driver.upsert({ where: { id: r.id }, update: data, create: data });
+    }
     return rows.length;
   });
 
@@ -99,11 +110,7 @@ async function main() {
     return rows.length;
   });
 
-  await copy("Document", async () => {
-    const rows = await src.document.findMany();
-    for (const r of rows) await dst.document.upsert({ where: { id: r.id }, update: r, create: r });
-    return rows.length;
-  });
+  await copy("Document (atlandı - eski DB'de yok)", async () => 0);
 
   await copy("Route", async () => {
     const rows = await src.route.findMany();
