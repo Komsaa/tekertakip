@@ -22,6 +22,7 @@ import {
   CreditCard,
   CalendarDays,
   Building2,
+  MapPin,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -37,6 +38,11 @@ const navItems = [
     href: "/panel/soforler",
     icon: Users,
     label: "Şöförler",
+  },
+  {
+    href: "/panel/konum",
+    icon: MapPin,
+    label: "Canlı Konum",
   },
   {
     href: "/panel/araclar",

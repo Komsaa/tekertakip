@@ -110,6 +110,12 @@ model Driver {
   mobilePin   String? // şöförün mobil şifresi (admin tarafından atanır)
   mobileToken String? @unique // login sonrası oluşturulan token
 
+  // Canlı konum (GPS takip)
+  latitude       Float?
+  longitude      Float?
+  lastLocationAt DateTime?
+  isTracking     Boolean  @default(false)
+
   // Şirket ilişkisi
   companyId   String?
   company     Company? @relation(fields: [companyId], references: [id])
