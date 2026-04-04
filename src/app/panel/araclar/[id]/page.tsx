@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import { formatDate, formatCurrency } from "@/lib/utils";
 import Link from "next/link";
-import { ArrowLeft, Fuel, FileText, User } from "lucide-react";
+import { ArrowLeft, Fuel, FileText, User, ShieldCheck, Wrench, Clock } from "lucide-react";
 import EditVehicleForm from "./EditVehicleForm";
 import DocRow from "@/components/DocRow";
 import ExtraDocuments from "@/components/ExtraDocuments";
@@ -60,6 +60,46 @@ export default async function VehicleDetailPage({ params }: Props) {
           </div>
         </div>
         <EditVehicleForm vehicle={vehicle} />
+      </div>
+
+      {/* Sigorta & Muayene — öne çıkan kartlar */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* Zorunlu Trafik Sigortası */}
+        <div className="bg-white rounded-2xl border-2 border-slate-100 shadow-sm p-5 flex items-center gap-4">
+          <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0">
+            <ShieldCheck className="w-6 h-6 text-blue-500" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Zorunlu Trafik Sigortası</p>
+            <p className="text-lg font-black text-slate-800 mt-0.5">
+              {vehicle.insuranceExpiry ? formatDate(vehicle.insuranceExpiry) : <span className="text-slate-300">Girilmedi</span>}
+            </p>
+            {vehicle.insurancePolicyNo && <p className="text-xs text-slate-400 mt-0.5">Poliçe: {vehicle.insurancePolicyNo}</p>}
+            {vehicle.insuranceCompany && <p className="text-xs text-slate-400">{vehicle.insuranceCompany}</p>}
+          </div>
+          <div className="flex items-center gap-1 text-xs text-slate-300 flex-shrink-0">
+            <Clock className="w-3 h-3" />
+            <span>{formatDate(vehicle.updatedAt)}</span>
+          </div>
+        </div>
+
+        {/* Teknik Muayene */}
+        <div className="bg-white rounded-2xl border-2 border-slate-100 shadow-sm p-5 flex items-center gap-4">
+          <div className="w-12 h-12 bg-amber-50 rounded-xl flex items-center justify-center flex-shrink-0">
+            <Wrench className="w-6 h-6 text-amber-500" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Teknik Muayene (TÜVTÜRK)</p>
+            <p className="text-lg font-black text-slate-800 mt-0.5">
+              {vehicle.inspectionExpiry ? formatDate(vehicle.inspectionExpiry) : <span className="text-slate-300">Girilmedi</span>}
+            </p>
+            <p className="text-xs text-slate-400 mt-0.5">Yılda bir yenilenir</p>
+          </div>
+          <div className="flex items-center gap-1 text-xs text-slate-300 flex-shrink-0">
+            <Clock className="w-3 h-3" />
+            <span>{formatDate(vehicle.updatedAt)}</span>
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
