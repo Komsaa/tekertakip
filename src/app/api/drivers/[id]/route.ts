@@ -41,6 +41,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
         notes: body.notes || null,
         ...(body.mobilePin !== undefined && { mobilePin: body.mobilePin || null }),
         ...(body.mobileUsername !== undefined && { mobileUsername: body.mobileUsername || null }),
+        ...(body.companyId !== undefined && { companyId: body.companyId || null }),
       },
     });
     return NextResponse.json(driver);

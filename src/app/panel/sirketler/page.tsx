@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
-import { Plus, X, Building2, Users, Key, ToggleLeft, ToggleRight, Trash2, Edit2 } from "lucide-react";
+import { Plus, X, Building2, Users, Key, ToggleLeft, ToggleRight, Trash2, Edit2, UserPlus } from "lucide-react";
 
 type Company = {
   id: string;
@@ -24,14 +24,38 @@ export default function SirketlerPage() {
   const [saving, setSaving] = useState(false);
   const [editTarget, setEditTarget] = useState<Company | null>(null);
   const [form, setForm] = useState({ name: "", code: "", driverLimit: "10", notes: "" });
+  const [unassignedCount, setUnassignedCount] = useState<number | null>(null);
+  const [assigning, setAssigning] = useState<string | null>(null);
 
   async function load() {
-    const res = await fetch("/api/companies");
-    if (res.ok) setCompanies(await res.json());
+    const [compRes, driversRes] = await Promise.all([
+      fetch("/api/companies"),
+      fetch("/api/drivers"),
+    ]);
+    if (compRes.ok) setCompanies(await compRes.json());
+    if (driversRes.ok) {
+      const drivers: Array<{ companyId: string | null }> = await driversRes.json();
+      setUnassignedCount(drivers.filter((d) => !d.companyId).length);
+    }
     setLoading(false);
   }
 
   useEffect(() => { load(); }, []);
+
+  async function assignUnassigned(companyId: string) {
+    setAssigning(companyId);
+    try {
+      const res = await fetch(`/api/companies/${companyId}/assign-unassigned`, { method: "POST" });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success(data.message || "Şöförler atandı");
+        load();
+      } else {
+        toast.error(data.error || "Hata oluştu");
+      }
+    } catch { toast.error("Hata oluştu"); }
+    finally { setAssigning(null); }
+  }
 
   function openAdd() {
     setEditTarget(null);
@@ -99,6 +123,9 @@ export default function SirketlerPage() {
           <h1 className="text-2xl font-black text-slate-800">Şirketler</h1>
           <p className="text-slate-500 text-sm mt-1">
             {companies.length} şirket · {totalDrivers} aktif şöför / {totalLimit} toplam kota
+            {unassignedCount !== null && unassignedCount > 0 && (
+              <span className="ml-2 text-amber-600 font-semibold">· {unassignedCount} şöför atanmamış</span>
+            )}
           </p>
         </div>
         <button
@@ -169,6 +196,18 @@ export default function SirketlerPage() {
                   />
                 </div>
               </div>
+
+              {/* Atanmamış şöförleri ata */}
+              {unassignedCount !== null && unassignedCount > 0 && (
+                <button
+                  onClick={() => assignUnassigned(c.id)}
+                  disabled={assigning === c.id}
+                  className="w-full flex items-center justify-center gap-2 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl text-xs font-semibold transition-all disabled:opacity-50"
+                >
+                  <UserPlus className="w-3.5 h-3.5" />
+                  {assigning === c.id ? "Atanıyor..." : `${unassignedCount} atanmamış şöförü buraya ata`}
+                </button>
+              )}
 
               {/* Durum */}
               <div className="flex items-center justify-between">
