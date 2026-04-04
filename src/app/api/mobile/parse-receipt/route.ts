@@ -1,7 +1,7 @@
 // Fiş fotoğrafından litre, tutar, istasyon, tarih çıkar
 // POST /api/mobile/parse-receipt  { photoUrl: string }
 import { NextRequest, NextResponse } from "next/server";
-import Anthropic from "@anthropic-ai/sdk";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -15,6 +15,16 @@ async function getDriverFromToken(req: NextRequest) {
   });
 }
 
+async function urlToBase64(url: string): Promise<{ data: string; mimeType: string }> {
+  const res = await fetch(url);
+  const buffer = await res.arrayBuffer();
+  const bytes = Buffer.from(buffer);
+  return {
+    data: bytes.toString("base64"),
+    mimeType: res.headers.get("content-type") || "image/jpeg",
+  };
+}
+
 export async function POST(req: NextRequest) {
   const driver = await getDriverFromToken(req);
   if (!driver) return NextResponse.json({ error: "Yetkisiz" }, { status: 401 });
@@ -22,26 +32,20 @@ export async function POST(req: NextRequest) {
   const { photoUrl } = await req.json();
   if (!photoUrl) return NextResponse.json({ error: "photoUrl zorunlu" }, { status: 400 });
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) return NextResponse.json({ error: "AI servisi yapılandırılmamış" }, { status: 500 });
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) return NextResponse.json({ parsed: null, error: "AI anahtarı eksik" });
 
   try {
-    const client = new Anthropic({ apiKey });
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-    const message = await client.messages.create({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 256,
-      messages: [
-        {
-          role: "user",
-          content: [
-            {
-              type: "image",
-              source: { type: "url", url: photoUrl },
-            },
-            {
-              type: "text",
-              text: `Bu bir akaryakıt (mazot/benzin) fişi. Fişten şu bilgileri çıkar ve SADECE JSON döndür, başka hiçbir şey yazma:
+    const { data, mimeType } = await urlToBase64(photoUrl);
+
+    const result = await model.generateContent([
+      {
+        inlineData: { data, mimeType },
+      },
+      `Bu bir akaryakıt (mazot/benzin) pompası fişi. Fişten bilgileri çıkar ve SADECE JSON döndür, başka hiçbir şey yazma:
 {
   "liters": number veya null,
   "totalAmount": number veya null,
@@ -49,16 +53,10 @@ export async function POST(req: NextRequest) {
   "station": string veya null,
   "date": "YYYY-MM-DD" veya null
 }
-Türk lirası sembolü (₺, TL, TRY) varsa totalAmount olarak al. Litre miktarı L veya lt olarak yazılmış olabilir. Emin olmadığın alanlara null yaz.`,
-            },
-          ],
-        },
-      ],
-    });
+Türk lirası (₺, TL, TRY) toplam tutarı totalAmount. Litre miktarı L/lt/LT olabilir. Emin olmadığına null yaz.`,
+    ]);
 
-    const text = message.content[0].type === "text" ? message.content[0].text.trim() : "";
-
-    // JSON parse et
+    const text = result.response.text().trim();
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) return NextResponse.json({ parsed: null });
 
