@@ -97,7 +97,7 @@ export default function RouteAlerts() {
   }, [dismissed]);
 
   function dismiss(key: string) {
-    setDismissed((prev) => new Set([...prev, key]));
+    setDismissed((prev) => new Set(Array.from(prev).concat(key)));
     setAlerts((prev) => prev.filter((a) => alertKey(a) !== key));
   }
 
