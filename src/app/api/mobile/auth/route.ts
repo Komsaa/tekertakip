@@ -1,57 +1,40 @@
 // Mobil uygulama: şöför login
-// Giriş: işletme kodu + ad soyad + şifre
+// Giriş: kullanıcı adı + şifre (işletme kodu yok)
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { randomUUID } from "crypto";
 
 export async function POST(req: NextRequest) {
   try {
-    const { companyCode, name, password } = await req.json();
+    const { username, password } = await req.json();
 
-    if (!companyCode || !name || !password) {
-      return NextResponse.json({ error: "İşletme kodu, ad ve şifre zorunlu" }, { status: 400 });
+    if (!username || !password) {
+      return NextResponse.json({ error: "Kullanıcı adı ve şifre zorunlu" }, { status: 400 });
     }
 
-    // Şirketi bul
-    const company = await prisma.company.findUnique({
-      where: { code: companyCode.trim().toUpperCase() },
-    });
-
-    if (!company) {
-      return NextResponse.json({ error: "İşletme kodu hatalı" }, { status: 401 });
-    }
-
-    if (!company.active) {
-      return NextResponse.json({ error: "Bu işletmenin erişimi askıya alınmış" }, { status: 403 });
-    }
-
-    // Şirkete ait şöförü ara: önce mobileUsername, sonra ad soyad ile
-    const drivers = await prisma.driver.findMany({
+    // Kullanıcı adına göre şöförü bul (tüm şirketlerde, büyük/küçük harf fark etmez)
+    const driver = await prisma.driver.findFirst({
       where: {
-        companyId: company.id,
         status: "active",
-        OR: [
-          { mobileUsername: { equals: name.trim(), mode: "insensitive" } },
-          { name: { equals: name.trim(), mode: "insensitive" } },
-        ],
+        mobileUsername: { equals: username.trim(), mode: "insensitive" },
+        mobilePin: password,
       },
       select: {
         id: true,
         name: true,
         mobilePin: true,
+        companyId: true,
         vehicle: { select: { id: true, plate: true } },
+        company: { select: { name: true, active: true } },
       },
     });
 
-    if (drivers.length === 0) {
-      return NextResponse.json({ error: "Kullanıcı adı veya şifre hatalı" }, { status: 404 });
+    if (!driver) {
+      return NextResponse.json({ error: "Kullanıcı adı veya şifre hatalı" }, { status: 401 });
     }
 
-    // Şifreyi kontrol et (aynı isimde birden fazla varsa hepsini dene)
-    const driver = drivers.find((d) => d.mobilePin === password);
-
-    if (!driver) {
-      return NextResponse.json({ error: "Şifre hatalı" }, { status: 401 });
+    if (driver.company && !driver.company.active) {
+      return NextResponse.json({ error: "Bu işletmenin erişimi askıya alınmış" }, { status: 403 });
     }
 
     const token = randomUUID();
@@ -66,7 +49,7 @@ export async function POST(req: NextRequest) {
         id: driver.id,
         name: driver.name,
         vehicle: driver.vehicle,
-        companyName: company.name,
+        companyName: driver.company?.name ?? null,
       },
     });
   } catch (e) {
