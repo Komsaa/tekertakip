@@ -124,10 +124,11 @@ model Driver {
   // İlişkiler
   vehicleId   String?
   vehicle     Vehicle?    @relation(fields: [vehicleId], references: [id])
-  jobs        Job[]
-  fuelEntries FuelEntry[]
-  salaries    Salary[]
-  routes      Route[]
+  jobs           Job[]
+  fuelEntries    FuelEntry[]
+  salaries       Salary[]
+  routes         Route[]
+  vehicleReports VehicleReport[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -174,10 +175,11 @@ model Vehicle {
   plateAuthExpiry DateTime? // J plaka tescil tarihi
 
   // İlişkiler
-  drivers     Driver[]
-  jobs        Job[]
-  fuelEntries FuelEntry[]
-  routes      Route[]
+  drivers        Driver[]
+  jobs           Job[]
+  fuelEntries    FuelEntry[]
+  routes         Route[]
+  vehicleReports VehicleReport[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -455,6 +457,20 @@ model CreditCardExpense {
   billingMonth Int        // 1-12 — hangi ekstreye ait
   billingYear  Int
   createdAt    DateTime   @default(now())
+}
+
+// ============ ARAÇ ARIZA BİLDİRİMLERİ ============
+model VehicleReport {
+  id          String    @id @default(cuid())
+  driverId    String
+  driver      Driver    @relation(fields: [driverId], references: [id])
+  vehicleId   String?
+  vehicle     Vehicle?  @relation(fields: [vehicleId], references: [id])
+  description String    @db.Text
+  photoUrl    String?
+  status      String    @default("open") // open, resolved
+  resolvedAt  DateTime?
+  createdAt   DateTime  @default(now())
 }
 
 // ============ AYARLAR ============

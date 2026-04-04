@@ -15,8 +15,17 @@ type Alert = {
   level: "warning" | "alarm";
 };
 
+type ArizaReport = {
+  id: string;
+  description: string;
+  createdAt: string;
+  driver: { name: string; phone: string | null } | null;
+  vehicle: { plate: string } | null;
+};
+
 export default function RouteAlerts() {
   const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [arizalar, setArizalar] = useState<ArizaReport[]>([]);
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
   const audioCtx = useRef<AudioContext | null>(null);
   const prevAlarmKeys = useRef<Set<string>>(new Set());
@@ -48,9 +57,17 @@ export default function RouteAlerts() {
 
   async function fetchAlerts() {
     try {
-      const res = await fetch("/api/panel/route-alerts");
-      if (!res.ok) return;
-      const data: Alert[] = await res.json();
+      const [routeRes, arizaRes] = await Promise.all([
+        fetch("/api/panel/route-alerts"),
+        fetch("/api/panel/arizalar"),
+      ]);
+      if (arizaRes.ok) {
+        const ar: ArizaReport[] = await arizaRes.json();
+        setArizalar(ar.filter((r) => !dismissed.has(`ariza-${r.id}`)));
+        if (ar.length > 0) playBeep(false);
+      }
+      if (!routeRes.ok) return;
+      const data: Alert[] = await routeRes.json();
 
       const active = data.filter((a) => !dismissed.has(alertKey(a)));
       setAlerts(active);
@@ -84,7 +101,16 @@ export default function RouteAlerts() {
     setAlerts((prev) => prev.filter((a) => alertKey(a) !== key));
   }
 
-  if (alerts.length === 0) return null;
+  async function resolveAriza(id: string) {
+    await fetch("/api/panel/arizalar", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+    setArizalar((prev) => prev.filter((r) => r.id !== id));
+  }
+
+  if (alerts.length === 0 && arizalar.length === 0) return null;
 
   return (
     <div className="fixed top-4 right-4 z-50 flex flex-col gap-2 max-w-sm w-full">
@@ -145,6 +171,33 @@ export default function RouteAlerts() {
           </div>
         );
       })}
+      {/* Arıza bildirimleri */}
+      {arizalar.map((r) => (
+        <div key={r.id} className="rounded-2xl shadow-2xl p-4 border-2 bg-orange-50 border-orange-300 animate-fade-in">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className="text-xl">🔧</span>
+              <div>
+                <p className="font-bold text-sm text-slate-800">
+                  {r.driver?.name ?? "Şöför"}
+                  {r.vehicle && <span className="font-normal ml-1 text-orange-600">· {r.vehicle.plate}</span>}
+                </p>
+                <p className="text-xs text-slate-600 mt-0.5">{r.description}</p>
+                <p className="text-xs text-slate-400 mt-0.5">{new Date(r.createdAt).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })}</p>
+              </div>
+            </div>
+            <button onClick={() => resolveAriza(r.id)} className="p-1 hover:bg-orange-100 rounded-lg flex-shrink-0">
+              <X className="w-4 h-4 text-slate-400" />
+            </button>
+          </div>
+          {r.driver?.phone && (
+            <a href={`tel:${r.driver.phone}`} className="mt-3 flex items-center justify-center gap-2 py-2 rounded-xl text-sm font-bold bg-orange-500 text-white hover:bg-orange-600">
+              <Phone className="w-4 h-4" />
+              {r.driver.phone} — Ara
+            </a>
+          )}
+        </div>
+      ))}
     </div>
   );
 }
