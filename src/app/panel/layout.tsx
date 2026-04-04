@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import Sidebar from "@/components/Sidebar";
+import RouteAlerts from "@/components/RouteAlerts";
 
 export default async function PanelLayout({
   children,
@@ -22,6 +23,9 @@ export default async function PanelLayout({
       <main className="flex-1 overflow-y-auto">
         <div className="min-h-full">{children}</div>
       </main>
+
+      {/* Gecikme bildirimleri */}
+      <RouteAlerts />
     </div>
   );
 }
