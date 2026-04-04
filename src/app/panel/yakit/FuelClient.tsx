@@ -24,15 +24,17 @@ type FuelEntry = {
 type Vehicle = { id: string; plate: string; brand: string | null; model: string | null };
 type Driver = { id: string; name: string };
 type MonthStat = { vehicleId: string; _sum: { totalAmount: number | null; liters: number | null } };
+type ConsumptionStat = { avgPer100: number; totalKm: number; fillCount: number } | null;
 
 interface Props {
   fuelEntries: FuelEntry[];
   vehicles: Vehicle[];
   drivers: Driver[];
   monthStats: MonthStat[];
+  consumptionStats: Record<string, ConsumptionStat>;
 }
 
-export default function FuelClient({ fuelEntries, vehicles, drivers, monthStats }: Props) {
+export default function FuelClient({ fuelEntries, vehicles, drivers, monthStats, consumptionStats }: Props) {
   const router = useRouter();
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -158,6 +160,43 @@ export default function FuelClient({ fuelEntries, vehicles, drivers, monthStats 
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Yakıt Tüketim Ortalamaları */}
+      {vehicles.some((v) => consumptionStats[v.id]) && (
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <TrendingDown className="w-4 h-4 text-slate-400" />
+            <h2 className="text-sm font-semibold text-slate-600 uppercase tracking-wide">Yakıt Tüketim Ortalaması</h2>
+            <span className="text-xs text-slate-400">(tüm zamanlar · odometer kayıtlı dolumlardan)</span>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+            {vehicles.map((v) => {
+              const stat = consumptionStats[v.id];
+              if (!stat) return null;
+              const kmPerL = 100 / stat.avgPer100;
+              const efficiency = stat.avgPer100 < 12 ? "iyi" : stat.avgPer100 < 18 ? "orta" : "yüksek";
+              const effColor = efficiency === "iyi" ? "text-green-600 bg-green-50" : efficiency === "orta" ? "text-amber-600 bg-amber-50" : "text-red-600 bg-red-50";
+              return (
+                <div key={v.id} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="font-black text-slate-800 text-sm tracking-wider">{v.plate}</div>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${effColor}`}>{efficiency}</span>
+                  </div>
+                  <div className="flex items-end gap-1 mb-1">
+                    <span className="text-3xl font-black text-slate-800">{stat.avgPer100.toFixed(1)}</span>
+                    <span className="text-slate-400 text-sm mb-1">lt/100km</span>
+                  </div>
+                  <div className="text-sm text-slate-500 font-medium">{kmPerL.toFixed(1)} km/lt</div>
+                  <div className="mt-3 pt-3 border-t border-slate-50 flex gap-3 text-xs text-slate-400">
+                    <span>{stat.totalKm.toLocaleString("tr-TR")} km</span>
+                    <span>{stat.fillCount} dolum</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 
