@@ -148,47 +148,6 @@ export default function EditDriverForm({ driver }: Props) {
               </div>
 
               <div className="border-t border-slate-100 pt-4">
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">Belge Tarihleri</p>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label>SRC Bitiş</label>
-                    <input type="date" value={form.srcExpiry} onChange={(e) => set("srcExpiry", e.target.value)} />
-                  </div>
-                  <div>
-                    <label>Psikoteknik Bitiş</label>
-                    <input type="date" value={form.psychotechExpiry} onChange={(e) => set("psychotechExpiry", e.target.value)} />
-                  </div>
-                  <div>
-                    <label>Adli Sicil Alınma</label>
-                    <input
-                      type="date"
-                      value={form.criminalRecordDate}
-                      onChange={(e) => {
-                        set("criminalRecordDate", e.target.value);
-                        if (e.target.value) {
-                          const d = new Date(e.target.value);
-                          d.setMonth(d.getMonth() + 3);
-                          set("criminalRecordExpiry", d.toISOString().split("T")[0]);
-                        }
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <label>Adli Sicil Bitiş</label>
-                    <input type="date" value={form.criminalRecordExpiry} onChange={(e) => set("criminalRecordExpiry", e.target.value)} />
-                  </div>
-                  <div>
-                    <label>Sağlık Raporu Bitiş</label>
-                    <input type="date" value={form.healthReportExpiry} onChange={(e) => set("healthReportExpiry", e.target.value)} />
-                  </div>
-                  <div>
-                    <label>Ehliyet Yenileme</label>
-                    <input type="date" value={form.licenseExpiry} onChange={(e) => set("licenseExpiry", e.target.value)} />
-                  </div>
-                </div>
-              </div>
-
-              <div className="border-t border-slate-100 pt-4">
                 <div className="flex items-center gap-2 mb-3">
                   <Smartphone className="w-4 h-4 text-slate-400" />
                   <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Mobil Uygulama</p>
