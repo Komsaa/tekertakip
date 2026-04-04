@@ -22,6 +22,8 @@ export default function AddDriverModal({ companies = [] }: { companies?: Company
     healthReportExpiry: "",
     notes: "",
     companyId: companies[0]?.id ?? "",
+    mobileUsername: "",
+    mobilePin: "",
   });
 
   function set(field: string, value: string) {
@@ -55,6 +57,8 @@ export default function AddDriverModal({ companies = [] }: { companies?: Company
         healthReportExpiry: "",
         notes: "",
         companyId: companies[0]?.id ?? "",
+        mobileUsername: "",
+        mobilePin: "",
       });
       router.refresh();
     } catch {
@@ -199,6 +203,30 @@ export default function AddDriverModal({ companies = [] }: { companies?: Company
                       value={form.criminalRecordExpiry}
                       onChange={(e) => set("criminalRecordExpiry", e.target.value)}
                       className="bg-slate-50"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="border-t border-slate-100 pt-4">
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">Mobil Uygulama Girişi</p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label>Kullanıcı Adı</label>
+                    <input
+                      type="text"
+                      value={form.mobileUsername}
+                      onChange={(e) => set("mobileUsername", e.target.value.toLowerCase())}
+                      placeholder="mertbudak"
+                    />
+                  </div>
+                  <div>
+                    <label>Şifre</label>
+                    <input
+                      type="text"
+                      value={form.mobilePin}
+                      onChange={(e) => set("mobilePin", e.target.value)}
+                      placeholder="1234"
                     />
                   </div>
                 </div>
