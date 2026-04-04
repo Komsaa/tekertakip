@@ -76,7 +76,7 @@ export default function RouteAlerts() {
       const newAlarmKeys = new Set(
         active.filter((a) => a.level === "alarm").map(alertKey)
       );
-      const hasNewAlarm = [...newAlarmKeys].some(
+      const hasNewAlarm = Array.from(newAlarmKeys).some(
         (k) => !prevAlarmKeys.current.has(k)
       );
       const hasNewWarning = active.some(
