@@ -20,19 +20,6 @@ export default function EditDriverForm({ driver }: Props) {
     status: driver.status,
     licenseClass: driver.licenseClass ?? "D",
     licenseNumber: driver.licenseNumber ?? "",
-    srcExpiry: driver.srcExpiry ? driver.srcExpiry.toISOString().split("T")[0] : "",
-    psychotechExpiry: driver.psychotechExpiry
-      ? driver.psychotechExpiry.toISOString().split("T")[0]
-      : "",
-    criminalRecordDate: driver.criminalRecordDate
-      ? driver.criminalRecordDate.toISOString().split("T")[0]
-      : "",
-    criminalRecordExpiry: driver.criminalRecordExpiry
-      ? driver.criminalRecordExpiry.toISOString().split("T")[0]
-      : "",
-    healthReportExpiry: driver.healthReportExpiry
-      ? driver.healthReportExpiry.toISOString().split("T")[0]
-      : "",
     licenseExpiry: driver.licenseExpiry
       ? driver.licenseExpiry.toISOString().split("T")[0]
       : "",

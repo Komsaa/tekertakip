@@ -83,22 +83,17 @@ model Driver {
   licenseExpiry DateTime? // ehliyet yenileme tarihi (D sınıfı 5 yılda bir)
   licenseFile   String?
 
-  // SRC-2 Belgesi (5 yılda bir yenilenir)
+  // SRC-2 Belgesi
   srcNumber String?
-  srcExpiry DateTime?
   srcFile   String?
 
-  // Psikoteknik Belgesi (5 yılda bir, bazı yerlerde 2 yılda bir)
-  psychotechExpiry DateTime?
+  // Psikoteknik Belgesi
   psychotechFile   String?
 
-  // Adli Sicil Kaydı (yıllık yenilenir, 3 ay geçerlilik)
-  criminalRecordDate   DateTime? // belgenin alınma tarihi
-  criminalRecordExpiry DateTime? // genellikle 3 ay sonrası
+  // Adli Sicil Kaydı
   criminalRecordFile   String?
 
-  // Sağlık Raporu (okul servisi için yıllık)
-  healthReportExpiry DateTime?
+  // Sağlık Raporu
   healthReportFile   String?
 
   // İkametgah
