@@ -4,7 +4,7 @@ import JobsClient from "./JobsClient";
 
 async function getData() {
   try {
-    const [jobs, drivers, vehicles] = await Promise.all([
+    const [jobs, drivers, vehicles, clients] = await Promise.all([
       prisma.job.findMany({
         orderBy: [{ date: "desc" }, { startTime: "asc" }],
         include: { driver: true, vehicle: true },
@@ -27,11 +27,12 @@ async function getData() {
         orderBy: { plate: "asc" },
         select: { id: true, plate: true, brand: true, model: true },
       }).catch(() => []),
+      prisma.client.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }).catch(() => []),
     ]);
-    return { jobs, drivers, vehicles };
+    return { jobs, drivers, vehicles, clients };
   } catch (e) {
     console.error("İşler sayfa hatası:", e);
-    return { jobs: [], drivers: [], vehicles: [] };
+    return { jobs: [], drivers: [], vehicles: [], clients: [] };
   }
 }
 

@@ -17,6 +17,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
         ...(b.date && { date: new Date(b.date) }),
         ...(b.startTime && { startTime: b.startTime }),
         endTime: b.endTime || null,
+        clientId: b.clientId || null,
         clientName: b.clientName || null,
         driverId: b.driverId || null,
         vehicleId: b.vehicleId || null,

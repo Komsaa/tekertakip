@@ -18,6 +18,7 @@ export async function POST(req: NextRequest) {
     const baseData = {
       title: b.title,
       type: b.type || "okul",
+      clientId: b.clientId || null,
       clientName: b.clientName || null,
       startTime: b.startTime,
       endTime: b.endTime || null,

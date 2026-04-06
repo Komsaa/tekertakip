@@ -27,6 +27,7 @@ type Job = {
 
 type Driver = { id: string; name: string };
 type Vehicle = { id: string; plate: string; brand: string | null; model: string | null };
+type Client = { id: string; name: string };
 
 const JOB_TYPES = { okul: "Okul Servisi", personel: "Personel Servisi", ozel: "Özel Sefer", transfer: "Transfer", gezi: "Gezi / Tur" };
 const STATUS_LABELS = { planned: "Planlandı", active: "Aktif", completed: "Tamamlandı", cancelled: "İptal" };
@@ -48,11 +49,13 @@ interface Props {
   jobs: Job[];
   drivers: Driver[];
   vehicles: Vehicle[];
+  clients: Client[];
 }
 
 const emptyForm = {
   title: "",
   type: "personel",
+  clientId: "",
   clientName: "",
   date: format(new Date(), "yyyy-MM-dd"),
   startTime: "07:30",
@@ -69,7 +72,7 @@ const emptyForm = {
   weekdaysOnly: false,
 };
 
-export default function JobsClient({ jobs: initialJobs, drivers, vehicles }: Props) {
+export default function JobsClient({ jobs: initialJobs, drivers, vehicles, clients }: Props) {
   const router = useRouter();
   const [jobs, setJobs] = useState(initialJobs);
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -99,6 +102,7 @@ export default function JobsClient({ jobs: initialJobs, drivers, vehicles }: Pro
     setForm({
       title: job.title,
       type: job.type,
+      clientId: (job as any).clientId ?? "",
       clientName: job.clientName ?? "",
       date: format(new Date(job.date), "yyyy-MM-dd"),
       startTime: job.startTime,
@@ -384,8 +388,33 @@ export default function JobsClient({ jobs: initialJobs, drivers, vehicles }: Pro
                 </div>
               </div>
               <div>
-                <label>Müşteri / Sözleşme</label>
-                <input type="text" value={form.clientName} onChange={(e) => set("clientName", e.target.value)} placeholder="Okul adı, firma adı..." />
+                <label>Müşteri / Firma</label>
+                {clients.length > 0 ? (
+                  <select
+                    value={form.clientId}
+                    onChange={(e) => {
+                      const selected = clients.find(c => c.id === e.target.value);
+                      setForm(f => ({ ...f, clientId: e.target.value, clientName: selected?.name ?? f.clientName }));
+                    }}
+                  >
+                    <option value="">Seçin veya serbest yaz...</option>
+                    {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                ) : null}
+                {(!form.clientId) && (
+                  <input
+                    type="text"
+                    value={form.clientName}
+                    onChange={(e) => set("clientName", e.target.value)}
+                    placeholder="Okul adı, firma adı..."
+                    className={clients.length > 0 ? "mt-2" : ""}
+                  />
+                )}
+                {form.clientId && (
+                  <button type="button" onClick={() => setForm(f => ({ ...f, clientId: "", clientName: "" }))} className="mt-1 text-xs text-slate-400 hover:text-slate-600">
+                    × Seçimi temizle
+                  </button>
+                )}
               </div>
               <div className="grid grid-cols-3 gap-4">
                 <div className="col-span-1">
