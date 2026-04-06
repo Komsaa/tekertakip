@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { logAction } from "@/lib/audit";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -30,6 +31,7 @@ export async function POST(req: NextRequest) {
         rawText: b.rawText || null,
       },
     });
+    await logAction({ userEmail: session.user?.email ?? "admin", action: "CREATE", entity: "FuelEntry", entityId: entry.id, entityName: `${b.vehicleId} – ${entry.liters}lt`, changes: { vehicleId: b.vehicleId, liters: entry.liters, totalAmount: entry.totalAmount, date: entry.date } });
     return NextResponse.json(entry, { status: 201 });
   } catch (e) {
     console.error(e);

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { logAction } from "@/lib/audit";
 
 function pd(s: string | undefined | null) {
   if (!s) return null;
@@ -38,6 +39,7 @@ export async function POST(req: NextRequest) {
         notes: b.notes || null,
       },
     });
+    await logAction({ userEmail: session.user?.email ?? "admin", action: "CREATE", entity: "Vehicle", entityId: vehicle.id, entityName: vehicle.plate });
     return NextResponse.json(vehicle, { status: 201 });
   } catch (e: unknown) {
     if (e && typeof e === "object" && "code" in e && (e as { code: string }).code === "P2002") {

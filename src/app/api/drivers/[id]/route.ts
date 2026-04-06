@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { logAction } from "@/lib/audit";
 
 function parseDate(s: string | undefined | null) {
   if (!s) return null;
@@ -39,6 +40,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
         ...(body.companyId !== undefined && { companyId: body.companyId || null }),
       },
     });
+    await logAction({ userEmail: session.user?.email ?? "admin", action: "UPDATE", entity: "Driver", entityId: params.id, entityName: driver.name, changes: body });
     return NextResponse.json(driver);
   } catch (e) {
     console.error(e);
@@ -50,7 +52,9 @@ export async function DELETE(_: NextRequest, { params }: { params: { id: string 
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   try {
+    const existing = await prisma.driver.findUnique({ where: { id: params.id } });
     await prisma.driver.delete({ where: { id: params.id } });
+    await logAction({ userEmail: session.user?.email ?? "admin", action: "DELETE", entity: "Driver", entityId: params.id, entityName: existing?.name, changes: existing ?? undefined });
     return NextResponse.json({ success: true });
   } catch (e) {
     console.error(e);

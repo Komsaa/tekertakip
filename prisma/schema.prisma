@@ -472,6 +472,22 @@ model VehicleReport {
   createdAt   DateTime  @default(now())
 }
 
+// ============ AKTİVİTE GÜNLÜĞÜ ============
+model AuditLog {
+  id          String   @id @default(cuid())
+  userEmail   String                         // kim yaptı
+  action      String                         // CREATE, UPDATE, DELETE
+  entity      String                         // Driver, Vehicle, Job, FuelEntry, Invoice...
+  entityId    String?
+  entityName  String?                        // okunabilir isim (plaka, şöför adı...)
+  changes     String?  @db.Text             // JSON: silinen için tam veri, güncelleme için diff
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([entity])
+  @@index([userEmail])
+}
+
 // ============ ŞÖFÖR KONUM GEÇMİŞİ (güzergah analizi için) ============
 model DriverLocationHistory {
   id        String   @id @default(cuid())

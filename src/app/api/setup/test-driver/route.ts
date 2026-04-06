@@ -10,16 +10,10 @@ export async function GET() {
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
-    const driver = await prisma.driver.upsert({
-      where: { mobileUsername: "test" },
-      update: { mobilePin: "test123", status: "active" },
-      create: {
-        name: "Test Şöför",
-        mobileUsername: "test",
-        mobilePin: "test123",
-        status: "active",
-      },
-    });
+    const existing = await prisma.driver.findFirst({ where: { mobileUsername: "test" } });
+    const driver = existing
+      ? await prisma.driver.update({ where: { id: existing.id }, data: { mobilePin: "test123", status: "active" } })
+      : await prisma.driver.create({ data: { name: "Test Şöför", mobileUsername: "test", mobilePin: "test123", status: "active" } });
 
     return NextResponse.json({
       success: true,

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { logAction } from "@/lib/audit";
 
 function parseDate(s: string | undefined | null) {
   if (!s) return undefined;
@@ -37,6 +38,7 @@ export async function POST(req: NextRequest) {
         mobilePin: body.mobilePin || null,
       },
     });
+    await logAction({ userEmail: session.user?.email ?? "admin", action: "CREATE", entity: "Driver", entityId: driver.id, entityName: driver.name, changes: { name: driver.name, phone: driver.phone, mobileUsername: driver.mobileUsername } });
     return NextResponse.json(driver, { status: 201 });
   } catch (e) {
     console.error(e);

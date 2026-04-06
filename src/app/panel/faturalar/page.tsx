@@ -17,5 +17,6 @@ export default async function FaturalarPage() {
     }),
   ]);
 
-  return <FaturalarClient clients={clients} invoices={invoices} />;
+  // Serialize Dates to strings for client component
+  return <FaturalarClient clients={JSON.parse(JSON.stringify(clients))} invoices={JSON.parse(JSON.stringify(invoices))} />;
 }

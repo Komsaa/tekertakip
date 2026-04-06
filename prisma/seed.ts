@@ -50,10 +50,6 @@ async function main() {
       phone: "05001234567",
       status: "active",
       licenseClass: "D",
-      srcExpiry: new Date("2027-06-15"),
-      psychotechExpiry: new Date("2027-06-15"),
-      criminalRecordDate: new Date("2026-01-10"),
-      criminalRecordExpiry: new Date("2026-04-10"),
     },
   });
 

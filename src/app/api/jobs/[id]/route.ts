@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { logAction } from "@/lib/audit";
 
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
@@ -28,6 +29,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
         notes: b.notes || null,
       },
     });
+    await logAction({ userEmail: session.user?.email ?? "admin", action: "UPDATE", entity: "Job", entityId: params.id, entityName: job.title ?? job.clientName ?? params.id });
     return NextResponse.json(job);
   } catch (e) {
     console.error(e);
@@ -39,7 +41,9 @@ export async function DELETE(_: NextRequest, { params }: { params: { id: string 
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   try {
+    const existing = await prisma.job.findUnique({ where: { id: params.id } });
     await prisma.job.delete({ where: { id: params.id } });
+    await logAction({ userEmail: session.user?.email ?? "admin", action: "DELETE", entity: "Job", entityId: params.id, entityName: existing?.title ?? existing?.clientName ?? params.id, changes: existing ?? undefined });
     return NextResponse.json({ success: true });
   } catch (e) {
     console.error(e);

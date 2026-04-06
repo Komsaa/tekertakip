@@ -11,10 +11,10 @@ import {
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 type Client = {
-  id: string; name: string; vkn?: string; taxOffice?: string;
-  address?: string; email?: string; phone?: string;
+  id: string; name: string; vkn?: string | null; taxOffice?: string | null;
+  address?: string | null; email?: string | null; phone?: string | null;
   unitPrice: number; paymentTermDays: number;
-  kdvRate: number; tevkifatRate: number; notes?: string;
+  kdvRate: number; tevkifatRate: number; notes?: string | null;
 };
 
 type Invoice = {
@@ -624,7 +624,7 @@ export default function FaturalarClient({
       )}
 
       {/* Modals */}
-      {(clientModal === "new" || (clientModal && clientModal !== "new")) && (
+      {clientModal !== null && (
         <ClientModal
           client={clientModal === "new" ? null : clientModal as Client}
           onClose={() => setClientModal(null)}

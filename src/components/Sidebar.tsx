@@ -24,6 +24,7 @@ import {
   Building2,
   MapPin,
   FileText,
+  ShieldCheck,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -109,6 +110,11 @@ const navItems = [
     href: "/panel/ayarlar",
     icon: Settings,
     label: "Ayarlar",
+  },
+  {
+    href: "/panel/admin",
+    icon: ShieldCheck,
+    label: "Admin",
   },
 ];
 

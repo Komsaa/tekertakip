@@ -60,9 +60,7 @@ export default async function DriversPage() {
   const activeCount = drivers.filter((d) => d.status === "active").length;
   const hasAlertCount = drivers.filter((d) => {
     const statuses = [
-      getDocStatus(d.srcExpiry),
-      getDocStatus(d.psychotechExpiry),
-      getDocStatus(d.criminalRecordExpiry),
+      getDocStatus(d.licenseExpiry),
     ];
     return statuses.some((s) => s === "expired" || s === "critical" || s === "warning");
   }).length;
@@ -95,10 +93,7 @@ export default async function DriversPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {drivers.map((driver) => {
             const overallStatus = [
-              getDocStatus(driver.srcExpiry),
-              getDocStatus(driver.psychotechExpiry),
-              getDocStatus(driver.criminalRecordExpiry),
-              getDocStatus(driver.healthReportExpiry),
+              getDocStatus(driver.licenseExpiry),
             ];
             const hasExpired = overallStatus.some((s) => s === "expired");
             const hasCritical = overallStatus.some((s) => s === "critical");
@@ -156,10 +151,7 @@ export default async function DriversPage() {
 
                 {/* Belge durumları */}
                 <div className="flex flex-wrap gap-1.5">
-                  <DocBadge label="SRC" expiry={driver.srcExpiry} />
-                  <DocBadge label="Psiko" expiry={driver.psychotechExpiry} />
-                  <DocBadge label="Adli Sicil" expiry={driver.criminalRecordExpiry} />
-                  <DocBadge label="Sağlık" expiry={driver.healthReportExpiry} />
+                  <DocBadge label="Ehliyet" expiry={driver.licenseExpiry} />
                 </div>
 
                 {/* Alt bilgi */}
