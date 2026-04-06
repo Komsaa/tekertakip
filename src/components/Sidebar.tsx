@@ -23,6 +23,7 @@ import {
   CalendarDays,
   Building2,
   MapPin,
+  FileText,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -63,6 +64,11 @@ const navItems = [
     href: "/panel/yakit",
     icon: Fuel,
     label: "Yakıt Takibi",
+  },
+  {
+    href: "/panel/faturalar",
+    icon: FileText,
+    label: "Faturalar",
   },
   {
     href: "/panel/finans",

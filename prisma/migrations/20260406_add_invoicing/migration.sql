@@ -1,0 +1,55 @@
+-- CreateTable: Client
+CREATE TABLE "Client" (
+  "id" TEXT NOT NULL,
+  "name" TEXT NOT NULL,
+  "vkn" TEXT,
+  "taxOffice" TEXT,
+  "address" TEXT,
+  "email" TEXT,
+  "phone" TEXT,
+  "unitPrice" DOUBLE PRECISION NOT NULL DEFAULT 0,
+  "paymentTermDays" INTEGER NOT NULL DEFAULT 30,
+  "kdvRate" DOUBLE PRECISION NOT NULL DEFAULT 20,
+  "tevkifatRate" DOUBLE PRECISION NOT NULL DEFAULT 50,
+  "notes" TEXT,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "Client_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable: Invoice
+CREATE TABLE "Invoice" (
+  "id" TEXT NOT NULL,
+  "invoiceNo" TEXT NOT NULL,
+  "clientId" TEXT NOT NULL,
+  "issueDate" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "dueDate" TIMESTAMP(3) NOT NULL,
+  "periodStart" TIMESTAMP(3) NOT NULL,
+  "periodEnd" TIMESTAMP(3) NOT NULL,
+  "tripCount" INTEGER NOT NULL,
+  "unitPrice" DOUBLE PRECISION NOT NULL,
+  "subtotal" DOUBLE PRECISION NOT NULL,
+  "kdvRate" DOUBLE PRECISION NOT NULL DEFAULT 20,
+  "kdvAmount" DOUBLE PRECISION NOT NULL,
+  "tevkifatRate" DOUBLE PRECISION NOT NULL DEFAULT 50,
+  "tevkifatAmount" DOUBLE PRECISION NOT NULL,
+  "totalAmount" DOUBLE PRECISION NOT NULL,
+  "payableAmount" DOUBLE PRECISION NOT NULL,
+  "status" TEXT NOT NULL DEFAULT 'bekliyor',
+  "paidAt" TIMESTAMP(3),
+  "paidAmount" DOUBLE PRECISION NOT NULL DEFAULT 0,
+  "notes" TEXT,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "Invoice_pkey" PRIMARY KEY ("id")
+);
+
+CREATE UNIQUE INDEX "Invoice_invoiceNo_key" ON "Invoice"("invoiceNo");
+
+ALTER TABLE "Invoice" ADD CONSTRAINT "Invoice_clientId_fkey"
+  FOREIGN KEY ("clientId") REFERENCES "Client"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- Add clientId to Job
+ALTER TABLE "Job" ADD COLUMN "clientId" TEXT;
+ALTER TABLE "Job" ADD CONSTRAINT "Job_clientId_fkey"
+  FOREIGN KEY ("clientId") REFERENCES "Client"("id") ON DELETE SET NULL ON UPDATE CASCADE;

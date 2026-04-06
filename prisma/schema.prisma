@@ -205,6 +205,9 @@ model Job {
   vehicleId String?
   vehicle   Vehicle? @relation(fields: [vehicleId], references: [id])
 
+  clientId  String?
+  client    Client?  @relation(fields: [clientId], references: [id])
+
   revenue Float? // bu işten kazanılan
   notes   String? @db.Text
 
@@ -466,6 +469,53 @@ model VehicleReport {
   status      String    @default("open") // open, resolved
   resolvedAt  DateTime?
   createdAt   DateTime  @default(now())
+}
+
+// ============ FATURA FİRMALARI (müşteriler) ============
+model Client {
+  id              String    @id @default(cuid())
+  name            String                         // "ÜRETİCİ GIDA TARIM..."
+  vkn             String?                        // vergi kimlik no
+  taxOffice       String?                        // vergi dairesi
+  address         String?
+  email           String?
+  phone           String?
+  unitPrice       Float     @default(0)          // sefer başı birim fiyat
+  paymentTermDays Int       @default(30)         // vade gün sayısı
+  kdvRate         Float     @default(20)         // KDV oranı %
+  tevkifatRate    Float     @default(50)         // KDV tevkifat oranı % (personel=50)
+  notes           String?   @db.Text
+  invoices        Invoice[]
+  jobs            Job[]
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+// ============ FATURALAR ============
+model Invoice {
+  id             String   @id @default(cuid())
+  invoiceNo      String   @unique              // KOM2026000000005
+  clientId       String
+  client         Client   @relation(fields: [clientId], references: [id])
+  issueDate      DateTime @default(now())
+  dueDate        DateTime                      // son ödeme tarihi
+  periodStart    DateTime                      // fatura dönemi başı
+  periodEnd      DateTime                      // fatura dönemi sonu
+  tripCount      Int                           // sefer sayısı
+  unitPrice      Float                         // sefer başı birim fiyat
+  subtotal       Float                         // ara toplam
+  kdvRate        Float    @default(20)
+  kdvAmount      Float
+  tevkifatRate   Float    @default(50)
+  tevkifatAmount Float
+  totalAmount    Float                         // vergiler dahil toplam
+  payableAmount  Float                         // ödenecek (tevkifat düşülmüş)
+  status         String   @default("bekliyor") // bekliyor, odendi, gecikti
+  paidAt         DateTime?
+  paidAmount     Float    @default(0)
+  notes          String?  @db.Text
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }
 
 // ============ AYARLAR ============
