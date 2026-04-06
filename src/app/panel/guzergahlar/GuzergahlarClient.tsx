@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, MapPin, Trash2, Edit2, CheckCircle, Clock, ChevronDown, ChevronUp, Search, X, GripVertical, Link2 } from "lucide-react";
+import { Plus, MapPin, Trash2, Edit2, CheckCircle, Clock, ChevronDown, ChevronUp, Search, X, GripVertical, Link2, Sparkles } from "lucide-react";
+import toast from "react-hot-toast";
 import { computeLiveStatus, type RouteStop } from "@/lib/routeStatus";
 import RouteMap from "@/components/RouteMap";
 
@@ -38,6 +39,8 @@ export default function GuzergahlarClient({
   const [showForm, setShowForm] = useState(false);
   const [editingRoute, setEditingRoute] = useState<Route | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [analyzingId, setAnalyzingId] = useState<string | null>(null);
+  const [analysisResults, setAnalysisResults] = useState<Record<string, any[]>>({});
 
   // Form state
   const [name, setName] = useState("");
@@ -285,7 +288,50 @@ export default function GuzergahlarClient({
                 <div className="px-5 pb-5 border-t border-slate-50 pt-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
                   {/* Durak listesi */}
                   <div>
-                    <h3 className="text-sm font-bold text-slate-700 mb-3">Duraklar</h3>
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-sm font-bold text-slate-700">Duraklar</h3>
+                      <button
+                        onClick={async () => {
+                          setAnalyzingId(r.id);
+                          try {
+                            const res = await fetch(`/api/routes/${r.id}/analyze-timing`);
+                            const data = await res.json();
+                            if (!res.ok) { toast.error(data.error ?? "Analiz başarısız"); return; }
+                            if (!data.stops?.some((s: any) => s.confidence > 0)) {
+                              toast(data.message ?? "Henüz yeterli GPS verisi yok (5 gün beklenmeli)");
+                              return;
+                            }
+                            setAnalysisResults(prev => ({ ...prev, [r.id]: data.stops }));
+                            toast.success(`${data.historyPoints} GPS noktası analiz edildi`);
+                          } catch { toast.error("Hata"); }
+                          finally { setAnalyzingId(null); }
+                        }}
+                        disabled={analyzingId === r.id}
+                        className="flex items-center gap-1.5 text-xs font-semibold text-purple-600 bg-purple-50 hover:bg-purple-100 px-3 py-1.5 rounded-lg disabled:opacity-50 transition-colors"
+                      >
+                        <Sparkles className="w-3.5 h-3.5" />
+                        {analyzingId === r.id ? "Analiz ediliyor..." : "GPS Analizi"}
+                      </button>
+                    </div>
+                    {/* Analiz sonuçları */}
+                    {analysisResults[r.id] && (
+                      <div className="mb-3 bg-purple-50 border border-purple-200 rounded-xl p-3 text-xs">
+                        <p className="font-bold text-purple-700 mb-2">📊 5 Günlük GPS Analizi — Önerilen Saatler</p>
+                        <div className="space-y-1">
+                          {analysisResults[r.id].map((s: any) => (
+                            <div key={s.id} className="flex items-center gap-2">
+                              <span className="text-slate-600 flex-1 truncate">{s.name}</span>
+                              <span className="text-slate-400 line-through">{s.currentTime}</span>
+                              <span className="text-purple-700 font-bold">{s.suggestedTime}</span>
+                              {s.confidence > 0 && (
+                                <span className="text-purple-400">({s.sampleDays}g)</span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                        <p className="text-purple-400 mt-2">Saatleri kabul etmek için güzergahı düzenle → saatleri kopyala.</p>
+                      </div>
+                    )}
                     <div className="space-y-2">
                       {r.stops.map((s, i) => {
                         const isCur = r.active && status.phase === "active" && status.currentStopIndex === i;

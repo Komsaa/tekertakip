@@ -20,8 +20,8 @@ export default async function PanelLayout({
       <Sidebar userName={session.user?.name || "Admin"} />
 
       {/* Ana içerik */}
-      <main className="flex-1 overflow-y-auto">
-        <div className="min-h-full">{children}</div>
+      <main className="flex-1 overflow-y-auto flex flex-col">
+        {children}
       </main>
 
       {/* Gecikme bildirimleri */}

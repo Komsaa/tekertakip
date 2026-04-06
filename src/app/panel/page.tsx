@@ -1,682 +1,125 @@
 import { prisma } from "@/lib/prisma";
-import {
-  getDocStatus,
-  formatDate,
-  formatCurrency,
-  getDaysLeft,
-} from "@/lib/utils";
-import {
-  Fuel,
-  AlertTriangle,
-  Calendar,
-  CheckCircle,
-  ChevronRight,
-  MapPin,
-  Clock,
-} from "lucide-react";
-import Link from "next/link";
-import { startOfMonth, endOfMonth, endOfDay } from "date-fns";
-import { CheckSquare } from "lucide-react";
-import TodayJobs from "@/components/TodayJobs";
-import LiveRoutes from "@/components/LiveRoutes";
+import { getDocStatus, getDaysLeft } from "@/lib/utils";
+import { redirect } from "next/navigation";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import CommandCenter from "@/components/CommandCenter";
+import { startOfDay, endOfDay } from "date-fns";
 
-type CreditCardAlert = {
-  id: string; name: string; bank: string | null; color: string;
-  daysToPayment: number; paymentDue: Date; periodTotal: number;
-};
-
-const EMPTY_DATA = {
-  driverCount: 0, vehicleCount: 0, todayJobs: [], availableVehicles: [], busyVehicles: [],
-  activeRoutes: [], monthFuel: 0, monthFuelLiters: 0, monthIncome: 0, monthExpense: 0,
-  recentFuel: [], urgentTasks: [], alertDocs: [], expiredCount: 0, criticalCount: 0, warningCount: 0,
-  creditCardAlerts: [] as CreditCardAlert[],
-};
-
-async function getDashboardData() {
+async function getData() {
   try {
-  const today = new Date();
-  const monthStart = startOfMonth(today);
-  const monthEnd = endOfMonth(today);
+    const today = new Date();
+    const session = await getServerSession(authOptions);
+    if (!session) redirect("/login");
 
-  const [drivers, vehicles, todayJobs, monthFuel, monthIncome, monthExpense, recentFuel, activeRoutes, urgentTasks, creditCards] =
-    await Promise.all([
-      prisma.driver.findMany({ where: { status: "active" } }),
-      prisma.vehicle.findMany({ where: { status: "active" } }),
-      prisma.job.findMany({
-        where: {
-          date: {
-            gte: new Date(today.setHours(0, 0, 0, 0)),
-            lte: new Date(today.setHours(23, 59, 59, 999)),
+    const [drivers, vehicles, todayJobs, creditCards, upcomingChecks, pendingInvoices, notesSetting] =
+      await Promise.all([
+        prisma.driver.findMany({ where: { status: "active" } }),
+        prisma.vehicle.findMany({ where: { status: "active" } }),
+        prisma.job.findMany({
+          where: { date: { gte: startOfDay(today), lte: endOfDay(today) } },
+          include: { driver: { select: { id: true, name: true } }, vehicle: { select: { id: true, plate: true } } },
+          orderBy: { startTime: "asc" },
+        }),
+        prisma.creditCard.findMany({
+          where: { active: true },
+          include: { expenses: { select: { amount: true, billingMonth: true, billingYear: true } } },
+        }).catch(() => []),
+        prisma.check.findMany({
+          where: {
+            status: "bekliyor",
+            dueDate: { lte: new Date(today.getTime() + 7 * 86400000) },
           },
-        },
-        include: { driver: true, vehicle: true },
-        orderBy: { startTime: "asc" },
-      }),
-      prisma.fuelEntry.aggregate({
-        _sum: { totalAmount: true, liters: true },
-        where: { date: { gte: monthStart, lte: monthEnd } },
-      }),
-      prisma.financeEntry.aggregate({
-        _sum: { amount: true },
-        where: { type: "income", date: { gte: monthStart, lte: monthEnd } },
-      }),
-      prisma.financeEntry.aggregate({
-        _sum: { amount: true },
-        where: { type: "expense", date: { gte: monthStart, lte: monthEnd } },
-      }),
-      prisma.fuelEntry.findMany({
-        take: 5,
-        orderBy: { createdAt: "desc" },
-        include: { vehicle: true, driver: true },
-      }),
-      // Aktif güzergahlar (tablo henüz yoksa boş dön)
-      prisma.route.findMany({
-        where: { active: true },
-        include: { driver: true, vehicle: true, stops: { orderBy: { order: "asc" } } },
-        orderBy: { createdAt: "asc" },
-      }).catch(() => []),
-      // Acil + bugün vadesi gelen görevler
-      prisma.task.findMany({
-        where: {
-          status: { in: ["pending", "in_progress"] },
-          OR: [
-            { priority: "urgent" },
-            { priority: "high" },
-            { dueDate: { lte: endOfDay(today) } },
-          ],
-        },
-        orderBy: [{ priority: "asc" }, { dueDate: "asc" }],
-        take: 5,
-      }),
-      // Kredi kartları (ödeme uyarıları için)
-      prisma.creditCard.findMany({
-        where: { active: true },
-        include: { expenses: { select: { amount: true, billingMonth: true, billingYear: true } } },
-      }).catch(() => []),
-    ]);
+          include: { contact: { select: { name: true } } },
+          orderBy: { dueDate: "asc" },
+        }).catch(() => []),
+        prisma.invoice.findMany({
+          where: { status: { in: ["bekliyor", "gecikti"] } },
+          include: { client: { select: { name: true } } },
+          orderBy: { dueDate: "asc" },
+          take: 20,
+        }).catch(() => []),
+        prisma.setting.findUnique({ where: { key: "dashboard_notes" } }).catch(() => null),
+      ]);
 
-  // Tüm belge son tarihleri topla
-  const allDocs: Array<{
-    id: string;
-    name: string;
-    type: "driver" | "vehicle";
-    docType: string;
-    docName: string;
-    expiryDate: Date | null;
-    href: string;
-  }> = [];
-
-  // Şöför belgeleri
-  for (const d of drivers) {
-    const driverDocs = [
-      { key: "src", label: "SRC Belgesi", expiry: d.srcExpiry },
-      { key: "psychotech", label: "Psikoteknik", expiry: d.psychotechExpiry },
-      { key: "criminalRecord", label: "Adli Sicil", expiry: d.criminalRecordExpiry },
-      { key: "healthReport", label: "Sağlık Raporu", expiry: d.healthReportExpiry },
-      { key: "license", label: "Ehliyet", expiry: d.licenseExpiry },
-    ];
-    for (const doc of driverDocs) {
-      allDocs.push({
-        id: d.id,
-        name: d.name,
-        type: "driver",
-        docType: doc.key,
-        docName: doc.label,
-        expiryDate: doc.expiry,
-        href: `/panel/soforler/${d.id}`,
-      });
+    // Belge uyarıları
+    const allDocs: any[] = [];
+    for (const d of drivers) {
+      allDocs.push(
+        { id: d.id, name: d.name, type: "driver", docName: "Ehliyet", expiryDate: d.licenseExpiry, href: `/panel/soforler/${d.id}` },
+      );
     }
-  }
-
-  // Araç belgeleri
-  for (const v of vehicles) {
-    const vehicleDocs = [
-      { key: "inspection", label: "Muayene (1 yıl)", expiry: v.inspectionExpiry },
-      { key: "insurance", label: "Trafik Sigortası", expiry: v.insuranceExpiry },
-      { key: "routePermit", label: "Güzergah İzni", expiry: v.routePermitExpiry },
-      { key: "approval", label: "Uygunluk Belgesi", expiry: v.approvalExpiry },
-      { key: "kasko", label: "Kasko", expiry: v.kaskoExpiry },
-    ];
-    for (const doc of vehicleDocs) {
-      allDocs.push({
-        id: v.id,
-        name: v.plate,
-        type: "vehicle",
-        docType: doc.key,
-        docName: doc.label,
-        expiryDate: doc.expiry,
-        href: `/panel/araclar/${v.id}`,
-      });
-    }
-  }
-
-  // Uyarı gereken belgeleri filtrele
-  const alertDocs = allDocs
-    .filter((doc) => {
-      const status = getDocStatus(doc.expiryDate);
-      return status === "expired" || status === "critical" || status === "warning";
-    })
-    .sort((a, b) => {
-      const da = getDaysLeft(a.expiryDate) ?? -9999;
-      const db = getDaysLeft(b.expiryDate) ?? -9999;
-      return da - db;
-    })
-    .slice(0, 10);
-
-  const expiredCount = allDocs.filter(
-    (d) => getDocStatus(d.expiryDate) === "expired"
-  ).length;
-  const criticalCount = allDocs.filter(
-    (d) => getDocStatus(d.expiryDate) === "critical"
-  ).length;
-  const warningCount = allDocs.filter(
-    (d) => getDocStatus(d.expiryDate) === "warning"
-  ).length;
-
-  // Kredi kartı ödeme uyarıları (7 gün içinde)
-  const creditCardAlerts: CreditCardAlert[] = creditCards
-    .map((card) => {
-      const day = today.getDate();
-      let billingMonth = today.getMonth() + 1;
-      let billingYear = today.getFullYear();
-      if (day < card.billingDay) {
-        billingMonth = billingMonth === 1 ? 12 : billingMonth - 1;
-        if (billingMonth === 12) billingYear--;
+    for (const v of vehicles) {
+      const vDocs = [
+        { key: "inspection", label: "Muayene", expiry: v.inspectionExpiry },
+        { key: "insurance", label: "Trafik Sig.", expiry: v.insuranceExpiry },
+        { key: "routePermit", label: "Güzergah İzni", expiry: v.routePermitExpiry },
+        { key: "approval", label: "Uygunluk", expiry: v.approvalExpiry },
+        { key: "kasko", label: "Kasko", expiry: v.kaskoExpiry },
+      ];
+      for (const doc of vDocs) {
+        allDocs.push({ id: v.id, name: v.plate, type: "vehicle", docName: doc.label, expiryDate: doc.expiry, href: `/panel/araclar/${v.id}` });
       }
-      const billingDate = new Date(billingYear, billingMonth - 1, card.billingDay);
-      const paymentDue = new Date(billingDate);
-      paymentDue.setDate(paymentDue.getDate() + card.paymentDaysAfterBilling);
-      const daysToPayment = Math.floor((paymentDue.getTime() - today.getTime()) / 86400000);
-      const periodTotal = card.expenses
-        .filter((e) => e.billingMonth === billingMonth && e.billingYear === billingYear)
-        .reduce((s, e) => s + e.amount, 0);
-      return { id: card.id, name: card.name, bank: card.bank, color: card.color, daysToPayment, paymentDue, periodTotal };
-    })
-    .filter((c) => c.daysToPayment >= 0 && c.daysToPayment <= 7);
+    }
 
-  // Bugün aktif/planlanmış seferlerde kullanılan araç ID'leri
-  const busyVehicleIds = new Set(
-    todayJobs
-      .filter((j) => j.status !== "completed" && j.status !== "cancelled" && j.vehicleId)
-      .map((j) => j.vehicleId!)
-  );
-  const availableVehicles = vehicles.filter((v) => !busyVehicleIds.has(v.id));
-  const busyVehicles = vehicles.filter((v) => busyVehicleIds.has(v.id));
+    const alertDocs = allDocs
+      .filter(doc => {
+        const s = getDocStatus(doc.expiryDate);
+        return s === "expired" || s === "critical" || s === "warning";
+      })
+      .sort((a, b) => (getDaysLeft(a.expiryDate) ?? -9999) - (getDaysLeft(b.expiryDate) ?? -9999))
+      .slice(0, 20)
+      .map(doc => ({
+        ...doc,
+        expiryDate: doc.expiryDate?.toISOString() ?? null,
+        daysLeft: getDaysLeft(doc.expiryDate),
+        status: getDocStatus(doc.expiryDate),
+      }));
 
-  return {
-    driverCount: drivers.length,
-    vehicleCount: vehicles.length,
-    todayJobs,
-    availableVehicles,
-    busyVehicles,
-    activeRoutes,
-    monthFuel: monthFuel._sum.totalAmount ?? 0,
-    monthFuelLiters: monthFuel._sum.liters ?? 0,
-    monthIncome: monthIncome._sum.amount ?? 0,
-    monthExpense: (monthExpense._sum.amount ?? 0) + (monthFuel._sum.totalAmount ?? 0),
-    recentFuel,
-    urgentTasks,
-    alertDocs,
-    expiredCount,
-    criticalCount,
-    warningCount,
-    creditCardAlerts,
-  };
+    // Kredi kartı ödeme uyarıları (7 gün)
+    const creditCardAlerts = creditCards
+      .map(card => {
+        const day = today.getDate();
+        let bMonth = today.getMonth() + 1;
+        let bYear = today.getFullYear();
+        if (day < card.billingDay) { bMonth = bMonth === 1 ? 12 : bMonth - 1; if (bMonth === 12) bYear--; }
+        const billingDate = new Date(bYear, bMonth - 1, card.billingDay);
+        const paymentDue = new Date(billingDate);
+        paymentDue.setDate(paymentDue.getDate() + card.paymentDaysAfterBilling);
+        const daysToPayment = Math.floor((paymentDue.getTime() - today.getTime()) / 86400000);
+        const periodTotal = card.expenses
+          .filter(e => e.billingMonth === bMonth && e.billingYear === bYear)
+          .reduce((s, e) => s + e.amount, 0);
+        return { id: card.id, name: card.name, bank: card.bank, color: card.color, daysToPayment, paymentDue: paymentDue.toISOString(), periodTotal };
+      })
+      .filter(c => c.daysToPayment >= 0 && c.daysToPayment <= 7);
+
+    const todayStr = today.toLocaleDateString("tr-TR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+
+    return {
+      todayJobs,
+      creditCardAlerts,
+      upcomingChecks: upcomingChecks.map(c => ({ ...c, dueDate: c.dueDate.toISOString() })),
+      pendingInvoices: pendingInvoices.map(i => ({ ...i, dueDate: i.dueDate.toISOString() })),
+      alertDocs,
+      initialNotes: notesSetting?.value ?? "",
+      today: todayStr,
+    };
   } catch (e) {
-    console.error("Dashboard veri hatası:", e);
-    return EMPTY_DATA;
+    console.error("Dashboard hata:", e);
+    return {
+      todayJobs: [], creditCardAlerts: [], upcomingChecks: [],
+      pendingInvoices: [], alertDocs: [], initialNotes: "",
+      today: new Date().toLocaleDateString("tr-TR"),
+    };
   }
 }
 
 export default async function DashboardPage() {
-  const data = await getDashboardData();
-  const now = new Date();
-
-  const alertTotal = data.expiredCount + data.criticalCount + data.warningCount;
-
+  const data = await getData();
   return (
-    <div className="p-6 lg:p-8 space-y-8 animate-fade-in">
-      {/* Başlık */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-black text-slate-800">Dashboard</h1>
-          <p className="text-slate-500 text-sm mt-1">
-            {now.toLocaleDateString("tr-TR", {
-              weekday: "long",
-              day: "numeric",
-              month: "long",
-              year: "numeric",
-            })}
-          </p>
-        </div>
-        <Link
-          href="/panel/isler"
-          className="hidden sm:flex items-center gap-2 bg-[#DC2626] hover:bg-[#B91C1C] text-white px-4 py-2 rounded-xl text-sm font-semibold transition-all"
-        >
-          <Calendar className="w-4 h-4" />
-          İş Ekle
-        </Link>
-      </div>
-
-      {/* ===== UYARI BANNER ===== */}
-      {alertTotal > 0 && (
-        <div
-          className={`rounded-2xl p-5 border-2 ${
-            data.expiredCount > 0
-              ? "bg-red-50 border-red-200"
-              : data.criticalCount > 0
-              ? "bg-red-50 border-red-200"
-              : "bg-amber-50 border-amber-200"
-          }`}
-        >
-          <div className="flex items-start gap-3">
-            <AlertTriangle
-              className={`w-6 h-6 flex-shrink-0 mt-0.5 ${
-                data.expiredCount > 0 || data.criticalCount > 0
-                  ? "text-red-600"
-                  : "text-amber-600"
-              }`}
-            />
-            <div>
-              <p
-                className={`font-bold ${
-                  data.expiredCount > 0 || data.criticalCount > 0
-                    ? "text-red-800"
-                    : "text-amber-800"
-                }`}
-              >
-                Belge Uyarısı: {alertTotal} belge dikkat gerektiriyor
-              </p>
-              <div className="flex gap-4 mt-2 text-sm">
-                {data.expiredCount > 0 && (
-                  <span className="text-red-700 font-semibold">
-                    🔴 {data.expiredCount} süresi geçmiş
-                  </span>
-                )}
-                {data.criticalCount > 0 && (
-                  <span className="text-red-600">
-                    ⚠️ {data.criticalCount} kritik (7 gün)
-                  </span>
-                )}
-                {data.warningCount > 0 && (
-                  <span className="text-amber-600">
-                    🟡 {data.warningCount} yaklaşıyor (30 gün)
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ===== KREDİ KARTI ÖDEME UYARILARI ===== */}
-      {data.creditCardAlerts.length > 0 && (
-        <div className="bg-purple-50 border-2 border-purple-200 rounded-2xl p-5">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-purple-600" />
-              <span className="font-bold text-purple-800">Kredi Kartı Ödeme Hatırlatması ({data.creditCardAlerts.length})</span>
-            </div>
-            <Link href="/panel/kredikartlari" className="text-xs text-purple-600 hover:underline font-medium">Kartlara git →</Link>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            {data.creditCardAlerts.map((c) => (
-              <div key={c.id} className="bg-white border border-purple-200 rounded-xl px-4 py-3 text-sm">
-                <div className="font-bold text-slate-800">{c.name}</div>
-                {c.bank && <div className="text-xs text-slate-400">{c.bank}</div>}
-                <div className="text-purple-700 font-semibold text-base">{formatCurrency(c.periodTotal)}</div>
-                <div className={`text-xs font-bold mt-1 ${c.daysToPayment === 0 ? "text-red-600" : "text-amber-600"}`}>
-                  {c.daysToPayment === 0 ? "⚠️ Son ödeme bugün!" : `⚠️ ${c.daysToPayment} gün kaldı`}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* ===== HARİTA + CANLÜ GÜZERGAHLAR + ARAÇ DURUMU ===== */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        {/* Harita */}
-        <div className="xl:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-          <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-            <h2 className="font-bold text-slate-800 flex items-center gap-2">
-              <MapPin className="w-5 h-5 text-[#DC2626]" />
-              Filom
-            </h2>
-            <span className="text-xs text-slate-400 bg-slate-50 px-2 py-1 rounded-full">Canlı GPS: Arvento entegrasyonu yakında</span>
-          </div>
-          <div className="relative" style={{ height: 380 }}>
-            <iframe
-              src="https://www.openstreetmap.org/export/embed.html?bbox=27.5%2C38.5%2C28.3%2C39.0&layer=mapnik&marker=38.7139%2C27.9181"
-              style={{ width: "100%", height: "100%", border: 0 }}
-              loading="lazy"
-            />
-          </div>
-        </div>
-
-        {/* Canlı Güzergahlar */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 flex flex-col">
-          <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-            <h2 className="font-bold text-slate-800 flex items-center gap-2">
-              <MapPin className="w-5 h-5 text-green-500" />
-              Canlı Güzergahlar
-            </h2>
-            <Link href="/panel/guzergahlar" className="text-xs text-[#DC2626] hover:underline font-medium">Yönet</Link>
-          </div>
-          <div className="flex-1 overflow-y-auto" style={{ maxHeight: 380 }}>
-            <LiveRoutes initialRoutes={data.activeRoutes} />
-          </div>
-        </div>
-      </div>
-
-      {/* ===== BUGÜNKÜ SEFERLER (manuel) ===== */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100">
-        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-          <h2 className="font-bold text-slate-800 flex items-center gap-2">
-            <Clock className="w-5 h-5 text-blue-500" />
-            Bugünkü Manuel Seferler
-          </h2>
-          <Link href="/panel/isler" className="text-xs text-[#DC2626] hover:underline font-medium">Tümü</Link>
-        </div>
-        <div className="max-h-72 overflow-y-auto">
-          <TodayJobs initialJobs={data.todayJobs} />
-        </div>
-      </div>
-
-      {/* ===== MÜSAİT ARAÇLAR ===== */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100">
-        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-          <h2 className="font-bold text-slate-800 flex items-center gap-2">
-            <CheckCircle className="w-5 h-5 text-green-500" />
-            Araç Durumu
-          </h2>
-          <div className="flex items-center gap-3 text-xs">
-            <span className="flex items-center gap-1.5 text-green-700 font-medium">
-              <span className="w-2 h-2 rounded-full bg-green-500 inline-block" />
-              {data.availableVehicles.length} müsait
-            </span>
-            <span className="flex items-center gap-1.5 text-slate-500 font-medium">
-              <span className="w-2 h-2 rounded-full bg-slate-400 inline-block" />
-              {data.busyVehicles.length} seferde
-            </span>
-          </div>
-        </div>
-        <div className="p-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
-          {[...data.availableVehicles.map(v => ({ ...v, busy: false })), ...data.busyVehicles.map(v => ({ ...v, busy: true }))].map((v) => (
-            <Link
-              key={v.id}
-              href={`/panel/araclar/${v.id}`}
-              className={`flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all hover:shadow-sm ${
-                v.busy
-                  ? "border-slate-200 bg-slate-50 opacity-70 hover:opacity-100"
-                  : "border-green-200 bg-green-50 hover:border-green-300"
-              }`}
-            >
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white text-xs font-bold ${v.busy ? "bg-slate-400" : "bg-green-500"}`}>
-                {v.plate.slice(-3)}
-              </div>
-              <div className="text-center">
-                <div className="text-xs font-bold text-slate-700 leading-tight">{v.plate}</div>
-                <div className="text-xs text-slate-400 mt-0.5">{v.busy ? "Seferde" : "Müsait"}</div>
-              </div>
-            </Link>
-          ))}
-          {data.availableVehicles.length === 0 && data.busyVehicles.length === 0 && (
-            <p className="col-span-full text-sm text-slate-400 text-center py-4">Aktif araç yok</p>
-          )}
-        </div>
-      </div>
-
-      {/* ===== 2 KOLON: Belge Uyarıları + Son Yakıt ===== */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        {/* Belge Uyarıları */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100">
-          <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-            <h2 className="font-bold text-slate-800 flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-amber-500" />
-              Belge Uyarıları
-            </h2>
-            <span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full font-medium">
-              {alertTotal} uyarı
-            </span>
-          </div>
-
-          <div className="divide-y divide-slate-50">
-            {data.alertDocs.length === 0 ? (
-              <div className="px-6 py-8 text-center text-slate-400">
-                <CheckCircle className="w-10 h-10 text-green-400 mx-auto mb-2" />
-                <p className="font-medium text-slate-600">Tüm belgeler geçerli</p>
-                <p className="text-sm">Harika! Hiçbir belge uyarısı yok.</p>
-              </div>
-            ) : (
-              data.alertDocs.map((doc, i) => {
-                const status = getDocStatus(doc.expiryDate);
-                const daysLeft = getDaysLeft(doc.expiryDate);
-                return (
-                  <Link
-                    key={i}
-                    href={doc.href}
-                    className="flex items-center gap-4 px-6 py-3.5 hover:bg-slate-50 transition-colors"
-                  >
-                    <div
-                      className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                        status === "expired" || status === "critical"
-                          ? "bg-red-500"
-                          : "bg-amber-400"
-                      }`}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold text-slate-800 text-sm truncate">
-                          {doc.name}
-                        </span>
-                        <span className="text-xs bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded flex-shrink-0">
-                          {doc.type === "driver" ? "Şöför" : "Araç"}
-                        </span>
-                      </div>
-                      <div className="text-xs text-slate-500">{doc.docName}</div>
-                    </div>
-                    <div className="text-right flex-shrink-0">
-                      {daysLeft !== null && daysLeft < 0 ? (
-                        <span className="text-xs font-bold text-red-600">
-                          {Math.abs(daysLeft)} gün geçti
-                        </span>
-                      ) : (
-                        <span
-                          className={`text-xs font-bold ${
-                            (daysLeft ?? 99) <= 7 ? "text-red-600" : "text-amber-600"
-                          }`}
-                        >
-                          {daysLeft} gün kaldı
-                        </span>
-                      )}
-                      <div className="text-xs text-slate-400 mt-0.5">
-                        {formatDate(doc.expiryDate)}
-                      </div>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-slate-300 flex-shrink-0" />
-                  </Link>
-                );
-              })
-            )}
-          </div>
-        </div>
-
-      </div>
-
-      {/* ===== SON YAKIT GİRİŞLERİ ===== */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100">
-        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-          <h2 className="font-bold text-slate-800 flex items-center gap-2">
-            <Fuel className="w-5 h-5 text-amber-500" />
-            Son Yakıt Girişleri
-          </h2>
-          <Link
-            href="/panel/yakit"
-            className="text-xs text-[#DC2626] hover:underline font-medium"
-          >
-            Tümünü gör
-          </Link>
-        </div>
-
-        <div className="overflow-x-auto">
-          {data.recentFuel.length === 0 ? (
-            <div className="px-6 py-8 text-center text-slate-400">
-              <Fuel className="w-10 h-10 text-slate-200 mx-auto mb-2" />
-              <p>Henüz yakıt girişi yok</p>
-            </div>
-          ) : (
-            <table className="w-full">
-              <thead>
-                <tr className="bg-slate-50 text-xs text-slate-500 uppercase">
-                  <th className="px-6 py-3 text-left font-semibold">Tarih</th>
-                  <th className="px-6 py-3 text-left font-semibold">Araç</th>
-                  <th className="px-6 py-3 text-left font-semibold">Şöför</th>
-                  <th className="px-6 py-3 text-right font-semibold">Litre</th>
-                  <th className="px-6 py-3 text-right font-semibold">Tutar</th>
-                  <th className="px-6 py-3 text-center font-semibold">Ödeme</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {data.recentFuel.map((entry) => (
-                  <tr key={entry.id} className="table-row-hover">
-                    <td className="px-6 py-3 text-sm text-slate-600 whitespace-nowrap">
-                      {formatDate(entry.date)}
-                    </td>
-                    <td className="px-6 py-3">
-                      <span className="text-sm font-semibold text-slate-800">
-                        {entry.vehicle.plate}
-                      </span>
-                    </td>
-                    <td className="px-6 py-3 text-sm text-slate-600">
-                      {entry.driver?.name ?? "-"}
-                    </td>
-                    <td className="px-6 py-3 text-sm text-right text-slate-700">
-                      {entry.liters.toFixed(2)} lt
-                    </td>
-                    <td className="px-6 py-3 text-sm text-right font-semibold text-slate-800">
-                      {formatCurrency(entry.totalAmount)}
-                    </td>
-                    <td className="px-6 py-3 text-center">
-                      <span
-                        className={`text-xs px-2 py-1 rounded-full font-medium ${
-                          entry.paymentType === "veresiye"
-                            ? "bg-amber-100 text-amber-700"
-                            : entry.paymentType === "kart"
-                            ? "bg-blue-100 text-blue-700"
-                            : "bg-green-100 text-green-700"
-                        }`}
-                      >
-                        {entry.paymentType}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-      </div>
-
-      {/* ===== ACİL GÖREVLER ===== */}
-      {data.urgentTasks.length > 0 && (
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100">
-          <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-            <h2 className="font-bold text-slate-800 flex items-center gap-2">
-              <CheckSquare className="w-5 h-5 text-purple-500" />
-              Bekleyen Görevler
-            </h2>
-            <Link href="/panel/gorevler" className="text-xs text-[#DC2626] hover:underline font-medium">
-              Tümünü gör
-            </Link>
-          </div>
-          <div className="divide-y divide-slate-50">
-            {data.urgentTasks.map((task) => {
-              const catColors: Record<string, string> = {
-                evrak: "bg-blue-100 text-blue-700",
-                sanayi: "bg-orange-100 text-orange-700",
-                bakim: "bg-orange-100 text-orange-700",
-                muhasebe: "bg-red-100 text-red-700",
-                sigorta: "bg-purple-100 text-purple-700",
-                vergi: "bg-red-100 text-red-700",
-                arac: "bg-amber-100 text-amber-700",
-                diger: "bg-slate-100 text-slate-500",
-              };
-              const priColors: Record<string, string> = {
-                urgent: "text-red-600 font-bold",
-                high: "text-amber-600 font-semibold",
-                normal: "text-slate-400",
-              };
-              const daysLeft = task.dueDate
-                ? Math.floor((new Date(task.dueDate).getTime() - Date.now()) / 86400000)
-                : null;
-              return (
-                <Link
-                  key={task.id}
-                  href="/panel/gorevler"
-                  className="flex items-center gap-4 px-6 py-3.5 hover:bg-slate-50 transition-colors"
-                >
-                  <div className={`w-2 h-2 rounded-full flex-shrink-0 ${task.priority === "urgent" ? "bg-red-500" : task.priority === "high" ? "bg-amber-400" : "bg-blue-400"}`} />
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-semibold text-slate-800 truncate">{task.title}</div>
-                    <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${catColors[task.category] ?? "bg-slate-100 text-slate-500"}`}>
-                      {task.category}
-                    </span>
-                  </div>
-                  {task.dueDate && (
-                    <div className={`text-xs flex-shrink-0 ${daysLeft !== null && daysLeft < 0 ? "text-red-600 font-bold" : daysLeft === 0 ? "text-red-500 font-bold" : "text-amber-600"}`}>
-                      {daysLeft !== null && daysLeft < 0 ? `${Math.abs(daysLeft)}g geçti` : daysLeft === 0 ? "Bugün!" : `${daysLeft}g`}
-                    </div>
-                  )}
-                  <ChevronRight className="w-4 h-4 text-slate-300 flex-shrink-0" />
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-      )}
+    <div className="flex flex-col" style={{ height: "calc(100vh - 0px)" }}>
+      <CommandCenter {...data} />
     </div>
-  );
-}
-
-// Stat Card bileşeni
-function StatCard({
-  icon: Icon,
-  label,
-  value,
-  sub,
-  color,
-  href,
-}: {
-  icon: React.ElementType;
-  label: string;
-  value: string;
-  sub?: string;
-  color: "blue" | "purple" | "amber" | "green" | "red";
-  href: string;
-}) {
-  const colors = {
-    blue: { bg: "bg-blue-50", icon: "text-blue-600", ring: "ring-blue-100" },
-    purple: { bg: "bg-purple-50", icon: "text-purple-600", ring: "ring-purple-100" },
-    amber: { bg: "bg-amber-50", icon: "text-amber-600", ring: "ring-amber-100" },
-    green: { bg: "bg-green-50", icon: "text-green-600", ring: "ring-green-100" },
-    red: { bg: "bg-red-50", icon: "text-red-600", ring: "ring-red-100" },
-  };
-
-  return (
-    <Link
-      href={href}
-      className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 hover:shadow-md transition-all group"
-    >
-      <div className="flex items-start justify-between mb-3">
-        <div className={`w-10 h-10 ${colors[color].bg} rounded-xl flex items-center justify-center`}>
-          <Icon className={`w-5 h-5 ${colors[color].icon}`} />
-        </div>
-        <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-slate-500 transition-colors" />
-      </div>
-      <div className="text-xl font-black text-slate-800 leading-tight">{value}</div>
-      {sub && <div className="text-xs text-slate-400 mt-0.5">{sub}</div>}
-      <div className="text-xs text-slate-500 font-medium mt-1">{label}</div>
-    </Link>
   );
 }
