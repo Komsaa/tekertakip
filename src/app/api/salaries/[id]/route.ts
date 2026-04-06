@@ -10,12 +10,18 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     const b = await req.json();
     const base = b.baseAmount !== undefined ? parseFloat(b.baseAmount) : undefined;
     const bonus = b.bonusAmount !== undefined ? parseFloat(b.bonusAmount) : undefined;
+    // Sadece biri güncellense bile toplamı yeniden hesapla
+    let totalAmount: number | undefined;
+    if (base !== undefined || bonus !== undefined) {
+      const current = await prisma.salary.findUnique({ where: { id: params.id }, select: { baseAmount: true, bonusAmount: true } });
+      if (current) totalAmount = (base ?? current.baseAmount) + (bonus ?? current.bonusAmount);
+    }
     const salary = await prisma.salary.update({
       where: { id: params.id },
       data: {
         ...(base !== undefined && { baseAmount: base }),
         ...(bonus !== undefined && { bonusAmount: bonus }),
-        ...(base !== undefined && bonus !== undefined && { totalAmount: base + bonus }),
+        ...(totalAmount !== undefined && { totalAmount }),
         ...(b.paid !== undefined && { paid: b.paid, paidAt: b.paid ? new Date() : null }),
         ...(b.notes !== undefined && { notes: b.notes || null }),
       },

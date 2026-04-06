@@ -3,7 +3,9 @@ import { createHmac } from "crypto";
 const PERIOD_MS = 1000 * 60 * 60 * 24 * 30; // 30 gün
 
 function getSecret() {
-  return process.env.NEXTAUTH_SECRET || "tekertakip-secret";
+  const s = process.env.NEXTAUTH_SECRET;
+  if (!s) throw new Error("NEXTAUTH_SECRET env var is not set");
+  return s;
 }
 
 export function createManagerToken(username: string): string {

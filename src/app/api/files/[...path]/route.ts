@@ -24,8 +24,12 @@ export async function GET(
   }
 
   // Güvenlik: path traversal engelle
-  const segments = params.path.map((s) => s.replace(/\.\./g, ""));
-  const filepath = path.join(process.cwd(), "uploads", ...segments);
+  const segments = params.path.map((s) => s.replace(/\.\./g, "").replace(/[/\\]/g, ""));
+  const baseDir = path.resolve(process.cwd(), "uploads");
+  const filepath = path.resolve(baseDir, ...segments);
+  if (!filepath.startsWith(baseDir + path.sep) && filepath !== baseDir) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   try {
     const buffer = await readFile(filepath);

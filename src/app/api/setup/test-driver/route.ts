@@ -10,11 +10,10 @@ export async function GET() {
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
-    // Mevcut test şöförü varsa sil, yeniden oluştur
-    await prisma.driver.deleteMany({ where: { mobileUsername: "test" } });
-
-    const driver = await prisma.driver.create({
-      data: {
+    const driver = await prisma.driver.upsert({
+      where: { mobileUsername: "test" },
+      update: { mobilePin: "test123", status: "active" },
+      create: {
         name: "Test Şöför",
         mobileUsername: "test",
         mobilePin: "test123",
