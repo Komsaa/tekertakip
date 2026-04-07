@@ -554,6 +554,18 @@ model Setting {
   value String @db.Text
 }
 
+// ============ PANEL KULLANICILARI (web arayüzü girişi) ============
+model PanelUser {
+  id           String   @id @default(cuid())
+  username     String   @unique
+  passwordHash String
+  name         String
+  role         String   @default("admin") // admin, viewer
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
 // ============ ÖDEME TAKVİMİ ============
 model PaymentCalendar {
   id            String   @id @default(cuid())

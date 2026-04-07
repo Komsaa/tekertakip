@@ -31,11 +31,19 @@ export const authOptions: NextAuthOptions = {
           const envUser = process.env[`ADMIN${i}_USERNAME`];
           const envPass = process.env[`ADMIN${i}_PASSWORD`];
           if (!envUser) break;
-          if (
-            credentials.username === envUser &&
-            credentials.password === envPass
-          ) {
+          if (credentials.username === envUser && credentials.password === envPass) {
             return { id: `admin${i}`, name: envUser, email: `${envUser}@tekertakip.com`, role: "admin" };
+          }
+        }
+
+        // DB'deki panel kullanıcılarını kontrol et
+        const panelUser = await prisma.panelUser.findUnique({
+          where: { username: credentials.username },
+        });
+        if (panelUser && panelUser.active) {
+          const valid = await bcrypt.compare(credentials.password, panelUser.passwordHash);
+          if (valid) {
+            return { id: panelUser.id, name: panelUser.name, email: `${panelUser.username}@tekertakip.com`, role: panelUser.role };
           }
         }
 

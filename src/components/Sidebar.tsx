@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import Image from "next/image";
 import { signOut } from "next-auth/react";
 import {
   LayoutDashboard,
@@ -29,92 +28,65 @@ import {
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 
-const navItems = [
+type NavItem = {
+  href: string;
+  icon: React.ElementType;
+  label: string;
+  exact?: boolean;
+};
+
+type NavGroup = {
+  label: string;
+  items: NavItem[];
+};
+
+const navGroups: NavGroup[] = [
   {
-    href: "/panel",
-    icon: LayoutDashboard,
-    label: "Dashboard",
-    exact: true,
+    label: "Genel",
+    items: [
+      { href: "/panel", icon: LayoutDashboard, label: "Dashboard", exact: true },
+    ],
   },
   {
-    href: "/panel/soforler",
-    icon: Users,
-    label: "Şöförler",
+    label: "Filo",
+    items: [
+      { href: "/panel/soforler", icon: Users, label: "Şöförler" },
+      { href: "/panel/konum", icon: MapPin, label: "Canlı Konum" },
+      { href: "/panel/araclar", icon: Truck, label: "Araçlar" },
+      { href: "/panel/guzergahlar", icon: Route, label: "Güzergahlar" },
+    ],
   },
   {
-    href: "/panel/konum",
-    icon: MapPin,
-    label: "Canlı Konum",
+    label: "Operasyon",
+    items: [
+      { href: "/panel/isler", icon: ClipboardList, label: "İşler / Seferler" },
+      { href: "/panel/yakit", icon: Fuel, label: "Yakıt Takibi" },
+    ],
   },
   {
-    href: "/panel/araclar",
-    icon: Truck,
-    label: "Araçlar",
-  },
-  {
-    href: "/panel/isler",
-    icon: ClipboardList,
-    label: "İşler / Seferler",
-  },
-  {
-    href: "/panel/guzergahlar",
-    icon: Route,
-    label: "Güzergahlar",
-  },
-  {
-    href: "/panel/yakit",
-    icon: Fuel,
-    label: "Yakıt Takibi",
-  },
-  {
-    href: "/panel/faturalar",
-    icon: FileText,
-    label: "Faturalar",
-  },
-  {
-    href: "/panel/finans",
-    icon: TrendingUp,
     label: "Finans",
+    items: [
+      { href: "/panel/faturalar", icon: FileText, label: "Faturalar" },
+      { href: "/panel/finans", icon: TrendingUp, label: "Finans" },
+      { href: "/panel/maaslar", icon: Banknote, label: "Maaşlar" },
+      { href: "/panel/odeme", icon: Wallet, label: "Ödemeler / Cari" },
+      { href: "/panel/kredikartlari", icon: CreditCard, label: "Kredi Kartları" },
+      { href: "/panel/takvim", icon: CalendarDays, label: "Ödeme Takvimi" },
+    ],
   },
   {
-    href: "/panel/maaslar",
-    icon: Banknote,
-    label: "Maaşlar",
+    label: "Diğer",
+    items: [
+      { href: "/panel/gorevler", icon: CheckSquare, label: "Görevlerim" },
+      { href: "/panel/sirketler", icon: Building2, label: "Şirketler" },
+      { href: "/panel/ayarlar", icon: Settings, label: "Ayarlar" },
+    ],
   },
   {
-    href: "/panel/odeme",
-    icon: Wallet,
-    label: "Ödemeler / Cari",
-  },
-  {
-    href: "/panel/kredikartlari",
-    icon: CreditCard,
-    label: "Kredi Kartları",
-  },
-  {
-    href: "/panel/takvim",
-    icon: CalendarDays,
-    label: "Ödeme Takvimi",
-  },
-  {
-    href: "/panel/gorevler",
-    icon: CheckSquare,
-    label: "Görevlerim",
-  },
-  {
-    href: "/panel/sirketler",
-    icon: Building2,
-    label: "Şirketler",
-  },
-  {
-    href: "/panel/ayarlar",
-    icon: Settings,
-    label: "Ayarlar",
-  },
-  {
-    href: "/panel/admin",
-    icon: ShieldCheck,
-    label: "Admin",
+    label: "Sistem",
+    items: [
+      { href: "/panel/admin", icon: ShieldCheck, label: "Admin" },
+    ],
   },
 ];
 
@@ -126,7 +98,7 @@ export default function Sidebar({ userName }: SidebarProps) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  function isActive(item: (typeof navItems)[0]) {
+  function isActive(item: NavItem) {
     if (item.exact) return pathname === item.href;
     return pathname.startsWith(item.href);
   }
@@ -149,22 +121,31 @@ export default function Sidebar({ userName }: SidebarProps) {
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto sidebar-scroll">
-        {navItems.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            onClick={() => setMobileOpen(false)}
-            className={cn(
-              "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all",
-              isActive(item)
-                ? "bg-[#DC2626] text-white shadow-lg shadow-red-500/20"
-                : "text-slate-400 hover:text-white hover:bg-white/10"
-            )}
-          >
-            <item.icon className="w-5 h-5 flex-shrink-0" />
-            {item.label}
-          </Link>
+      <nav className="flex-1 py-3 px-3 overflow-y-auto sidebar-scroll space-y-4">
+        {navGroups.map((group) => (
+          <div key={group.label}>
+            <div className="px-4 py-1 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              {group.label}
+            </div>
+            <div className="space-y-0.5 mt-1">
+              {group.items.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setMobileOpen(false)}
+                  className={cn(
+                    "flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all",
+                    isActive(item)
+                      ? "bg-[#DC2626] text-white shadow-lg shadow-red-500/20"
+                      : "text-slate-400 hover:text-white hover:bg-white/10"
+                  )}
+                >
+                  <item.icon className="w-4 h-4 flex-shrink-0" />
+                  {item.label}
+                </Link>
+              ))}
+            </div>
+          </div>
         ))}
       </nav>
 
@@ -201,7 +182,6 @@ export default function Sidebar({ userName }: SidebarProps) {
           <Menu className="w-5 h-5" />
         </button>
 
-        {/* Mobile Drawer */}
         {mobileOpen && (
           <>
             <div
