@@ -560,7 +560,8 @@ model PanelUser {
   username     String   @unique
   passwordHash String
   name         String
-  role         String   @default("admin") // admin, viewer
+  phone        String?
+  role         String   @default("firma") // admin, firma
   active       Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt

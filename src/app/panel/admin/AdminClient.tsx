@@ -27,6 +27,7 @@ type PanelUser = {
   id: string;
   username: string;
   name: string;
+  phone: string | null;
   role: string;
   active: boolean;
   createdAt: string;
@@ -46,11 +47,11 @@ export default function AdminClient() {
 
   // Panel users
   const [panelUsers, setPanelUsers] = useState<PanelUser[]>([]);
-  const [newUserForm, setNewUserForm] = useState({ username: "", password: "", name: "", role: "admin" });
+  const [newUserForm, setNewUserForm] = useState({ username: "", password: "", name: "", phone: "", role: "admin" });
   const [newUserError, setNewUserError] = useState("");
   const [newUserSaving, setNewUserSaving] = useState(false);
   const [editingPanelUser, setEditingPanelUser] = useState<string | null>(null);
-  const [editPanelForm, setEditPanelForm] = useState({ name: "", role: "admin", password: "", active: true });
+  const [editPanelForm, setEditPanelForm] = useState({ name: "", phone: "", role: "admin", password: "", active: true });
 
   // Mobile users
   const [mobileUsers, setMobileUsers] = useState<MobileUser[]>([]);
@@ -127,17 +128,17 @@ export default function AdminClient() {
     const data = await res.json();
     setNewUserSaving(false);
     if (!res.ok) { setNewUserError(data.error); return; }
-    setNewUserForm({ username: "", password: "", name: "", role: "admin" });
+    setNewUserForm({ username: "", password: "", name: "", phone: "", role: "admin" });
     fetchPanelUsers();
   }
 
   function startEditPanelUser(u: PanelUser) {
     setEditingPanelUser(u.id);
-    setEditPanelForm({ name: u.name, role: u.role, password: "", active: u.active });
+    setEditPanelForm({ name: u.name, phone: u.phone ?? "", role: u.role, password: "", active: u.active });
   }
 
   async function savePanelUser(id: string) {
-    const body: Record<string, unknown> = { id, name: editPanelForm.name, role: editPanelForm.role, active: editPanelForm.active };
+    const body: Record<string, unknown> = { id, name: editPanelForm.name, phone: editPanelForm.phone, role: editPanelForm.role, active: editPanelForm.active };
     if (editPanelForm.password) body.password = editPanelForm.password;
     await fetch("/api/admin/panel-users", {
       method: "PUT",
@@ -210,25 +211,31 @@ export default function AdminClient() {
           {/* Yeni kullanıcı formu */}
           <div className="bg-gray-800/50 rounded-xl border border-gray-700 p-5">
             <h2 className="text-sm font-semibold text-gray-300 mb-4">Yeni Panel Kullanıcısı Ekle</h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               <input
-                placeholder="Ad Soyad"
+                placeholder="Ad Soyad *"
                 className="bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm"
                 value={newUserForm.name}
                 onChange={(e) => setNewUserForm((f) => ({ ...f, name: e.target.value }))}
               />
               <input
-                placeholder="Kullanıcı Adı"
+                placeholder="Kullanıcı Adı *"
                 className="bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm font-mono"
                 value={newUserForm.username}
                 onChange={(e) => setNewUserForm((f) => ({ ...f, username: e.target.value }))}
               />
               <input
-                placeholder="Şifre"
+                placeholder="Şifre *"
                 type="password"
                 className="bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm"
                 value={newUserForm.password}
                 onChange={(e) => setNewUserForm((f) => ({ ...f, password: e.target.value }))}
+              />
+              <input
+                placeholder="Telefon"
+                className="bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm"
+                value={newUserForm.phone}
+                onChange={(e) => setNewUserForm((f) => ({ ...f, phone: e.target.value }))}
               />
               <select
                 className="bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm"
@@ -256,6 +263,7 @@ export default function AdminClient() {
                 <tr className="text-left text-gray-400 border-b border-gray-700">
                   <th className="pb-2 pr-4">Ad Soyad</th>
                   <th className="pb-2 pr-4">Kullanıcı Adı</th>
+                  <th className="pb-2 pr-4">Telefon</th>
                   <th className="pb-2 pr-4">Rol</th>
                   <th className="pb-2 pr-4">Durum</th>
                   <th className="pb-2 pr-4">Oluşturulma</th>
@@ -277,6 +285,18 @@ export default function AdminClient() {
                       )}
                     </td>
                     <td className="py-3 pr-4 font-mono text-yellow-300">{u.username}</td>
+                    <td className="py-3 pr-4">
+                      {editingPanelUser === u.id ? (
+                        <input
+                          className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm w-32"
+                          value={editPanelForm.phone}
+                          placeholder="05xx..."
+                          onChange={(e) => setEditPanelForm((f) => ({ ...f, phone: e.target.value }))}
+                        />
+                      ) : (
+                        <span className="text-gray-400 text-sm">{u.phone ?? "—"}</span>
+                      )}
+                    </td>
                     <td className="py-3 pr-4">
                       {editingPanelUser === u.id ? (
                         <select
