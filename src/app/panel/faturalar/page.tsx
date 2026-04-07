@@ -9,14 +9,13 @@ export default async function FaturalarPage() {
   if (!session) redirect("/login");
 
   const [clients, invoices] = await Promise.all([
-    prisma.client.findMany({ orderBy: { name: "asc" } }),
+    prisma.client.findMany({ orderBy: { name: "asc" } }).catch(() => []),
     prisma.invoice.findMany({
       orderBy: { issueDate: "desc" },
       take: 100,
       include: { client: { select: { id: true, name: true } } },
-    }),
+    }).catch(() => []),
   ]);
 
-  // Serialize Dates to strings for client component
   return <FaturalarClient clients={JSON.parse(JSON.stringify(clients))} invoices={JSON.parse(JSON.stringify(invoices))} />;
 }

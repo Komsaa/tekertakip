@@ -163,6 +163,78 @@ function ClientModal({ client, onClose, onSaved }: {
   );
 }
 
+// ─── Bulk Preview Modal ───────────────────────────────────────────────────────
+
+function BulkPreviewModal({ preview, month, year, loading, onClose, onConfirm }: {
+  preview: { clientId: string; clientName: string; tripCount: number; exists: boolean }[];
+  month: number; year: number; loading: boolean;
+  onClose: () => void;
+  onConfirm: (overrides: { clientId: string; tripCount: number }[]) => void;
+}) {
+  const [counts, setCounts] = useState<Record<string, number>>(
+    Object.fromEntries(preview.map(r => [r.clientId, r.tripCount]))
+  );
+
+  const toCreate = preview.filter(r => !r.exists && counts[r.clientId] > 0);
+  const skipped = preview.filter(r => r.exists || counts[r.clientId] === 0);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl relative z-10 max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-6 border-b border-slate-100">
+          <div>
+            <h2 className="text-lg font-bold text-slate-800">Toplu Fatura Önizleme</h2>
+            <p className="text-sm text-slate-500">{MONTHS_FULL[month - 1]} {year} · Sefer sayılarını düzenleyebilirsiniz</p>
+          </div>
+          <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100"><X className="w-5 h-5" /></button>
+        </div>
+        <div className="p-6 space-y-3">
+          {preview.map(row => (
+            <div key={row.clientId} className={`flex items-center gap-3 p-3 rounded-xl border ${row.exists ? "border-slate-100 bg-slate-50 opacity-60" : "border-blue-100 bg-blue-50/30"}`}>
+              <div className="flex-1">
+                <p className="font-semibold text-slate-800 text-sm">{row.clientName}</p>
+                {row.exists && <p className="text-xs text-slate-400">Bu dönem faturası zaten mevcut — atlanacak</p>}
+              </div>
+              {row.exists ? (
+                <span className="text-xs text-slate-400 bg-slate-100 px-2 py-1 rounded-lg">Mevcut</span>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-slate-500">Sefer:</label>
+                  <input
+                    type="number"
+                    min={0}
+                    className="w-16 border border-blue-200 rounded-lg px-2 py-1 text-sm text-center font-bold focus:ring-2 ring-blue-300"
+                    value={counts[row.clientId]}
+                    onChange={e => setCounts(c => ({ ...c, [row.clientId]: parseInt(e.target.value) || 0 }))}
+                  />
+                </div>
+              )}
+            </div>
+          ))}
+
+          <div className="bg-slate-50 rounded-xl p-3 text-sm text-slate-600 mt-2">
+            <span className="text-green-700 font-semibold">{toCreate.length} fatura oluşturulacak</span>
+            {skipped.length > 0 && <span className="text-slate-400 ml-2">· {skipped.length} atlanacak</span>}
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <button onClick={onClose} className="flex-1 py-2.5 border border-slate-200 text-slate-600 rounded-xl text-sm font-medium hover:bg-slate-50">İptal</button>
+            <button
+              onClick={() => onConfirm(preview.filter(r => !r.exists).map(r => ({ clientId: r.clientId, tripCount: counts[r.clientId] })))}
+              disabled={loading || toCreate.length === 0}
+              className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-[#DC2626] hover:bg-[#B91C1C] disabled:opacity-60 text-white rounded-xl text-sm font-semibold"
+            >
+              <Receipt className="w-4 h-4" />
+              {loading ? "Oluşturuluyor..." : `${toCreate.length} Fatura Oluştur`}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Invoice Create Modal ─────────────────────────────────────────────────────
 
 function InvoiceModal({ client, month, year, onClose, onSaved }: {
@@ -245,8 +317,9 @@ function InvoiceModal({ client, month, year, onClose, onSaved }: {
               <input className="mt-1 w-full border border-slate-200 rounded-xl px-3 py-2 text-sm" value={invoiceNo} onChange={e => setInvoiceNo(e.target.value)} />
             </div>
             <div>
-              <label className="text-xs font-semibold text-slate-500">Sefer Sayısı</label>
-              <input type="number" className="mt-1 w-full border border-slate-200 rounded-xl px-3 py-2 text-sm" value={tripCount} onChange={e => setTripCount(parseInt(e.target.value) || 0)} />
+              <label className="text-xs font-semibold text-slate-500">Sefer Sayısı <span className="text-blue-400 font-normal">(düzenleyebilirsiniz)</span></label>
+              <input type="number" className="mt-1 w-full border border-blue-200 rounded-xl px-3 py-2 text-sm ring-1 ring-blue-100 focus:ring-blue-400" value={tripCount} onChange={e => setTripCount(parseInt(e.target.value) || 0)} />
+              {!loadingTrips && <p className="text-xs text-slate-400 mt-0.5">Sistemden otomatik sayıldı — muhasebeci farklı bir sayı girebilir</p>}
             </div>
             <div>
               <label className="text-xs font-semibold text-slate-500">Fatura Tarihi</label>
@@ -322,6 +395,8 @@ export default function FaturalarClient({
   const [selYear, setSelYear] = useState(now.getFullYear());
   const [bulkLoading, setBulkLoading] = useState(false);
   const [bulkResult, setBulkResult] = useState<{ created: number; skippedNoTrips: number; skippedExists: number } | null>(null);
+  const [bulkPreview, setBulkPreview] = useState<{ clientId: string; clientName: string; tripCount: number; exists: boolean }[] | null>(null);
+  const [bulkPreviewLoading, setBulkPreviewLoading] = useState(false);
 
   async function refreshClients() {
     const r = await fetch("/api/clients");
@@ -362,8 +437,29 @@ export default function FaturalarClient({
     else toast.error("Silinemedi");
   }
 
-  async function bulkCreateInvoices() {
-    if (!confirm(`${MONTHS_FULL[selMonth - 1]} ${selYear} dönemi için tüm firmalara otomatik fatura oluşturulsun mu?`)) return;
+  async function openBulkPreview() {
+    setBulkPreviewLoading(true);
+    setBulkPreview(null);
+    setBulkResult(null);
+    try {
+      const periodStart = new Date(selYear, selMonth - 1, 1).toISOString().split("T")[0];
+      const periodEnd = new Date(selYear, selMonth, 0).toISOString().split("T")[0];
+      // Her firma için sefer sayısı ve fatura var mı kontrol et
+      const rows = await Promise.all(clients.map(async (c) => {
+        const [tripRes, existsRes] = await Promise.all([
+          fetch(`/api/clients/${c.id}/trip-summary?month=${selMonth}&year=${selYear}`).then(r => r.json()),
+          fetch(`/api/invoices?year=${selYear}&month=${selMonth}`).then(r => r.json()),
+        ]);
+        const existsArr = Array.isArray(existsRes) ? existsRes : [];
+        const exists = existsArr.some((inv: Invoice) => inv.clientId === c.id);
+        return { clientId: c.id, clientName: c.name, tripCount: tripRes.tripCount ?? 0, exists };
+      }));
+      setBulkPreview(rows);
+    } catch { toast.error("Önizleme yüklenemedi"); }
+    finally { setBulkPreviewLoading(false); }
+  }
+
+  async function bulkCreateInvoices(overrides: { clientId: string; tripCount: number }[]) {
     setBulkLoading(true);
     setBulkResult(null);
     try {
@@ -371,9 +467,10 @@ export default function FaturalarClient({
       const res = await fetch("/api/invoices/bulk", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ month: selMonth, year: selYear, issueDate: today }),
+        body: JSON.stringify({ month: selMonth, year: selYear, issueDate: today, overrides }),
       });
       const data = await res.json();
+      setBulkPreview(null);
       setBulkResult({ created: data.created, skippedNoTrips: data.skippedNoTrips, skippedExists: data.skippedExists });
       if (data.created > 0) { toast.success(`${data.created} fatura oluşturuldu`); refreshInvoices(); }
       else toast("Oluşturulacak yeni fatura bulunamadı");
@@ -435,12 +532,12 @@ export default function FaturalarClient({
             </select>
             <span className="text-slate-400 text-sm">dönemi</span>
             <button
-              onClick={bulkCreateInvoices}
-              disabled={bulkLoading || clients.length === 0}
+              onClick={openBulkPreview}
+              disabled={bulkPreviewLoading || clients.length === 0}
               className="flex items-center gap-2 px-4 py-2 bg-[#1B2437] hover:bg-[#2a3a55] disabled:opacity-50 text-white rounded-xl text-sm font-semibold ml-auto"
             >
               <Receipt className="w-4 h-4" />
-              {bulkLoading ? "Oluşturuluyor..." : "Tümüne Fatura Kes"}
+              {bulkPreviewLoading ? "Hesaplanıyor..." : "Tümüne Fatura Kes"}
             </button>
           </div>
 
@@ -676,6 +773,16 @@ export default function FaturalarClient({
           year={selYear}
           onClose={() => setInvoiceModal(null)}
           onSaved={refreshInvoices}
+        />
+      )}
+      {bulkPreview && (
+        <BulkPreviewModal
+          preview={bulkPreview}
+          month={selMonth}
+          year={selYear}
+          loading={bulkLoading}
+          onClose={() => setBulkPreview(null)}
+          onConfirm={bulkCreateInvoices}
         />
       )}
     </div>

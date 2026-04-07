@@ -34,10 +34,14 @@ export async function POST(req: NextRequest) {
     });
     return NextResponse.json(user, { status: 201 });
   } catch (e: unknown) {
-    if (e && typeof e === "object" && "code" in e && (e as { code: string }).code === "P2002") {
-      return NextResponse.json({ error: "Bu kullanıcı adı zaten kullanılıyor" }, { status: 400 });
+    if (e && typeof e === "object" && "code" in e) {
+      const code = (e as { code: string }).code;
+      if (code === "P2002") return NextResponse.json({ error: "Bu kullanıcı adı zaten kullanılıyor" }, { status: 400 });
+      if (code === "P2021") return NextResponse.json({ error: "Veritabanı tablosu bulunamadı. SQL migration çalıştırıldı mı?" }, { status: 500 });
     }
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("panel-users POST:", msg);
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
 

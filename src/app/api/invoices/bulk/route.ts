@@ -7,7 +7,12 @@ export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { month, year, issueDate } = await req.json();
+  // overrides: [{ clientId, tripCount }] — muhasebeci tarafından düzenlenmiş sayılar
+  const { month, year, issueDate, overrides } = await req.json();
+  const overrideMap: Record<string, number> = {};
+  if (Array.isArray(overrides)) {
+    for (const o of overrides) overrideMap[o.clientId] = o.tripCount;
+  }
   if (!month || !year) return NextResponse.json({ error: "month ve year zorunlu" }, { status: 400 });
 
   const periodStart = new Date(year, month - 1, 1);
@@ -34,16 +39,18 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
-      // Sefer sayısını hesapla
-      const tripCount = await prisma.job.count({
-        where: {
-          date: { gte: periodStart, lte: periodEnd },
-          OR: [
-            { clientId: client.id },
-            { clientName: { equals: client.name, mode: "insensitive" } },
-          ],
-        },
-      });
+      // Override varsa kullan, yoksa otomatik say
+      const tripCount = overrideMap[client.id] !== undefined
+        ? overrideMap[client.id]
+        : await prisma.job.count({
+            where: {
+              date: { gte: periodStart, lte: periodEnd },
+              OR: [
+                { clientId: client.id },
+                { clientName: { equals: client.name, mode: "insensitive" } },
+              ],
+            },
+          });
 
       if (tripCount === 0) {
         results.push({ clientName: client.name, status: "skipped_no_trips", tripCount: 0 });
