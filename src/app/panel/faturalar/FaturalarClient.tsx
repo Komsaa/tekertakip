@@ -320,6 +320,8 @@ export default function FaturalarClient({
   const now = new Date();
   const [selMonth, setSelMonth] = useState(now.getMonth() + 1);
   const [selYear, setSelYear] = useState(now.getFullYear());
+  const [bulkLoading, setBulkLoading] = useState(false);
+  const [bulkResult, setBulkResult] = useState<{ created: number; skippedNoTrips: number; skippedExists: number } | null>(null);
 
   async function refreshClients() {
     const r = await fetch("/api/clients");
@@ -360,6 +362,25 @@ export default function FaturalarClient({
     else toast.error("Silinemedi");
   }
 
+  async function bulkCreateInvoices() {
+    if (!confirm(`${MONTHS_FULL[selMonth - 1]} ${selYear} dönemi için tüm firmalara otomatik fatura oluşturulsun mu?`)) return;
+    setBulkLoading(true);
+    setBulkResult(null);
+    try {
+      const today = new Date().toISOString().split("T")[0];
+      const res = await fetch("/api/invoices/bulk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ month: selMonth, year: selYear, issueDate: today }),
+      });
+      const data = await res.json();
+      setBulkResult({ created: data.created, skippedNoTrips: data.skippedNoTrips, skippedExists: data.skippedExists });
+      if (data.created > 0) { toast.success(`${data.created} fatura oluşturuldu`); refreshInvoices(); }
+      else toast("Oluşturulacak yeni fatura bulunamadı");
+    } catch { toast.error("Hata oluştu"); }
+    finally { setBulkLoading(false); }
+  }
+
   async function deleteClient(id: string) {
     if (!confirm("Bu firmayı sil?")) return;
     const res = await fetch(`/api/clients/${id}`, { method: "DELETE" });
@@ -397,23 +418,40 @@ export default function FaturalarClient({
       {tab === "fatura-kes" && (
         <div>
           {/* Ay/yıl seçici */}
-          <div className="flex items-center gap-3 mb-5">
+          <div className="flex flex-wrap items-center gap-3 mb-5">
             <select
               className="border border-slate-200 rounded-xl px-3 py-2 text-sm font-semibold bg-white"
               value={selMonth}
-              onChange={e => setSelMonth(parseInt(e.target.value))}
+              onChange={e => { setSelMonth(parseInt(e.target.value)); setBulkResult(null); }}
             >
               {MONTHS_FULL.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
             </select>
             <select
               className="border border-slate-200 rounded-xl px-3 py-2 text-sm font-semibold bg-white"
               value={selYear}
-              onChange={e => setSelYear(parseInt(e.target.value))}
+              onChange={e => { setSelYear(parseInt(e.target.value)); setBulkResult(null); }}
             >
               {years.map(y => <option key={y} value={y}>{y}</option>)}
             </select>
-            <span className="text-slate-400 text-sm">dönemi için sefer özeti</span>
+            <span className="text-slate-400 text-sm">dönemi</span>
+            <button
+              onClick={bulkCreateInvoices}
+              disabled={bulkLoading || clients.length === 0}
+              className="flex items-center gap-2 px-4 py-2 bg-[#1B2437] hover:bg-[#2a3a55] disabled:opacity-50 text-white rounded-xl text-sm font-semibold ml-auto"
+            >
+              <Receipt className="w-4 h-4" />
+              {bulkLoading ? "Oluşturuluyor..." : "Tümüne Fatura Kes"}
+            </button>
           </div>
+
+          {/* Toplu fatura sonucu */}
+          {bulkResult && (
+            <div className="flex gap-3 mb-4 p-3 bg-slate-50 rounded-xl border border-slate-200 text-sm">
+              <span className="text-green-700 font-semibold">✓ {bulkResult.created} oluşturuldu</span>
+              {bulkResult.skippedExists > 0 && <span className="text-slate-400">· {bulkResult.skippedExists} zaten vardı</span>}
+              {bulkResult.skippedNoTrips > 0 && <span className="text-slate-400">· {bulkResult.skippedNoTrips} sefer yok</span>}
+            </div>
+          )}
 
           {clients.length === 0 ? (
             <div className="text-center py-16 text-slate-400">
