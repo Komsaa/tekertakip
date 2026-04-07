@@ -39,7 +39,7 @@ async function getData() {
           orderBy: { dueDate: "asc" },
           take: 20,
         }).catch(() => []),
-        prisma.setting.findUnique({ where: { key: "dashboard_notes" } }).catch(() => null),
+        prisma.setting.findFirst({ where: { key: "dashboard_notes", companyId: null } }).catch(() => null),
       ]);
 
     // Belge uyarıları

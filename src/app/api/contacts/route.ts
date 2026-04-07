@@ -2,12 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getCompanyId, tenantWhere, tenantData } from "@/lib/tenant";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const companyId = getCompanyId(session);
 
   const contacts = await prisma.contact.findMany({
+    where: tenantWhere(companyId),
     orderBy: { name: "asc" },
     include: {
       transactions: { select: { direction: true, amount: true, paidAmount: true, status: true } },
@@ -20,6 +23,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const companyId = getCompanyId(session);
 
   try {
     const b = await req.json();
@@ -32,6 +36,7 @@ export async function POST(req: NextRequest) {
         address: b.address || null,
         taxNo: b.taxNo || null,
         notes: b.notes || null,
+        ...tenantData(companyId),
       },
     });
     return NextResponse.json(contact, { status: 201 });

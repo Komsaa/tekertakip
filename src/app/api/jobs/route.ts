@@ -2,16 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getCompanyId, tenantWhere, tenantData } from "@/lib/tenant";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  return NextResponse.json(await prisma.job.findMany({ orderBy: [{ date: "desc" }, { startTime: "asc" }], include: { driver: true, vehicle: true } }));
+  const companyId = getCompanyId(session);
+  return NextResponse.json(await prisma.job.findMany({ where: tenantWhere(companyId), orderBy: [{ date: "desc" }, { startTime: "asc" }], include: { driver: true, vehicle: true } }));
 }
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const companyId = getCompanyId(session);
   try {
     const b = await req.json();
 
@@ -30,6 +33,7 @@ export async function POST(req: NextRequest) {
       revenue: b.revenue ? parseFloat(b.revenue) : null,
       status: "planned",
       notes: b.notes || null,
+      ...tenantData(companyId),
     };
 
     const repeatDays = parseInt(b.repeatDays) || 0;

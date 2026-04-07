@@ -2,12 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getCompanyId, tenantWhere, tenantData } from "@/lib/tenant";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const companyId = getCompanyId(session);
 
   const tasks = await prisma.task.findMany({
+    where: tenantWhere(companyId),
     orderBy: [
       { status: "asc" }, // pending önce
       { dueDate: "asc" },
@@ -20,6 +23,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const companyId = getCompanyId(session);
 
   try {
     const b = await req.json();
@@ -36,6 +40,7 @@ export async function POST(req: NextRequest) {
         driverId: b.driverId || null,
         notes: b.notes || null,
         status: "pending",
+        ...tenantData(companyId),
       },
     });
     return NextResponse.json(task, { status: 201 });

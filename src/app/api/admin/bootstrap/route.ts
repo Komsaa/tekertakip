@@ -50,6 +50,24 @@ export async function GET() {
   // phone kolonu — tablo önceden oluşturulduysa ekle
   await exec("PanelUser phone column", `ALTER TABLE "PanelUser" ADD COLUMN IF NOT EXISTS "phone" TEXT`);
 
+  // ── Multi-tenant migration ──
+  await exec("PanelUser companyId", `ALTER TABLE "PanelUser" ADD COLUMN IF NOT EXISTS "companyId" TEXT`);
+  await exec("Vehicle companyId", `ALTER TABLE "Vehicle" ADD COLUMN IF NOT EXISTS "companyId" TEXT`);
+  await exec("Job companyId", `ALTER TABLE "Job" ADD COLUMN IF NOT EXISTS "companyId" TEXT`);
+  await exec("FuelEntry companyId", `ALTER TABLE "FuelEntry" ADD COLUMN IF NOT EXISTS "companyId" TEXT`);
+  await exec("FinanceEntry companyId", `ALTER TABLE "FinanceEntry" ADD COLUMN IF NOT EXISTS "companyId" TEXT`);
+  await exec("Contact companyId", `ALTER TABLE "Contact" ADD COLUMN IF NOT EXISTS "companyId" TEXT`);
+  await exec("Task companyId", `ALTER TABLE "Task" ADD COLUMN IF NOT EXISTS "companyId" TEXT`);
+  await exec("Route companyId", `ALTER TABLE "Route" ADD COLUMN IF NOT EXISTS "companyId" TEXT`);
+  await exec("CreditCard companyId", `ALTER TABLE "CreditCard" ADD COLUMN IF NOT EXISTS "companyId" TEXT`);
+  await exec("Client companyId", `ALTER TABLE "Client" ADD COLUMN IF NOT EXISTS "companyId" TEXT`);
+  await exec("Invoice companyId", `ALTER TABLE "Invoice" ADD COLUMN IF NOT EXISTS "companyId" TEXT`);
+  await exec("PaymentCalendar companyId", `ALTER TABLE "PaymentCalendar" ADD COLUMN IF NOT EXISTS "companyId" TEXT`);
+  await exec("AuditLog companyId", `ALTER TABLE "AuditLog" ADD COLUMN IF NOT EXISTS "companyId" TEXT`);
+  await exec("Setting companyId", `ALTER TABLE "Setting" ADD COLUMN IF NOT EXISTS "companyId" TEXT`);
+  await exec("Setting drop unique", `DROP INDEX IF EXISTS "Setting_key_key"`);
+  await exec("Setting composite unique", `CREATE UNIQUE INDEX IF NOT EXISTS "Setting_key_companyId_key" ON "Setting"("key", "companyId")`);
+
   // ── Kullanıcı oluştur (tamamen raw SQL, Prisma model API kullanmadan) ──
   const usersToCreate = [
     { username: "yigittur", password: "123", name: "Yiğit YILDIRIM", role: "admin", phone: null as string | null },

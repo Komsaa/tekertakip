@@ -3,16 +3,19 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { logAction } from "@/lib/audit";
+import { getCompanyId, tenantWhere, tenantData } from "@/lib/tenant";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  return NextResponse.json(await prisma.fuelEntry.findMany({ orderBy: { date: "desc" }, include: { vehicle: true, driver: true } }));
+  const companyId = getCompanyId(session);
+  return NextResponse.json(await prisma.fuelEntry.findMany({ where: tenantWhere(companyId), orderBy: { date: "desc" }, include: { vehicle: true, driver: true } }));
 }
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const companyId = getCompanyId(session);
   try {
     const b = await req.json();
     const entry = await prisma.fuelEntry.create({
@@ -29,6 +32,7 @@ export async function POST(req: NextRequest) {
         notes: b.notes || null,
         parsedFrom: b.parsedFrom || "manual",
         rawText: b.rawText || null,
+        ...tenantData(companyId),
       },
     });
     await logAction({ userEmail: session.user?.email ?? "admin", action: "CREATE", entity: "FuelEntry", entityId: entry.id, entityName: `${b.vehicleId} – ${entry.liters}lt`, changes: { vehicleId: b.vehicleId, liters: entry.liters, totalAmount: entry.totalAmount, date: entry.date } });

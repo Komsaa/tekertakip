@@ -2,11 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getCompanyId, tenantWhere, tenantData } from "@/lib/tenant";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const companyId = getCompanyId(session);
   const routes = await prisma.route.findMany({
+    where: tenantWhere(companyId),
     orderBy: { createdAt: "asc" },
     include: {
       driver: true,
@@ -20,6 +23,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const companyId = getCompanyId(session);
   try {
     const b = await req.json();
     const route = await prisma.route.create({
@@ -31,6 +35,7 @@ export async function POST(req: NextRequest) {
         weekdaysOnly: b.weekdaysOnly !== false,
         active: b.active !== false,
         notes: b.notes || null,
+        ...tenantData(companyId),
         stops: {
           create: (b.stops || []).map((s: { name: string; lat?: number; lng?: number; estimatedTime: string; notes?: string }, i: number) => ({
             order: i,

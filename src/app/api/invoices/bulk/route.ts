@@ -2,10 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getCompanyId, tenantWhere, tenantData } from "@/lib/tenant";
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const companyId = getCompanyId(session);
 
   // overrides: [{ clientId, tripCount }] — muhasebeci tarafından düzenlenmiş sayılar
   const { month, year, issueDate, overrides } = await req.json();
@@ -19,8 +21,8 @@ export async function POST(req: NextRequest) {
   const periodEnd = new Date(year, month, 0, 23, 59, 59);
   const issueDateParsed = issueDate ? new Date(issueDate) : new Date();
 
-  // Tüm aktif firmaları çek
-  const clients = await prisma.client.findMany({ orderBy: { name: "asc" } });
+  // Tenant'a ait aktif firmaları çek
+  const clients = await prisma.client.findMany({ where: tenantWhere(companyId), orderBy: { name: "asc" } });
 
   const results: { clientName: string; status: "created" | "skipped_no_trips" | "skipped_exists" | "error"; invoiceNo?: string; tripCount?: number }[] = [];
 
@@ -29,6 +31,7 @@ export async function POST(req: NextRequest) {
       // Bu dönem için zaten fatura var mı?
       const existing = await prisma.invoice.findFirst({
         where: {
+          ...tenantWhere(companyId),
           clientId: client.id,
           periodStart: { gte: periodStart },
           periodEnd: { lte: new Date(year, month, 0, 23, 59, 59) },
@@ -44,6 +47,7 @@ export async function POST(req: NextRequest) {
         ? overrideMap[client.id]
         : await prisma.job.count({
             where: {
+              ...tenantWhere(companyId),
               date: { gte: periodStart, lte: periodEnd },
               OR: [
                 { clientId: client.id },
@@ -58,7 +62,7 @@ export async function POST(req: NextRequest) {
       }
 
       // Sıradaki fatura no
-      const lastInvoice = await prisma.invoice.findFirst({ orderBy: { invoiceNo: "desc" } });
+      const lastInvoice = await prisma.invoice.findFirst({ where: tenantWhere(companyId), orderBy: { invoiceNo: "desc" } });
       let seq = 1;
       if (lastInvoice) {
         const match = lastInvoice.invoiceNo.match(/(\d+)$/);
@@ -90,6 +94,7 @@ export async function POST(req: NextRequest) {
           tevkifatAmount,
           totalAmount,
           payableAmount,
+          ...tenantData(companyId),
         },
       });
 

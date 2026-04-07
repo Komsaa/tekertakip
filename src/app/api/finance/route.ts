@@ -2,16 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getCompanyId, tenantWhere, tenantData } from "@/lib/tenant";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  return NextResponse.json(await prisma.financeEntry.findMany({ orderBy: { date: "desc" } }));
+  const companyId = getCompanyId(session);
+  return NextResponse.json(await prisma.financeEntry.findMany({ where: tenantWhere(companyId), orderBy: { date: "desc" } }));
 }
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const companyId = getCompanyId(session);
   try {
     const b = await req.json();
     const entry = await prisma.financeEntry.create({
@@ -24,6 +27,7 @@ export async function POST(req: NextRequest) {
         vehicleId: b.vehicleId || null,
         driverId: b.driverId || null,
         invoiceNo: b.invoiceNo || null,
+        ...tenantData(companyId),
       },
     });
     return NextResponse.json(entry, { status: 201 });

@@ -2,14 +2,16 @@ import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { getCompanyId, tenantWhere } from "@/lib/tenant";
 
 export async function PUT(req: Request, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const companyId = getCompanyId(session);
 
   const body = await req.json();
   const event = await prisma.paymentCalendar.update({
-    where: { id: params.id },
+    where: { id: params.id, ...tenantWhere(companyId) },
     data: body,
   });
   return NextResponse.json(event);
@@ -18,7 +20,8 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
 export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const companyId = getCompanyId(session);
 
-  await prisma.paymentCalendar.delete({ where: { id: params.id } });
+  await prisma.paymentCalendar.delete({ where: { id: params.id, ...tenantWhere(companyId) } });
   return NextResponse.json({ success: true });
 }

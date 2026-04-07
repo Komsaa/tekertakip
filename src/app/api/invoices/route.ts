@@ -2,10 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getCompanyId, tenantWhere, tenantData } from "@/lib/tenant";
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const companyId = getCompanyId(session);
 
   const { searchParams } = new URL(req.url);
   const status = searchParams.get("status");
@@ -30,7 +32,7 @@ export async function GET(req: NextRequest) {
   }
 
   const invoices = await prisma.invoice.findMany({
-    where: { ...(status ? { status } : {}), ...dateFilter },
+    where: { ...tenantWhere(companyId), ...(status ? { status } : {}), ...dateFilter },
     include: { client: { select: { id: true, name: true } } },
     orderBy: { issueDate: "desc" },
   });
@@ -40,6 +42,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const companyId = getCompanyId(session);
   try {
     const body = await req.json();
     const subtotal = body.tripCount * body.unitPrice;
@@ -66,6 +69,7 @@ export async function POST(req: NextRequest) {
         totalAmount,
         payableAmount,
         notes: body.notes || null,
+        ...tenantData(companyId),
       },
       include: { client: { select: { id: true, name: true } } },
     });

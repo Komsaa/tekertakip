@@ -30,7 +30,15 @@ type PanelUser = {
   phone: string | null;
   role: string;
   active: boolean;
+  companyId: string | null;
   createdAt: string;
+};
+
+type Company = {
+  id: string;
+  name: string;
+  code: string;
+  active: boolean;
 };
 
 const ACTION_COLORS: Record<string, string> = {
@@ -43,15 +51,21 @@ const ENTITIES = ["", "Job", "Driver", "Vehicle", "FuelEntry", "Client", "Invoic
 const ACTIONS = ["", "CREATE", "UPDATE", "DELETE"];
 
 export default function AdminClient() {
-  const [tab, setTab] = useState<"panel-users" | "mobile-users" | "logs" | "deleted">("panel-users");
+  const [tab, setTab] = useState<"panel-users" | "mobile-users" | "logs" | "deleted" | "companies">("panel-users");
 
   // Panel users
   const [panelUsers, setPanelUsers] = useState<PanelUser[]>([]);
-  const [newUserForm, setNewUserForm] = useState({ username: "", password: "", name: "", phone: "", role: "admin" });
+  const [newUserForm, setNewUserForm] = useState({ username: "", password: "", name: "", phone: "", role: "admin", companyId: "" });
   const [newUserError, setNewUserError] = useState("");
   const [newUserSaving, setNewUserSaving] = useState(false);
   const [editingPanelUser, setEditingPanelUser] = useState<string | null>(null);
-  const [editPanelForm, setEditPanelForm] = useState({ name: "", phone: "", role: "admin", password: "", active: true });
+  const [editPanelForm, setEditPanelForm] = useState({ name: "", phone: "", role: "admin", password: "", active: true, companyId: "" });
+
+  // Companies
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [newCompanyForm, setNewCompanyForm] = useState({ name: "", code: "" });
+  const [newCompanyError, setNewCompanyError] = useState("");
+  const [newCompanySaving, setNewCompanySaving] = useState(false);
 
   // Mobile users
   const [mobileUsers, setMobileUsers] = useState<MobileUser[]>([]);
@@ -72,15 +86,21 @@ export default function AdminClient() {
   const [deletedLoading, setDeletedLoading] = useState(false);
 
   useEffect(() => {
-    if (tab === "panel-users") fetchPanelUsers();
+    if (tab === "panel-users") { fetchPanelUsers(); fetchCompanies(); }
     if (tab === "mobile-users") fetchMobileUsers();
     if (tab === "logs") fetchLogs();
     if (tab === "deleted") fetchDeleted();
+    if (tab === "companies") fetchCompanies();
   }, [tab]);
 
   async function fetchPanelUsers() {
     const res = await fetch("/api/admin/panel-users");
     if (res.ok) setPanelUsers(await res.json());
+  }
+
+  async function fetchCompanies() {
+    const res = await fetch("/api/admin/companies");
+    if (res.ok) setCompanies(await res.json());
   }
 
   async function fetchMobileUsers() {
@@ -116,6 +136,22 @@ export default function AdminClient() {
     setDeletedLoading(false);
   }
 
+  // Companies
+  async function createCompany() {
+    setNewCompanyError("");
+    setNewCompanySaving(true);
+    const res = await fetch("/api/admin/companies", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newCompanyForm),
+    });
+    const data = await res.json();
+    setNewCompanySaving(false);
+    if (!res.ok) { setNewCompanyError(data.error); return; }
+    setNewCompanyForm({ name: "", code: "" });
+    fetchCompanies();
+  }
+
   // Panel user actions
   async function createPanelUser() {
     setNewUserError("");
@@ -123,22 +159,22 @@ export default function AdminClient() {
     const res = await fetch("/api/admin/panel-users", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(newUserForm),
+      body: JSON.stringify({ ...newUserForm, companyId: newUserForm.companyId || null }),
     });
     const data = await res.json();
     setNewUserSaving(false);
     if (!res.ok) { setNewUserError(data.error); return; }
-    setNewUserForm({ username: "", password: "", name: "", phone: "", role: "admin" });
+    setNewUserForm({ username: "", password: "", name: "", phone: "", role: "admin", companyId: "" });
     fetchPanelUsers();
   }
 
   function startEditPanelUser(u: PanelUser) {
     setEditingPanelUser(u.id);
-    setEditPanelForm({ name: u.name, phone: u.phone ?? "", role: u.role, password: "", active: u.active });
+    setEditPanelForm({ name: u.name, phone: u.phone ?? "", role: u.role, password: "", active: u.active, companyId: u.companyId ?? "" });
   }
 
   async function savePanelUser(id: string) {
-    const body: Record<string, unknown> = { id, name: editPanelForm.name, phone: editPanelForm.phone, role: editPanelForm.role, active: editPanelForm.active };
+    const body: Record<string, unknown> = { id, name: editPanelForm.name, phone: editPanelForm.phone, role: editPanelForm.role, active: editPanelForm.active, companyId: editPanelForm.companyId || null };
     if (editPanelForm.password) body.password = editPanelForm.password;
     await fetch("/api/admin/panel-users", {
       method: "PUT",
@@ -184,6 +220,7 @@ export default function AdminClient() {
     { key: "mobile-users", label: "Mobil Kullanıcılar" },
     { key: "logs", label: "Aktivite Günlüğü" },
     { key: "deleted", label: "Silinen Veriler" },
+    { key: "companies", label: "Şirketler" },
   ] as const;
 
   return (
@@ -245,6 +282,16 @@ export default function AdminClient() {
                 <option value="admin">Admin</option>
                 <option value="firma">Firma / Muhasebeci</option>
               </select>
+              <select
+                className="bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm"
+                value={newUserForm.companyId}
+                onChange={(e) => setNewUserForm((f) => ({ ...f, companyId: e.target.value }))}
+              >
+                <option value="">— Şirket Seç (Superadmin için boş) —</option>
+                {companies.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name} ({c.code})</option>
+                ))}
+              </select>
             </div>
             {newUserError && <p className="text-red-400 text-xs mt-2">{newUserError}</p>}
             <button
@@ -264,6 +311,7 @@ export default function AdminClient() {
                   <th className="pb-2 pr-4">Ad Soyad</th>
                   <th className="pb-2 pr-4">Kullanıcı Adı</th>
                   <th className="pb-2 pr-4">Telefon</th>
+                  <th className="pb-2 pr-4">Şirket</th>
                   <th className="pb-2 pr-4">Rol</th>
                   <th className="pb-2 pr-4">Durum</th>
                   <th className="pb-2 pr-4">Oluşturulma</th>
@@ -300,11 +348,30 @@ export default function AdminClient() {
                     <td className="py-3 pr-4">
                       {editingPanelUser === u.id ? (
                         <select
+                          className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm w-40"
+                          value={editPanelForm.companyId}
+                          onChange={(e) => setEditPanelForm((f) => ({ ...f, companyId: e.target.value }))}
+                        >
+                          <option value="">— Superadmin —</option>
+                          {companies.map((c) => (
+                            <option key={c.id} value={c.id}>{c.name}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <span className="text-xs text-gray-300">
+                          {u.companyId ? (companies.find(c => c.id === u.companyId)?.name ?? u.companyId) : <span className="text-yellow-400">Superadmin</span>}
+                        </span>
+                      )}
+                    </td>
+                    <td className="py-3 pr-4">
+                      {editingPanelUser === u.id ? (
+                        <select
                           className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm"
                           value={editPanelForm.role}
                           onChange={(e) => setEditPanelForm((f) => ({ ...f, role: e.target.value }))}
                         >
                           <option value="admin">Admin</option>
+                          <option value="firma">Firma</option>
                           <option value="viewer">Sadece Görüntüle</option>
                         </select>
                       ) : (
@@ -550,6 +617,69 @@ export default function AdminClient() {
               )}
             </>
           )}
+        </div>
+      )}
+
+      {/* ── ŞİRKETLER ── */}
+      {tab === "companies" && (
+        <div className="space-y-6">
+          <div className="bg-gray-800/50 rounded-xl border border-gray-700 p-5">
+            <h2 className="text-sm font-semibold text-gray-300 mb-4">Yeni Şirket Ekle</h2>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              <input
+                placeholder="Şirket Adı *"
+                className="bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm"
+                value={newCompanyForm.name}
+                onChange={(e) => setNewCompanyForm((f) => ({ ...f, name: e.target.value }))}
+              />
+              <input
+                placeholder="Kod * (örn: MT2024)"
+                className="bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm font-mono"
+                value={newCompanyForm.code}
+                onChange={(e) => setNewCompanyForm((f) => ({ ...f, code: e.target.value }))}
+              />
+            </div>
+            {newCompanyError && <p className="text-red-400 text-xs mt-2">{newCompanyError}</p>}
+            <button
+              onClick={createCompany}
+              disabled={newCompanySaving || !newCompanyForm.name || !newCompanyForm.code}
+              className="mt-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 px-4 py-2 rounded text-sm"
+            >
+              {newCompanySaving ? "Kaydediliyor..." : "Şirket Oluştur"}
+            </button>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-gray-400 border-b border-gray-700">
+                  <th className="pb-2 pr-4">ID</th>
+                  <th className="pb-2 pr-4">Şirket Adı</th>
+                  <th className="pb-2 pr-4">Kod</th>
+                  <th className="pb-2 pr-4">Durum</th>
+                </tr>
+              </thead>
+              <tbody>
+                {companies.map((c) => (
+                  <tr key={c.id} className="border-b border-gray-800 hover:bg-gray-800/30">
+                    <td className="py-3 pr-4 font-mono text-xs text-gray-500">{c.id}</td>
+                    <td className="py-3 pr-4 font-medium">{c.name}</td>
+                    <td className="py-3 pr-4 font-mono text-yellow-300">{c.code}</td>
+                    <td className="py-3 pr-4">
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${c.active ? "bg-green-900 text-green-300" : "bg-gray-700 text-gray-400"}`}>
+                        {c.active ? "Aktif" : "Pasif"}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+                {companies.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="py-8 text-center text-gray-500">Henüz şirket yok. Yukarıdan ekleyebilirsiniz.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 

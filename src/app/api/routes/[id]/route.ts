@@ -2,12 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getCompanyId, tenantWhere } from "@/lib/tenant";
 
 export async function GET(_: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const route = await prisma.route.findUnique({
-    where: { id: params.id },
+  const companyId = getCompanyId(session);
+  const route = await prisma.route.findFirst({
+    where: { id: params.id, ...tenantWhere(companyId) },
     include: { stops: { orderBy: { order: "asc" } }, driver: true, vehicle: true },
   });
   if (!route) return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -17,6 +19,7 @@ export async function GET(_: NextRequest, { params }: { params: { id: string } }
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const companyId = getCompanyId(session);
   try {
     const b = await req.json();
 
@@ -24,7 +27,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     await prisma.routeStop.deleteMany({ where: { routeId: params.id } });
 
     const route = await prisma.route.update({
-      where: { id: params.id },
+      where: { id: params.id, ...tenantWhere(companyId) },
       data: {
         name: b.name,
         type: b.type || "okul",
@@ -57,8 +60,9 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 export async function DELETE(_: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const companyId = getCompanyId(session);
   try {
-    await prisma.route.delete({ where: { id: params.id } });
+    await prisma.route.delete({ where: { id: params.id, ...tenantWhere(companyId) } });
     return NextResponse.json({ success: true });
   } catch (e) {
     console.error(e);

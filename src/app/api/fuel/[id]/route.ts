@@ -3,13 +3,15 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { logAction } from "@/lib/audit";
+import { getCompanyId, tenantWhere } from "@/lib/tenant";
 
 export async function DELETE(_: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const companyId = getCompanyId(session);
   try {
-    const existing = await prisma.fuelEntry.findUnique({ where: { id: params.id } });
-    await prisma.fuelEntry.delete({ where: { id: params.id } });
+    const existing = await prisma.fuelEntry.findUnique({ where: { id: params.id, ...tenantWhere(companyId) } });
+    await prisma.fuelEntry.delete({ where: { id: params.id, ...tenantWhere(companyId) } });
     await logAction({ userEmail: session.user?.email ?? "admin", action: "DELETE", entity: "FuelEntry", entityId: params.id, entityName: `${existing?.totalAmount}₺`, changes: existing ?? undefined });
     return NextResponse.json({ success: true });
   } catch (e) {

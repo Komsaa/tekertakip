@@ -2,12 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getCompanyId, tenantWhere } from "@/lib/tenant";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const companyId = getCompanyId(session);
 
   const txns = await prisma.contactTransaction.findMany({
+    where: companyId ? { contact: { companyId } } : {},
     orderBy: { date: "desc" },
     include: { contact: { select: { id: true, name: true, type: true } } },
   });
@@ -17,9 +20,15 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const companyId = getCompanyId(session);
 
   try {
     const b = await req.json();
+    // Güvenlik: contactId tenant'a ait mi?
+    if (companyId) {
+      const contact = await prisma.contact.findFirst({ where: { id: b.contactId, ...tenantWhere(companyId) } });
+      if (!contact) return NextResponse.json({ error: "Contact not found" }, { status: 404 });
+    }
     const txn = await prisma.contactTransaction.create({
       data: {
         contactId: b.contactId,

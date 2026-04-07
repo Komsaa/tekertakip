@@ -72,22 +72,18 @@ async function main() {
     },
   });
 
-  // Ayarlar
-  await prisma.setting.upsert({
-    where: { key: "company_name" },
-    update: {},
-    create: { key: "company_name", value: "Mert Tur" },
-  });
-  await prisma.setting.upsert({
-    where: { key: "company_phone" },
-    update: {},
-    create: { key: "company_phone", value: "0506 122 73 63" },
-  });
-  await prisma.setting.upsert({
-    where: { key: "company_city" },
-    update: {},
-    create: { key: "company_city", value: "Gölmarmara / Manisa" },
-  });
+  // Ayarlar (superadmin seviyesi — companyId null)
+  const seedSettings = [
+    { key: "company_name", value: "Mert Tur" },
+    { key: "company_phone", value: "0506 122 73 63" },
+    { key: "company_city", value: "Gölmarmara / Manisa" },
+  ];
+  for (const s of seedSettings) {
+    const existing = await prisma.setting.findFirst({ where: { key: s.key, companyId: null } });
+    if (!existing) {
+      await prisma.setting.create({ data: { key: s.key, value: s.value, companyId: null } });
+    }
+  }
 
   console.log("✅ Seed tamamlandı!");
 }

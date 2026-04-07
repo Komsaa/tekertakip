@@ -2,10 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getCompanyId, tenantWhere } from "@/lib/tenant";
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const companyId = getCompanyId(session);
 
   const { searchParams } = new URL(req.url);
   const month = searchParams.get("month");
@@ -14,6 +16,8 @@ export async function GET(req: NextRequest) {
   const where = {
     ...(month && { month: parseInt(month) }),
     ...(year && { year: parseInt(year) }),
+    // Tenant filter: join over driver
+    ...(companyId ? { driver: { companyId } } : {}),
   };
 
   const salaries = await prisma.salary.findMany({
@@ -28,8 +32,14 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const companyId = getCompanyId(session);
   try {
     const b = await req.json();
+    // Güvenlik: driverId tenant'a ait mi?
+    if (companyId) {
+      const driver = await prisma.driver.findFirst({ where: { id: b.driverId, ...tenantWhere(companyId) } });
+      if (!driver) return NextResponse.json({ error: "Driver not found" }, { status: 404 });
+    }
     const salary = await prisma.salary.upsert({
       where: {
         driverId_month_year: {

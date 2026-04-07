@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { logAction } from "@/lib/audit";
+import { getCompanyId, tenantWhere } from "@/lib/tenant";
 
 function pd(s: string | undefined | null) {
   if (!s) return null;
@@ -13,10 +14,11 @@ function pd(s: string | undefined | null) {
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const companyId = getCompanyId(session);
   try {
     const b = await req.json();
     const vehicle = await prisma.vehicle.update({
-      where: { id: params.id },
+      where: { id: params.id, ...tenantWhere(companyId) },
       data: {
         plate: b.plate?.toUpperCase().trim(),
         brand: b.brand || null,
@@ -47,9 +49,10 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 export async function DELETE(_: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const companyId = getCompanyId(session);
   try {
-    const existing = await prisma.vehicle.findUnique({ where: { id: params.id } });
-    await prisma.vehicle.delete({ where: { id: params.id } });
+    const existing = await prisma.vehicle.findUnique({ where: { id: params.id, ...tenantWhere(companyId) } });
+    await prisma.vehicle.delete({ where: { id: params.id, ...tenantWhere(companyId) } });
     await logAction({ userEmail: session.user?.email ?? "admin", action: "DELETE", entity: "Vehicle", entityId: params.id, entityName: existing?.plate, changes: existing ?? undefined });
     return NextResponse.json({ success: true });
   } catch (e) {

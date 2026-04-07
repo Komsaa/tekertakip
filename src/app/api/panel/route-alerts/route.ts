@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getCompanyId, tenantWhere } from "@/lib/tenant";
 
 // Haversine mesafe (metre)
 function distance(lat1: number, lon1: number, lat2: number, lon2: number) {
@@ -27,10 +28,11 @@ function timeToMinutes(t: string) {
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Yetkisiz" }, { status: 401 });
+  const companyId = getCompanyId(session);
 
   // Aktif takip eden şöförler
   const drivers = await prisma.driver.findMany({
-    where: { isTracking: true, latitude: { not: null }, longitude: { not: null } },
+    where: { ...tenantWhere(companyId), isTracking: true, latitude: { not: null }, longitude: { not: null } },
     select: {
       id: true,
       name: true,

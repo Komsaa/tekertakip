@@ -2,16 +2,18 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getCompanyId, tenantWhere } from "@/lib/tenant";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const companyId = getCompanyId(session);
 
   const now = new Date();
 
   // Ödenmemiş faturalar (vadesi geçmiş + bekleyen)
   const pending = await prisma.invoice.findMany({
-    where: { status: { in: ["bekliyor", "gecikti"] } },
+    where: { ...tenantWhere(companyId), status: { in: ["bekliyor", "gecikti"] } },
     include: { client: { select: { name: true } } },
     orderBy: { dueDate: "asc" },
   });
@@ -25,7 +27,7 @@ export async function GET() {
   // Son 6 ay + bu ay: aylık kesilen/tahsil özeti
   const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
   const allRecent = await prisma.invoice.findMany({
-    where: { issueDate: { gte: sixMonthsAgo } },
+    where: { ...tenantWhere(companyId), issueDate: { gte: sixMonthsAgo } },
     select: { issueDate: true, dueDate: true, payableAmount: true, paidAmount: true, status: true },
   });
 
@@ -42,6 +44,7 @@ export async function GET() {
   const threeMonthsLater = new Date(now.getFullYear(), now.getMonth() + 3, 1);
   const upcoming = await prisma.invoice.findMany({
     where: {
+      ...tenantWhere(companyId),
       status: { in: ["bekliyor", "gecikti"] },
       dueDate: { lt: threeMonthsLater },
     },

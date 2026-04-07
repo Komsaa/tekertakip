@@ -2,10 +2,12 @@ import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { getCompanyId, tenantWhere, tenantData } from "@/lib/tenant";
 
 export async function GET(req: Request) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const companyId = getCompanyId(session);
 
   const { searchParams } = new URL(req.url);
   const month = searchParams.get("month") ? parseInt(searchParams.get("month")!) : null;
@@ -14,12 +16,13 @@ export async function GET(req: Request) {
   const events = await prisma.paymentCalendar.findMany({
     where: month && year
       ? {
+          ...tenantWhere(companyId),
           OR: [
             { recurring: true },
             { recurring: false, specificMonth: month, specificYear: year },
           ],
         }
-      : undefined,
+      : tenantWhere(companyId),
     orderBy: { day: "asc" },
   });
 
@@ -29,8 +32,9 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const companyId = getCompanyId(session);
 
   const body = await req.json();
-  const event = await prisma.paymentCalendar.create({ data: body });
+  const event = await prisma.paymentCalendar.create({ data: { ...body, ...tenantData(companyId) } });
   return NextResponse.json(event);
 }

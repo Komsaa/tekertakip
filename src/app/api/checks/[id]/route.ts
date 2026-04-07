@@ -2,12 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getCompanyId } from "@/lib/tenant";
 
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const companyId = getCompanyId(session);
 
   try {
+    if (companyId) {
+      const existing = await prisma.check.findFirst({ where: { id: params.id, contact: { companyId } } });
+      if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
     const b = await req.json();
     const check = await prisma.check.update({
       where: { id: params.id },
@@ -31,8 +37,13 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 export async function DELETE(_: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const companyId = getCompanyId(session);
 
   try {
+    if (companyId) {
+      const existing = await prisma.check.findFirst({ where: { id: params.id, contact: { companyId } } });
+      if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
     await prisma.check.delete({ where: { id: params.id } });
     return NextResponse.json({ success: true });
   } catch (e) {

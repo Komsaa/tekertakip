@@ -2,17 +2,20 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getCompanyId, tenantWhere, tenantData } from "@/lib/tenant";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const cards = await prisma.creditCard.findMany({ orderBy: { createdAt: "asc" } }).catch(() => []);
+  const companyId = getCompanyId(session);
+  const cards = await prisma.creditCard.findMany({ where: tenantWhere(companyId), orderBy: { createdAt: "asc" } }).catch(() => []);
   return NextResponse.json(cards);
 }
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const companyId = getCompanyId(session);
   try {
     const b = await req.json();
     const card = await prisma.creditCard.create({
@@ -25,6 +28,7 @@ export async function POST(req: NextRequest) {
         paymentDaysAfterBilling: parseInt(b.paymentDaysAfterBilling) || 10,
         color: b.color || "#1B2437",
         notes: b.notes || null,
+        ...tenantData(companyId),
       },
     });
     return NextResponse.json(card, { status: 201 });

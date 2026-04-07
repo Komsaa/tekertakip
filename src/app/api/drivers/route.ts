@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { logAction } from "@/lib/audit";
+import { getCompanyId, tenantWhere } from "@/lib/tenant";
 
 function parseDate(s: string | undefined | null) {
   if (!s) return undefined;
@@ -13,13 +14,15 @@ function parseDate(s: string | undefined | null) {
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const drivers = await prisma.driver.findMany({ orderBy: { name: "asc" }, include: { vehicle: true } });
+  const companyId = getCompanyId(session);
+  const drivers = await prisma.driver.findMany({ where: tenantWhere(companyId), orderBy: { name: "asc" }, include: { vehicle: true } });
   return NextResponse.json(drivers);
 }
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const companyId = getCompanyId(session);
 
   try {
     const body = await req.json();
@@ -33,7 +36,7 @@ export async function POST(req: NextRequest) {
         address: body.address || null,
         notes: body.notes || null,
         status: body.status || "active",
-        companyId: body.companyId || null,
+        companyId: companyId ?? body.companyId ?? null,
         mobileUsername: body.mobileUsername || null,
         mobilePin: body.mobilePin || null,
       },

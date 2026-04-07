@@ -3,14 +3,16 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { logAction } from "@/lib/audit";
+import { getCompanyId, tenantWhere } from "@/lib/tenant";
 
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const companyId = getCompanyId(session);
   try {
     const b = await req.json();
     const job = await prisma.job.update({
-      where: { id: params.id },
+      where: { id: params.id, ...tenantWhere(companyId) },
       data: {
         ...(b.title && { title: b.title }),
         ...(b.type && { type: b.type }),
@@ -40,9 +42,10 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 export async function DELETE(_: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const companyId = getCompanyId(session);
   try {
-    const existing = await prisma.job.findUnique({ where: { id: params.id } });
-    await prisma.job.delete({ where: { id: params.id } });
+    const existing = await prisma.job.findUnique({ where: { id: params.id, ...tenantWhere(companyId) } });
+    await prisma.job.delete({ where: { id: params.id, ...tenantWhere(companyId) } });
     await logAction({ userEmail: session.user?.email ?? "admin", action: "DELETE", entity: "Job", entityId: params.id, entityName: existing?.title ?? existing?.clientName ?? params.id, changes: existing ?? undefined });
     return NextResponse.json({ success: true });
   } catch (e) {

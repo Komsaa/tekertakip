@@ -39,11 +39,12 @@ export const authOptions: NextAuthOptions = {
         // DB'deki panel kullanıcılarını kontrol et
         const panelUser = await prisma.panelUser.findUnique({
           where: { username: credentials.username },
+          select: { id: true, name: true, passwordHash: true, active: true, role: true, companyId: true },
         });
         if (panelUser && panelUser.active) {
           const valid = await bcrypt.compare(credentials.password, panelUser.passwordHash);
           if (valid) {
-            return { id: panelUser.id, name: panelUser.name, email: `${panelUser.username}@tekertakip.com`, role: panelUser.role };
+            return { id: panelUser.id, name: panelUser.name, email: `${credentials.username}@tekertakip.com`, role: panelUser.role, companyId: panelUser.companyId };
           }
         }
 
@@ -54,15 +55,17 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.role = (user as { role?: string }).role;
+        token.role = (user as any).role;
         token.id = user.id;
+        token.companyId = (user as any).companyId ?? null;
       }
       return token;
     },
     async session({ session, token }) {
       if (token && session.user) {
-        (session.user as { id?: string; role?: string }).id = token.id as string;
-        (session.user as { id?: string; role?: string }).role = token.role as string;
+        (session.user as any).id = token.id;
+        (session.user as any).role = token.role;
+        (session.user as any).companyId = token.companyId ?? null;
       }
       return session;
     },
