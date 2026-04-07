@@ -236,7 +236,7 @@ export default function AdminClient() {
                 onChange={(e) => setNewUserForm((f) => ({ ...f, role: e.target.value }))}
               >
                 <option value="admin">Admin</option>
-                <option value="viewer">Sadece Görüntüle</option>
+                <option value="firma">Firma / Muhasebeci</option>
               </select>
             </div>
             {newUserError && <p className="text-red-400 text-xs mt-2">{newUserError}</p>}
@@ -289,7 +289,7 @@ export default function AdminClient() {
                         </select>
                       ) : (
                         <span className={`text-xs px-2 py-0.5 rounded-full ${u.role === "admin" ? "bg-purple-900 text-purple-300" : "bg-gray-700 text-gray-400"}`}>
-                          {u.role === "admin" ? "Admin" : "Görüntüleyici"}
+                          {u.role === "admin" ? "Admin" : "Firma"}
                         </span>
                       )}
                     </td>

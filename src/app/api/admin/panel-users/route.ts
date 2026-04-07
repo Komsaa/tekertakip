@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const user = await prisma.panelUser.create({
-      data: { username, passwordHash, name, role: role ?? "admin" },
+      data: { username, passwordHash, name, role: role ?? "firma" },
       select: { id: true, username: true, name: true, role: true, active: true, createdAt: true },
     });
     return NextResponse.json(user, { status: 201 });
