@@ -55,7 +55,7 @@ export default function AdminClient() {
 
   // Panel users
   const [panelUsers, setPanelUsers] = useState<PanelUser[]>([]);
-  const [newUserForm, setNewUserForm] = useState({ username: "", password: "", name: "", phone: "", role: "admin", companyId: "" });
+  const [newUserForm, setNewUserForm] = useState({ username: "", password: "", name: "", phone: "", role: "admin", companyId: "", newCompanyName: "" });
   const [newUserError, setNewUserError] = useState("");
   const [newUserSaving, setNewUserSaving] = useState(false);
   const [editingPanelUser, setEditingPanelUser] = useState<string | null>(null);
@@ -66,6 +66,9 @@ export default function AdminClient() {
   const [newCompanyForm, setNewCompanyForm] = useState({ name: "", code: "" });
   const [newCompanyError, setNewCompanyError] = useState("");
   const [newCompanySaving, setNewCompanySaving] = useState(false);
+  const [fixTenantCompanyId, setFixTenantCompanyId] = useState("");
+  const [fixTenantLoading, setFixTenantLoading] = useState(false);
+  const [fixTenantResult, setFixTenantResult] = useState<string | null>(null);
 
   // Mobile users
   const [mobileUsers, setMobileUsers] = useState<MobileUser[]>([]);
@@ -136,6 +139,28 @@ export default function AdminClient() {
     setDeletedLoading(false);
   }
 
+  async function fixTenantData() {
+    if (!fixTenantCompanyId) return;
+    if (!confirm("Şirketi atanmamış (eski) tüm kayıtlar seçilen şirkete bağlanacak. Devam?")) return;
+    setFixTenantLoading(true);
+    setFixTenantResult(null);
+    const res = await fetch("/api/admin/fix-tenant", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ companyId: fixTenantCompanyId }),
+    });
+    const data = await res.json();
+    setFixTenantLoading(false);
+    if (res.ok) {
+      const lines = Object.entries(data.updated as Record<string, number>)
+        .filter(([, n]) => n > 0)
+        .map(([t, n]) => `${t}: ${n} kayıt`);
+      setFixTenantResult(lines.length ? lines.join(", ") : "Güncellenecek kayıt yok");
+    } else {
+      setFixTenantResult("Hata: " + data.error);
+    }
+  }
+
   // Companies
   async function createCompany() {
     setNewCompanyError("");
@@ -156,16 +181,33 @@ export default function AdminClient() {
   async function createPanelUser() {
     setNewUserError("");
     setNewUserSaving(true);
+
+    let companyId = newUserForm.companyId || null;
+
+    // Yeni şirket adı girildiyse önce şirketi oluştur
+    if (newUserForm.newCompanyName.trim()) {
+      const code = newUserForm.newCompanyName.trim().toUpperCase().replace(/\s+/g, "").slice(0, 8) + Date.now().toString().slice(-4);
+      const compRes = await fetch("/api/admin/companies", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newUserForm.newCompanyName.trim(), code }),
+      });
+      const compData = await compRes.json();
+      if (!compRes.ok) { setNewUserError("Şirket oluşturulamadı: " + compData.error); setNewUserSaving(false); return; }
+      companyId = compData.id;
+    }
+
     const res = await fetch("/api/admin/panel-users", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...newUserForm, companyId: newUserForm.companyId || null }),
+      body: JSON.stringify({ ...newUserForm, companyId }),
     });
     const data = await res.json();
     setNewUserSaving(false);
     if (!res.ok) { setNewUserError(data.error); return; }
-    setNewUserForm({ username: "", password: "", name: "", phone: "", role: "admin", companyId: "" });
+    setNewUserForm({ username: "", password: "", name: "", phone: "", role: "admin", companyId: "", newCompanyName: "" });
     fetchPanelUsers();
+    fetchCompanies();
   }
 
   function startEditPanelUser(u: PanelUser) {
@@ -282,16 +324,25 @@ export default function AdminClient() {
                 <option value="admin">Admin</option>
                 <option value="firma">Firma / Muhasebeci</option>
               </select>
-              <select
-                className="bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm"
-                value={newUserForm.companyId}
-                onChange={(e) => setNewUserForm((f) => ({ ...f, companyId: e.target.value }))}
-              >
-                <option value="">— Şirket Seç (Superadmin için boş) —</option>
-                {companies.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name} ({c.code})</option>
-                ))}
-              </select>
+              <div className="flex flex-col gap-1">
+                <input
+                  placeholder="Yeni Şirket Adı (otomatik oluşturulur)"
+                  className="bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm"
+                  value={newUserForm.newCompanyName}
+                  onChange={(e) => setNewUserForm((f) => ({ ...f, newCompanyName: e.target.value, companyId: "" }))}
+                />
+                <span className="text-xs text-gray-500">Var olan şirkete bağlamak için aşağıdan seçin:</span>
+                <select
+                  className="bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm"
+                  value={newUserForm.companyId}
+                  onChange={(e) => setNewUserForm((f) => ({ ...f, companyId: e.target.value, newCompanyName: "" }))}
+                >
+                  <option value="">— Mevcut Şirket Seç —</option>
+                  {companies.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name} ({c.code})</option>
+                  ))}
+                </select>
+              </div>
             </div>
             {newUserError && <p className="text-red-400 text-xs mt-2">{newUserError}</p>}
             <button
@@ -647,6 +698,36 @@ export default function AdminClient() {
             >
               {newCompanySaving ? "Kaydediliyor..." : "Şirket Oluştur"}
             </button>
+          </div>
+
+          {/* Eski veriyi geçir */}
+          <div className="bg-yellow-900/20 border border-yellow-700/50 rounded-xl p-5">
+            <h2 className="text-sm font-semibold text-yellow-300 mb-1">Eski Veriyi Şirkete Bağla</h2>
+            <p className="text-xs text-yellow-500 mb-3">
+              Sistemde şirketsiz (eski) kayıtlar varsa, bu araçla hepsini seçilen şirkete bağlayabilirsiniz. Yalnızca bir kez çalıştırın.
+            </p>
+            <div className="flex gap-3 items-center flex-wrap">
+              <select
+                className="bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm"
+                value={fixTenantCompanyId}
+                onChange={(e) => setFixTenantCompanyId(e.target.value)}
+              >
+                <option value="">— Şirket Seç —</option>
+                {companies.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name} ({c.code})</option>
+                ))}
+              </select>
+              <button
+                onClick={fixTenantData}
+                disabled={fixTenantLoading || !fixTenantCompanyId}
+                className="bg-yellow-700 hover:bg-yellow-600 disabled:opacity-40 px-4 py-2 rounded text-sm"
+              >
+                {fixTenantLoading ? "Çalışıyor..." : "Eski Veriyi Geçir"}
+              </button>
+              {fixTenantResult && (
+                <span className="text-xs text-yellow-300">{fixTenantResult}</span>
+              )}
+            </div>
           </div>
 
           <div className="overflow-x-auto">

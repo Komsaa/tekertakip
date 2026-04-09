@@ -67,6 +67,13 @@ export async function GET() {
   await exec("Setting companyId", `ALTER TABLE "Setting" ADD COLUMN IF NOT EXISTS "companyId" TEXT`);
   await exec("Setting drop unique", `DROP INDEX IF EXISTS "Setting_key_key"`);
   await exec("Setting composite unique", `CREATE UNIQUE INDEX IF NOT EXISTS "Setting_key_companyId_key" ON "Setting"("key", "companyId")`);
+  await exec("Driver companyId", `ALTER TABLE "Driver" ADD COLUMN IF NOT EXISTS "companyId" TEXT`);
+  await exec("Salary companyId", `ALTER TABLE "Salary" ADD COLUMN IF NOT EXISTS "companyId" TEXT`);
+  await exec("RoutePassenger table", `CREATE TABLE IF NOT EXISTS "RoutePassenger" ("id" TEXT NOT NULL,"stopId" TEXT NOT NULL,"name" TEXT NOT NULL,"phone" TEXT,"notes" TEXT,"active" BOOLEAN NOT NULL DEFAULT true,"order" INTEGER NOT NULL DEFAULT 0,"createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "RoutePassenger_pkey" PRIMARY KEY ("id"))`);
+  await exec("RoutePassenger FK", `ALTER TABLE "RoutePassenger" ADD CONSTRAINT "RoutePassenger_stopId_fkey" FOREIGN KEY ("stopId") REFERENCES "RouteStop"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
+  await exec("TripAttendance table", `CREATE TABLE IF NOT EXISTS "TripAttendance" ("id" TEXT NOT NULL,"passengerId" TEXT NOT NULL,"routeId" TEXT NOT NULL,"driverId" TEXT,"date" TEXT NOT NULL,"status" TEXT NOT NULL,"createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "TripAttendance_pkey" PRIMARY KEY ("id"))`);
+  await exec("TripAttendance FK", `ALTER TABLE "TripAttendance" ADD CONSTRAINT "TripAttendance_passengerId_fkey" FOREIGN KEY ("passengerId") REFERENCES "RoutePassenger"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
+  await exec("TripAttendance unique", `CREATE UNIQUE INDEX IF NOT EXISTS "TripAttendance_passengerId_routeId_date_key" ON "TripAttendance"("passengerId","routeId","date")`);
 
   // ── Kullanıcı oluştur (tamamen raw SQL, Prisma model API kullanmadan) ──
   const usersToCreate = [

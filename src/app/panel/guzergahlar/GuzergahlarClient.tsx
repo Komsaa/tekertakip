@@ -62,6 +62,42 @@ export default function GuzergahlarClient({
   const [geoSearch, setGeoSearch] = useState<Record<number, string>>({});
   const [geoLoading, setGeoLoading] = useState<Record<number, boolean>>({});
 
+  // Yolcu yönetimi
+  const [openStopId, setOpenStopId] = useState<string | null>(null);
+  const [passengers, setPassengers] = useState<Record<string, { id: string; name: string; phone: string | null; active: boolean }[]>>({});
+  const [newPassengerName, setNewPassengerName] = useState("");
+  const [newPassengerPhone, setNewPassengerPhone] = useState("");
+  const [passengerSaving, setPassengerSaving] = useState(false);
+
+  async function loadPassengers(stopId: string) {
+    const res = await fetch(`/api/routes/passengers?stopId=${stopId}`);
+    if (res.ok) {
+      const data = await res.json();
+      setPassengers((prev) => ({ ...prev, [stopId]: data }));
+    }
+  }
+
+  async function addPassenger(stopId: string) {
+    if (!newPassengerName.trim()) return;
+    setPassengerSaving(true);
+    const res = await fetch("/api/routes/passengers", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ stopId, name: newPassengerName, phone: newPassengerPhone }),
+    });
+    setPassengerSaving(false);
+    if (res.ok) { setNewPassengerName(""); setNewPassengerPhone(""); loadPassengers(stopId); }
+  }
+
+  async function removePassenger(stopId: string, passengerId: string) {
+    await fetch("/api/routes/passengers", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: passengerId }),
+    });
+    loadPassengers(stopId);
+  }
+
   // Canlı zaman güncelleme
   const [, setTick] = useState(0);
   useEffect(() => {
@@ -335,17 +371,72 @@ export default function GuzergahlarClient({
                     <div className="space-y-2">
                       {r.stops.map((s, i) => {
                         const isCur = r.active && status.phase === "active" && status.currentStopIndex === i;
+                        const stopId = (s as any).id as string | undefined;
+                        const isOpenPassengers = stopId && openStopId === stopId;
+                        const stopPassengers = stopId ? (passengers[stopId] ?? null) : null;
                         return (
-                          <div key={i} className={`flex items-center gap-3 p-2.5 rounded-xl text-sm ${isCur ? "bg-green-50 border border-green-200" : "bg-slate-50"}`}>
-                            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
-                              i === 0 ? "bg-blue-500 text-white" : i === r.stops.length - 1 ? "bg-red-500 text-white" : isCur ? "bg-green-500 text-white" : "bg-slate-200 text-slate-600"
-                            }`}>{i + 1}</div>
-                            <div className="flex-1 min-w-0">
-                              <div className="font-medium text-slate-800 truncate">{s.name}</div>
-                              {s.lat && <div className="text-xs text-slate-400">{s.lat.toFixed(4)}, {s.lng?.toFixed(4)}</div>}
+                          <div key={i} className={`rounded-xl text-sm ${isCur ? "bg-green-50 border border-green-200" : "bg-slate-50"}`}>
+                            <div className="flex items-center gap-3 p-2.5">
+                              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
+                                i === 0 ? "bg-blue-500 text-white" : i === r.stops.length - 1 ? "bg-red-500 text-white" : isCur ? "bg-green-500 text-white" : "bg-slate-200 text-slate-600"
+                              }`}>{i + 1}</div>
+                              <div className="flex-1 min-w-0">
+                                <div className="font-medium text-slate-800 truncate">{s.name}</div>
+                                {s.lat && <div className="text-xs text-slate-400">{s.lat.toFixed(4)}, {s.lng?.toFixed(4)}</div>}
+                              </div>
+                              <div className="font-mono text-sm font-bold text-slate-600 flex-shrink-0">{s.estimatedTime}</div>
+                              {isCur && <span className="text-xs text-green-600 font-bold flex-shrink-0">◉ Şu an</span>}
+                              {stopId && (
+                                <button
+                                  onClick={() => {
+                                    if (isOpenPassengers) { setOpenStopId(null); }
+                                    else { setOpenStopId(stopId); if (!passengers[stopId]) loadPassengers(stopId); }
+                                  }}
+                                  className="flex-shrink-0 text-xs px-2 py-1 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 font-medium"
+                                >
+                                  👥 {stopPassengers ? stopPassengers.length : ""}
+                                </button>
+                              )}
                             </div>
-                            <div className="font-mono text-sm font-bold text-slate-600 flex-shrink-0">{s.estimatedTime}</div>
-                            {isCur && <span className="text-xs text-green-600 font-bold flex-shrink-0">◉ Şu an</span>}
+                            {/* Yolcu paneli */}
+                            {isOpenPassengers && (
+                              <div className="border-t border-slate-200 px-3 pb-3 pt-2">
+                                <div className="space-y-1 mb-2 max-h-40 overflow-y-auto">
+                                  {(stopPassengers ?? []).length === 0 && (
+                                    <p className="text-xs text-slate-400 italic">Yolcu eklenmemiş.</p>
+                                  )}
+                                  {(stopPassengers ?? []).map((p) => (
+                                    <div key={p.id} className="flex items-center gap-2 text-sm">
+                                      <span className="flex-1 text-slate-700">{p.name}</span>
+                                      {p.phone && <span className="text-slate-400 text-xs">{p.phone}</span>}
+                                      <button onClick={() => removePassenger(stopId, p.id)} className="text-red-400 hover:text-red-600 text-xs">✕</button>
+                                    </div>
+                                  ))}
+                                </div>
+                                <div className="flex gap-1.5">
+                                  <input
+                                    placeholder="Ad Soyad *"
+                                    value={newPassengerName}
+                                    onChange={(e) => setNewPassengerName(e.target.value)}
+                                    className="flex-1 border border-slate-200 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400"
+                                    onKeyDown={(e) => e.key === "Enter" && addPassenger(stopId)}
+                                  />
+                                  <input
+                                    placeholder="Tel (isteğe bağlı)"
+                                    value={newPassengerPhone}
+                                    onChange={(e) => setNewPassengerPhone(e.target.value)}
+                                    className="w-28 border border-slate-200 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400"
+                                  />
+                                  <button
+                                    onClick={() => addPassenger(stopId)}
+                                    disabled={passengerSaving || !newPassengerName.trim()}
+                                    className="bg-blue-600 text-white rounded-lg px-3 py-1.5 text-xs font-bold disabled:opacity-40 hover:bg-blue-700"
+                                  >
+                                    Ekle
+                                  </button>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         );
                       })}

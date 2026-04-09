@@ -448,15 +448,42 @@ model Route {
 }
 
 model RouteStop {
-  id            String  @id @default(cuid())
+  id            String           @id @default(cuid())
   routeId       String
-  route         Route   @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  route         Route            @relation(fields: [routeId], references: [id], onDelete: Cascade)
   order         Int
   name          String
   lat           Float?
   lng           Float?
-  estimatedTime String  // "07:30"
+  estimatedTime String           // "07:30"
   notes         String?
+  passengers    RoutePassenger[]
+}
+
+model RoutePassenger {
+  id          String     @id @default(cuid())
+  stopId      String
+  stop        RouteStop  @relation(fields: [stopId], references: [id], onDelete: Cascade)
+  name        String
+  phone       String?
+  notes       String?
+  active      Boolean    @default(true)
+  order       Int        @default(0)
+  attendances TripAttendance[]
+  createdAt   DateTime   @default(now())
+}
+
+model TripAttendance {
+  id          String         @id @default(cuid())
+  passengerId String
+  passenger   RoutePassenger @relation(fields: [passengerId], references: [id], onDelete: Cascade)
+  routeId     String
+  driverId    String?
+  date        String         // "2026-04-09"
+  status      String         // "boarded" | "absent"
+  createdAt   DateTime       @default(now())
+
+  @@unique([passengerId, routeId, date])
 }
 
 // ============ KREDİ KARTLARI ============
