@@ -32,6 +32,8 @@ export async function POST(req: NextRequest) {
         notes: b.notes || null,
         parsedFrom: b.parsedFrom || "manual",
         rawText: b.rawText || null,
+        receiptPhoto: b.receiptPhoto || null,
+        odometerPhoto: b.odometerPhoto || null,
         ...tenantData(companyId),
       },
     });

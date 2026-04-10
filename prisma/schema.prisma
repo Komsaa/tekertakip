@@ -256,8 +256,9 @@ model FuelEntry {
   station     String? // istasyon adı
   paymentType String  @default("veresiye") // veresiye, nakit, kart
 
-  receiptPhoto String? // fiş fotoğrafı dosya yolu
-  notes        String? @db.Text
+  receiptPhoto   String? // fiş fotoğrafı dosya yolu
+  odometerPhoto  String? // gösterge paneli fotoğrafı dosya yolu
+  notes          String? @db.Text
 
   // WhatsApp otomatik parse metadata
   parsedFrom String? // whatsapp, manual, ocr

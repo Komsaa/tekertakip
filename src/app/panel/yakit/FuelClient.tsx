@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
-import { Plus, X, Fuel, Trash2, Camera, AlertCircle, TrendingDown } from "lucide-react";
+import { Plus, X, Fuel, Trash2, TrendingDown, Camera, Image as ImageIcon } from "lucide-react";
 import { formatDate, formatCurrency } from "@/lib/utils";
 
 type FuelEntry = {
@@ -17,6 +17,8 @@ type FuelEntry = {
   paymentType: string;
   notes: string | null;
   parsedFrom: string | null;
+  receiptPhoto: string | null;
+  odometerPhoto: string | null;
   vehicle: { id: string; plate: string };
   driver: { id: string; name: string } | null;
 };
@@ -39,6 +41,7 @@ export default function FuelClient({ fuelEntries, vehicles, drivers, monthStats,
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [filterVehicle, setFilterVehicle] = useState("");
+  const [lightbox, setLightbox] = useState<string | null>(null);
   const [form, setForm] = useState({
     vehicleId: "",
     driverId: "",
@@ -51,11 +54,17 @@ export default function FuelClient({ fuelEntries, vehicles, drivers, monthStats,
     paymentType: "veresiye",
     notes: "",
   });
+  const [receiptPhotoUrl, setReceiptPhotoUrl] = useState<string | null>(null);
+  const [odometerPhotoUrl, setOdometerPhotoUrl] = useState<string | null>(null);
+  const [uploadingReceipt, setUploadingReceipt] = useState(false);
+  const [uploadingOdometer, setUploadingOdometer] = useState(false);
+
+  const receiptRef = useRef<HTMLInputElement>(null);
+  const odometerRef = useRef<HTMLInputElement>(null);
 
   function set(f: string, v: string) {
     setForm((p) => {
       const next = { ...p, [f]: v };
-      // Otomatik hesaplama
       if (f === "liters" || f === "pricePerLiter") {
         const l = parseFloat(f === "liters" ? v : p.liters);
         const pp = parseFloat(f === "pricePerLiter" ? v : p.pricePerLiter);
@@ -70,6 +79,24 @@ export default function FuelClient({ fuelEntries, vehicles, drivers, monthStats,
     });
   }
 
+  async function uploadPhoto(file: File, type: "receipt" | "odometer") {
+    const setter = type === "receipt" ? setUploadingReceipt : setUploadingOdometer;
+    setter(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/fuel/upload", { method: "POST", body: fd });
+      if (!res.ok) throw new Error();
+      const { url } = await res.json();
+      if (type === "receipt") setReceiptPhotoUrl(url);
+      else setOdometerPhotoUrl(url);
+    } catch {
+      toast.error("Fotoğraf yüklenemedi");
+    } finally {
+      setter(false);
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.vehicleId || !form.liters || !form.totalAmount) {
@@ -81,12 +108,19 @@ export default function FuelClient({ fuelEntries, vehicles, drivers, monthStats,
       const res = await fetch("/api/fuel", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, parsedFrom: "manual" }),
+        body: JSON.stringify({
+          ...form,
+          parsedFrom: "manual",
+          receiptPhoto: receiptPhotoUrl,
+          odometerPhoto: odometerPhotoUrl,
+        }),
       });
       if (!res.ok) throw new Error();
       toast.success("Yakıt kaydedildi!");
       setShowModal(false);
       setForm({ vehicleId: "", driverId: "", date: new Date().toISOString().split("T")[0], liters: "", pricePerLiter: "", totalAmount: "", odometer: "", station: "Erkan Pamuk Çırçır", paymentType: "veresiye", notes: "" });
+      setReceiptPhotoUrl(null);
+      setOdometerPhotoUrl(null);
       router.refresh();
     } catch { toast.error("Hata oluştu"); }
     finally { setLoading(false); }
@@ -119,31 +153,6 @@ export default function FuelClient({ fuelEntries, vehicles, drivers, monthStats,
           <Plus className="w-4 h-4" />
           Yakıt Ekle
         </button>
-      </div>
-
-      {/* WhatsApp Bilgi Kutusu */}
-      <div className="bg-green-50 border border-green-200 rounded-2xl p-5">
-        <div className="flex items-start gap-3">
-          <div className="w-10 h-10 bg-green-500 rounded-xl flex items-center justify-center flex-shrink-0">
-            <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
-            </svg>
-          </div>
-          <div className="flex-1">
-            <h3 className="font-bold text-green-800 mb-1">WhatsApp Bot Entegrasyonu</h3>
-            <p className="text-green-700 text-sm mb-3">
-              Şöförleriniz WP grubuna fiş fotoğrafı + km bilgisi atınca bot otomatik olarak kaydedecek.
-            </p>
-            <div className="bg-white border border-green-200 rounded-xl p-3 font-mono text-xs text-slate-600">
-              <div className="text-green-600 font-semibold mb-1">Şöförler şunu atsın:</div>
-              <div>📸 Fiş fotoğrafı</div>
-              <div>+ <span className="text-blue-600">45J9443 - 125400 km</span></div>
-            </div>
-            <p className="text-green-600 text-xs mt-2">
-              Bot kurulumu için: <code className="bg-green-100 px-1 rounded">npm run bot</code> komutunu çalıştırın
-            </p>
-          </div>
-        </div>
       </div>
 
       {/* Araç bazlı ay özeti */}
@@ -202,11 +211,7 @@ export default function FuelClient({ fuelEntries, vehicles, drivers, monthStats,
 
       {/* Filtre */}
       <div className="flex items-center gap-3">
-        <select
-          value={filterVehicle}
-          onChange={(e) => setFilterVehicle(e.target.value)}
-          className="max-w-xs"
-        >
+        <select value={filterVehicle} onChange={(e) => setFilterVehicle(e.target.value)} className="max-w-xs">
           <option value="">Tüm Araçlar</option>
           {vehicles.map((v) => <option key={v.id} value={v.id}>{v.plate}</option>)}
         </select>
@@ -234,6 +239,7 @@ export default function FuelClient({ fuelEntries, vehicles, drivers, monthStats,
                   <th className="px-5 py-3 text-right">KM</th>
                   <th className="px-5 py-3 text-center">Ödeme</th>
                   <th className="px-5 py-3 text-left">İstasyon</th>
+                  <th className="px-5 py-3 text-center">Fotoğraf</th>
                   <th className="px-5 py-3"></th>
                 </tr>
               </thead>
@@ -254,6 +260,31 @@ export default function FuelClient({ fuelEntries, vehicles, drivers, monthStats,
                     </td>
                     <td className="px-5 py-3 text-xs text-slate-400">{entry.station ?? "-"}</td>
                     <td className="px-5 py-3">
+                      <div className="flex items-center justify-center gap-1.5">
+                        {entry.receiptPhoto && (
+                          <button
+                            onClick={() => setLightbox(entry.receiptPhoto!)}
+                            title="Fiş"
+                            className="p-1.5 text-amber-500 hover:bg-amber-50 rounded-lg"
+                          >
+                            <ImageIcon className="w-4 h-4" />
+                          </button>
+                        )}
+                        {entry.odometerPhoto && (
+                          <button
+                            onClick={() => setLightbox(entry.odometerPhoto!)}
+                            title="Gösterge"
+                            className="p-1.5 text-blue-500 hover:bg-blue-50 rounded-lg"
+                          >
+                            <Camera className="w-4 h-4" />
+                          </button>
+                        )}
+                        {!entry.receiptPhoto && !entry.odometerPhoto && (
+                          <span className="text-slate-300 text-xs">—</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-5 py-3">
                       <button onClick={() => handleDelete(entry.id)} className="p-1.5 text-red-400 hover:bg-red-50 rounded-lg">
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -267,13 +298,28 @@ export default function FuelClient({ fuelEntries, vehicles, drivers, monthStats,
                   <td className="px-5 py-3 text-sm text-right">{filtered.reduce((s, e) => s + e.liters, 0).toFixed(2)}</td>
                   <td></td>
                   <td className="px-5 py-3 text-sm text-right text-[#DC2626]">{formatCurrency(filtered.reduce((s, e) => s + e.totalAmount, 0))}</td>
-                  <td colSpan={4}></td>
+                  <td colSpan={5}></td>
                 </tr>
               </tfoot>
             </table>
           </div>
         )}
       </div>
+
+      {/* Lightbox */}
+      {lightbox && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80" onClick={() => setLightbox(null)}>
+          <button className="absolute top-4 right-4 text-white p-2 hover:bg-white/10 rounded-xl">
+            <X className="w-6 h-6" />
+          </button>
+          <img
+            src={lightbox}
+            alt="Fotoğraf"
+            className="max-w-full max-h-full rounded-xl shadow-2xl object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
 
       {/* Modal */}
       {showModal && (
@@ -349,6 +395,79 @@ export default function FuelClient({ fuelEntries, vehicles, drivers, monthStats,
               <div>
                 <label>Notlar</label>
                 <textarea value={form.notes} onChange={(e) => set("notes", e.target.value)} rows={2} className="resize-none" />
+              </div>
+
+              {/* Fotoğraflar */}
+              <div className="border-t border-slate-100 pt-4 space-y-3">
+                <p className="text-sm font-semibold text-slate-700">Fotoğraflar</p>
+
+                {/* Fiş */}
+                <div>
+                  <label className="text-xs text-slate-500 mb-1 block">Fiş Fotoğrafı</label>
+                  <input
+                    ref={receiptRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => e.target.files?.[0] && uploadPhoto(e.target.files[0], "receipt")}
+                  />
+                  {receiptPhotoUrl ? (
+                    <div className="relative w-full h-28 rounded-xl overflow-hidden border border-slate-200">
+                      <img src={receiptPhotoUrl} alt="Fiş" className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => setReceiptPhotoUrl(null)}
+                        className="absolute top-1 right-1 bg-black/50 text-white p-1 rounded-lg"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => receiptRef.current?.click()}
+                      disabled={uploadingReceipt}
+                      className="w-full flex items-center justify-center gap-2 py-2.5 border-2 border-dashed border-slate-200 text-slate-400 rounded-xl text-sm hover:border-amber-300 hover:text-amber-500 transition-all disabled:opacity-50"
+                    >
+                      <ImageIcon className="w-4 h-4" />
+                      {uploadingReceipt ? "Yükleniyor..." : "Fiş fotoğrafı ekle"}
+                    </button>
+                  )}
+                </div>
+
+                {/* Gösterge */}
+                <div>
+                  <label className="text-xs text-slate-500 mb-1 block">Gösterge Paneli Fotoğrafı</label>
+                  <input
+                    ref={odometerRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => e.target.files?.[0] && uploadPhoto(e.target.files[0], "odometer")}
+                  />
+                  {odometerPhotoUrl ? (
+                    <div className="relative w-full h-28 rounded-xl overflow-hidden border border-slate-200">
+                      <img src={odometerPhotoUrl} alt="Gösterge" className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => setOdometerPhotoUrl(null)}
+                        className="absolute top-1 right-1 bg-black/50 text-white p-1 rounded-lg"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => odometerRef.current?.click()}
+                      disabled={uploadingOdometer}
+                      className="w-full flex items-center justify-center gap-2 py-2.5 border-2 border-dashed border-slate-200 text-slate-400 rounded-xl text-sm hover:border-blue-300 hover:text-blue-500 transition-all disabled:opacity-50"
+                    >
+                      <Camera className="w-4 h-4" />
+                      {uploadingOdometer ? "Yükleniyor..." : "Gösterge fotoğrafı ekle"}
+                    </button>
+                  )}
+                </div>
               </div>
 
               <div className="flex gap-3 pt-2">
