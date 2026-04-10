@@ -9,6 +9,16 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 
   try {
     const b = await req.json();
+    let demoExpiresAt = undefined;
+    if (b.extendDemo) {
+      // Mevcut süreyi baz alarak 30 gün ekle
+      const current = await prisma.company.findUnique({ where: { id: params.id }, select: { demoExpiresAt: true } });
+      const base = current?.demoExpiresAt && current.demoExpiresAt > new Date() ? current.demoExpiresAt : new Date();
+      demoExpiresAt = new Date(base.getTime() + 30 * 24 * 60 * 60 * 1000);
+    } else if (b.demoExpiresAt !== undefined) {
+      demoExpiresAt = b.demoExpiresAt ? new Date(b.demoExpiresAt) : null;
+    }
+
     const company = await prisma.company.update({
       where: { id: params.id },
       data: {
@@ -16,6 +26,8 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
         driverLimit: b.driverLimit ? parseInt(b.driverLimit) : undefined,
         active: b.active !== undefined ? b.active : undefined,
         notes: b.notes ?? undefined,
+        isDemo: b.isDemo !== undefined ? b.isDemo : undefined,
+        demoExpiresAt,
       },
     });
     return NextResponse.json(company);

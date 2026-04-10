@@ -29,12 +29,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Bu kod zaten kullanılıyor" }, { status: 409 });
     }
 
+    const demoExpiresAt = b.isDemo
+      ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+      : undefined;
+
     const company = await prisma.company.create({
       data: {
         name: b.name,
         code: b.code.toUpperCase(),
         driverLimit: b.driverLimit ? parseInt(b.driverLimit) : 10,
         notes: b.notes || null,
+        isDemo: b.isDemo ?? false,
+        demoExpiresAt,
       },
     });
     return NextResponse.json(company, { status: 201 });

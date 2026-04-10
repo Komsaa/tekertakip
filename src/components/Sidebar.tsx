@@ -24,6 +24,7 @@ import {
   MapPin,
   FileText,
   ShieldCheck,
+  Sparkles,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -45,6 +46,7 @@ const navGroups: NavGroup[] = [
     label: "Genel",
     items: [
       { href: "/panel", icon: LayoutDashboard, label: "Dashboard", exact: true },
+      { href: "/panel/hosgeldiniz", icon: Sparkles, label: "Başlangıç Rehberi" },
     ],
   },
   {
