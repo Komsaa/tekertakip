@@ -58,6 +58,7 @@ export default function FuelClient({ fuelEntries, vehicles, drivers, monthStats,
   const [odometerPhotoUrl, setOdometerPhotoUrl] = useState<string | null>(null);
   const [uploadingReceipt, setUploadingReceipt] = useState(false);
   const [uploadingOdometer, setUploadingOdometer] = useState(false);
+  const [parsing, setParsing] = useState(false);
 
   const receiptRef = useRef<HTMLInputElement>(null);
   const odometerRef = useRef<HTMLInputElement>(null);
@@ -88,12 +89,43 @@ export default function FuelClient({ fuelEntries, vehicles, drivers, monthStats,
       const res = await fetch("/api/fuel/upload", { method: "POST", body: fd });
       if (!res.ok) throw new Error();
       const { url } = await res.json();
-      if (type === "receipt") setReceiptPhotoUrl(url);
-      else setOdometerPhotoUrl(url);
+      if (type === "receipt") {
+        setReceiptPhotoUrl(url);
+        // Fiş ise Gemini ile otomatik parse et
+        parseReceipt(url);
+      } else {
+        setOdometerPhotoUrl(url);
+      }
     } catch {
       toast.error("Fotoğraf yüklenemedi");
     } finally {
       setter(false);
+    }
+  }
+
+  async function parseReceipt(fileUrl: string) {
+    setParsing(true);
+    try {
+      const res = await fetch("/api/fuel/parse-receipt", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fileUrl }),
+      });
+      const { parsed } = await res.json();
+      if (!parsed) return;
+      setForm((f) => ({
+        ...f,
+        liters: parsed.liters != null ? String(parsed.liters) : f.liters,
+        totalAmount: parsed.totalAmount != null ? String(parsed.totalAmount) : f.totalAmount,
+        pricePerLiter: parsed.pricePerLiter != null ? String(parsed.pricePerLiter) : f.pricePerLiter,
+        station: parsed.station || f.station,
+        date: parsed.date || f.date,
+      }));
+      toast.success("Fiş okundu, kontrol et");
+    } catch {
+      // sessizce geç
+    } finally {
+      setParsing(false);
     }
   }
 
@@ -430,7 +462,7 @@ export default function FuelClient({ fuelEntries, vehicles, drivers, monthStats,
                       className="w-full flex items-center justify-center gap-2 py-2.5 border-2 border-dashed border-slate-200 text-slate-400 rounded-xl text-sm hover:border-amber-300 hover:text-amber-500 transition-all disabled:opacity-50"
                     >
                       <ImageIcon className="w-4 h-4" />
-                      {uploadingReceipt ? "Yükleniyor..." : "Fiş fotoğrafı ekle"}
+                      {uploadingReceipt ? "Yükleniyor..." : parsing ? "Okunuyor..." : "Fiş fotoğrafı ekle"}
                     </button>
                   )}
                 </div>
