@@ -40,6 +40,11 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    if (role === "admin" && companyId) {
+      const existing = await prisma.panelUser.findFirst({ where: { companyId, role: "admin" } });
+      if (existing) return NextResponse.json({ error: `Bu şirketin zaten bir admin hesabı var: ${existing.username}` }, { status: 400 });
+    }
+
     const passwordHash = await bcrypt.hash(password, 10);
     const user = await prisma.panelUser.create({
       data: { username, passwordHash, name, phone: phone || null, role: role ?? "firma", companyId: companyId || null },
@@ -59,6 +64,15 @@ export async function PUT(req: NextRequest) {
   if (!id) return NextResponse.json({ error: "id zorunlu" }, { status: 400 });
 
   try {
+    if (role === "admin") {
+      const user = await prisma.panelUser.findUnique({ where: { id }, select: { companyId: true } });
+      const cId = companyId !== undefined ? companyId : user?.companyId;
+      if (cId) {
+        const existing = await prisma.panelUser.findFirst({ where: { companyId: cId, role: "admin", NOT: { id } } });
+        if (existing) return NextResponse.json({ error: `Bu şirketin zaten bir admin hesabı var: ${existing.username}` }, { status: 400 });
+      }
+    }
+
     const data: Record<string, unknown> = {};
     if (name !== undefined) data.name = name;
     if (phone !== undefined) data.phone = phone || null;

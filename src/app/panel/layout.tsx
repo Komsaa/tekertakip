@@ -35,7 +35,7 @@ export default async function PanelLayout({
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-100">
-      <Sidebar userName={session.user?.name || "Admin"} />
+      <Sidebar userName={session.user?.name || "Admin"} role={(session.user as any)?.role} />
 
       {/* Ana içerik */}
       <main className="flex-1 overflow-y-auto flex flex-col">

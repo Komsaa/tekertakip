@@ -94,9 +94,11 @@ const navGroups: NavGroup[] = [
 
 interface SidebarProps {
   userName: string;
+  role?: string;
 }
 
-export default function Sidebar({ userName }: SidebarProps) {
+export default function Sidebar({ userName, role }: SidebarProps) {
+  const isAdmin = !role || role === "admin";
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -124,13 +126,19 @@ export default function Sidebar({ userName }: SidebarProps) {
 
       {/* Nav */}
       <nav className="flex-1 py-3 px-3 overflow-y-auto sidebar-scroll space-y-4">
-        {navGroups.map((group) => (
+        {navGroups.filter((group) => {
+        if (!isAdmin && group.label === "Sistem") return false;
+        return true;
+      }).map((group) => (
           <div key={group.label}>
             <div className="px-4 py-1 text-xs font-semibold text-slate-500 uppercase tracking-wider">
               {group.label}
             </div>
             <div className="space-y-0.5 mt-1">
-              {group.items.map((item) => (
+              {group.items.filter((item) => {
+                if (!isAdmin && item.href === "/panel/sirketler") return false;
+                return true;
+              }).map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}

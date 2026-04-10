@@ -3,7 +3,8 @@
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
-import { Plus, X, Fuel, Trash2, TrendingDown, Camera, Image as ImageIcon } from "lucide-react";
+import { Plus, X, Fuel, Trash2, TrendingDown, Camera, Image as ImageIcon, Upload } from "lucide-react";
+import Link from "next/link";
 import { formatDate, formatCurrency } from "@/lib/utils";
 
 type FuelEntry = {
@@ -181,10 +182,16 @@ export default function FuelClient({ fuelEntries, vehicles, drivers, monthStats,
             Toplam: {totalLiters.toFixed(0)} lt · {formatCurrency(totalMonth)}
           </p>
         </div>
-        <button onClick={() => setShowModal(true)} className="flex items-center gap-2 bg-[#DC2626] hover:bg-[#B91C1C] text-white px-4 py-2 rounded-xl text-sm font-semibold transition-all">
-          <Plus className="w-4 h-4" />
-          Yakıt Ekle
-        </button>
+        <div className="flex gap-2">
+          <Link href="/panel/yakit/toplu-yukle" className="flex items-center gap-2 bg-slate-700 hover:bg-slate-800 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-all">
+            <Upload className="w-4 h-4" />
+            Toplu Yükle
+          </Link>
+          <button onClick={() => setShowModal(true)} className="flex items-center gap-2 bg-[#DC2626] hover:bg-[#B91C1C] text-white px-4 py-2 rounded-xl text-sm font-semibold transition-all">
+            <Plus className="w-4 h-4" />
+            Yakıt Ekle
+          </button>
+        </div>
       </div>
 
       {/* Araç bazlı ay özeti */}
