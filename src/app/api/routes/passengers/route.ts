@@ -18,11 +18,11 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const { stopId, name, phone } = await req.json();
+  const { stopId, name, phone, parentPhone } = await req.json();
   if (!stopId || !name) return NextResponse.json({ error: "stopId ve name zorunlu" }, { status: 400 });
   const count = await prisma.routePassenger.count({ where: { stopId } });
   const passenger = await prisma.routePassenger.create({
-    data: { stopId, name: name.trim(), phone: phone?.trim() || null, order: count },
+    data: { stopId, name: name.trim(), phone: phone?.trim() || null, parentPhone: parentPhone?.trim() || null, order: count },
   });
   return NextResponse.json(passenger, { status: 201 });
 }

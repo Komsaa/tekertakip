@@ -64,9 +64,10 @@ export default function GuzergahlarClient({
 
   // Yolcu yönetimi
   const [openStopId, setOpenStopId] = useState<string | null>(null);
-  const [passengers, setPassengers] = useState<Record<string, { id: string; name: string; phone: string | null; active: boolean }[]>>({});
+  const [passengers, setPassengers] = useState<Record<string, { id: string; name: string; phone: string | null; parentPhone: string | null; active: boolean }[]>>({});
   const [newPassengerName, setNewPassengerName] = useState("");
   const [newPassengerPhone, setNewPassengerPhone] = useState("");
+  const [newPassengerParentPhone, setNewPassengerParentPhone] = useState("");
   const [passengerSaving, setPassengerSaving] = useState(false);
 
   async function loadPassengers(stopId: string) {
@@ -83,10 +84,10 @@ export default function GuzergahlarClient({
     const res = await fetch("/api/routes/passengers", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ stopId, name: newPassengerName, phone: newPassengerPhone }),
+      body: JSON.stringify({ stopId, name: newPassengerName, phone: newPassengerPhone, parentPhone: newPassengerParentPhone }),
     });
     setPassengerSaving(false);
-    if (res.ok) { setNewPassengerName(""); setNewPassengerPhone(""); loadPassengers(stopId); }
+    if (res.ok) { setNewPassengerName(""); setNewPassengerPhone(""); setNewPassengerParentPhone(""); loadPassengers(stopId); }
   }
 
   async function removePassenger(stopId: string, passengerId: string) {
@@ -408,24 +409,25 @@ export default function GuzergahlarClient({
                                   {(stopPassengers ?? []).map((p) => (
                                     <div key={p.id} className="flex items-center gap-2 text-sm">
                                       <span className="flex-1 text-slate-700">{p.name}</span>
+                                      {p.parentPhone && <span className="text-xs bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded">👨‍👩‍👧 {p.parentPhone}</span>}
                                       {p.phone && <span className="text-slate-400 text-xs">{p.phone}</span>}
                                       <button onClick={() => removePassenger(stopId, p.id)} className="text-red-400 hover:text-red-600 text-xs">✕</button>
                                     </div>
                                   ))}
                                 </div>
-                                <div className="flex gap-1.5">
+                                <div className="flex gap-1.5 flex-wrap">
                                   <input
                                     placeholder="Ad Soyad *"
                                     value={newPassengerName}
                                     onChange={(e) => setNewPassengerName(e.target.value)}
-                                    className="flex-1 border border-slate-200 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400"
+                                    className="flex-1 min-w-24 border border-slate-200 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400"
                                     onKeyDown={(e) => e.key === "Enter" && addPassenger(stopId)}
                                   />
                                   <input
-                                    placeholder="Tel (isteğe bağlı)"
-                                    value={newPassengerPhone}
-                                    onChange={(e) => setNewPassengerPhone(e.target.value)}
-                                    className="w-28 border border-slate-200 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400"
+                                    placeholder="Veli Telefonu (uygulama girişi)"
+                                    value={newPassengerParentPhone}
+                                    onChange={(e) => setNewPassengerParentPhone(e.target.value)}
+                                    className="w-40 border border-blue-200 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400"
                                   />
                                   <button
                                     onClick={() => addPassenger(stopId)}

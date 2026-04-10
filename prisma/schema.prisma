@@ -461,16 +461,19 @@ model RouteStop {
 }
 
 model RoutePassenger {
-  id          String     @id @default(cuid())
-  stopId      String
-  stop        RouteStop  @relation(fields: [stopId], references: [id], onDelete: Cascade)
-  name        String
-  phone       String?
-  notes       String?
-  active      Boolean    @default(true)
-  order       Int        @default(0)
-  attendances TripAttendance[]
-  createdAt   DateTime   @default(now())
+  id              String     @id @default(cuid())
+  stopId          String
+  stop            RouteStop  @relation(fields: [stopId], references: [id], onDelete: Cascade)
+  name            String
+  phone           String?
+  notes           String?
+  active          Boolean    @default(true)
+  order           Int        @default(0)
+  parentPhone     String?    // veli girişi için
+  parentPushToken String?    // Expo push token
+  veliToken       String?    @unique
+  attendances     TripAttendance[]
+  createdAt       DateTime   @default(now())
 }
 
 model TripAttendance {

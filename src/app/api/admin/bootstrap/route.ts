@@ -74,6 +74,10 @@ export async function GET() {
   await exec("TripAttendance table", `CREATE TABLE IF NOT EXISTS "TripAttendance" ("id" TEXT NOT NULL,"passengerId" TEXT NOT NULL,"routeId" TEXT NOT NULL,"driverId" TEXT,"date" TEXT NOT NULL,"status" TEXT NOT NULL,"createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "TripAttendance_pkey" PRIMARY KEY ("id"))`);
   await exec("TripAttendance FK", `ALTER TABLE "TripAttendance" ADD CONSTRAINT "TripAttendance_passengerId_fkey" FOREIGN KEY ("passengerId") REFERENCES "RoutePassenger"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
   await exec("TripAttendance unique", `CREATE UNIQUE INDEX IF NOT EXISTS "TripAttendance_passengerId_routeId_date_key" ON "TripAttendance"("passengerId","routeId","date")`);
+  await exec("RoutePassenger parentPhone", `ALTER TABLE "RoutePassenger" ADD COLUMN IF NOT EXISTS "parentPhone" TEXT`);
+  await exec("RoutePassenger parentPushToken", `ALTER TABLE "RoutePassenger" ADD COLUMN IF NOT EXISTS "parentPushToken" TEXT`);
+  await exec("RoutePassenger veliToken", `ALTER TABLE "RoutePassenger" ADD COLUMN IF NOT EXISTS "veliToken" TEXT`);
+  await exec("RoutePassenger veliToken unique", `CREATE UNIQUE INDEX IF NOT EXISTS "RoutePassenger_veliToken_key" ON "RoutePassenger"("veliToken")`);
 
   // ── Kullanıcı oluştur (tamamen raw SQL, Prisma model API kullanmadan) ──
   const usersToCreate = [
