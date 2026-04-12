@@ -2,15 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getCompanyId } from "@/lib/tenant";
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const companyId = getCompanyId(session);
   const { searchParams } = new URL(req.url);
   const entityType = searchParams.get("entityType");
   const entityId = searchParams.get("entityId");
   const docs = await prisma.document.findMany({
     where: {
+      ...(companyId ? { companyId } : {}),
       ...(entityType && { entityType }),
       ...(entityId && { entityId }),
     },
@@ -22,6 +25,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const companyId = getCompanyId(session);
   try {
     const b = await req.json();
     const doc = await prisma.document.create({
@@ -32,6 +36,7 @@ export async function POST(req: NextRequest) {
         notes: b.notes || null,
         entityType: b.entityType,
         entityId: b.entityId,
+        companyId: companyId ?? null,
       },
     });
     return NextResponse.json(doc, { status: 201 });

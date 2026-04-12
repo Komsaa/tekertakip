@@ -10,7 +10,7 @@ export async function GET() {
   const companyId = getCompanyId(session);
 
   const checks = await prisma.check.findMany({
-    where: companyId ? { contact: { companyId } } : {},
+    where: companyId ? { companyId } : {},
     orderBy: { dueDate: "asc" },
     include: { contact: { select: { id: true, name: true } } },
   });
@@ -39,6 +39,7 @@ export async function POST(req: NextRequest) {
         checkNo: b.checkNo || null,
         status: "bekliyor",
         notes: b.notes || null,
+        companyId: companyId ?? null,
       },
       include: { contact: true },
     });

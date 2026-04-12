@@ -2,18 +2,11 @@
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-
-async function getDriverFromToken(req: NextRequest) {
-  const auth = req.headers.get("Authorization");
-  if (!auth?.startsWith("Bearer ")) return null;
-  const token = auth.slice(7);
-  return prisma.driver.findUnique({ where: { mobileToken: token }, select: { id: true, name: true } });
-}
+import { getDriverFromRequest } from "@/lib/mobile-auth";
 
 export async function POST(req: NextRequest) {
   try {
-    const driver = await getDriverFromToken(req);
+    const driver = await getDriverFromRequest(req);
     if (!driver) return NextResponse.json({ error: "Yetkisiz" }, { status: 401 });
 
     const formData = await req.formData();

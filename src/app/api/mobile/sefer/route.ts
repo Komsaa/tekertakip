@@ -1,18 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { headers } from "next/headers";
-
-async function getDriverFromToken() {
-  const h = await headers();
-  const auth = h.get("authorization") ?? "";
-  const token = auth.replace("Bearer ", "").trim();
-  if (!token) return null;
-  return prisma.driver.findFirst({ where: { mobileToken: token } });
-}
+import { getDriverFromHeaders } from "@/lib/mobile-auth";
 
 // Şöförün aktif güzergahını duraklar + yolcular + bugünkü yoklama ile döner
 export async function GET() {
-  const driver = await getDriverFromToken();
+  const driver = await getDriverFromHeaders();
   if (!driver) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const today = new Date().toISOString().slice(0, 10);

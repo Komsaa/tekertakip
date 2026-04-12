@@ -64,11 +64,15 @@ export default function GuzergahlarClient({
 
   // Yolcu yönetimi
   const [openStopId, setOpenStopId] = useState<string | null>(null);
-  const [passengers, setPassengers] = useState<Record<string, { id: string; name: string; phone: string | null; parentPhone: string | null; active: boolean }[]>>({});
+  const [passengers, setPassengers] = useState<Record<string, { id: string; name: string; phone: string | null; parentPhone: string | null; active: boolean; veliUsername: string | null }[]>>({});
   const [newPassengerName, setNewPassengerName] = useState("");
   const [newPassengerPhone, setNewPassengerPhone] = useState("");
   const [newPassengerParentPhone, setNewPassengerParentPhone] = useState("");
   const [passengerSaving, setPassengerSaving] = useState(false);
+
+  // Veli giriş bilgisi
+  const [credModal, setCredModal] = useState<{ name: string; veliUsername: string; veliPassword: string } | null>(null);
+  const [credLoading, setCredLoading] = useState<string | null>(null); // passengerId
 
   async function loadPassengers(stopId: string) {
     const res = await fetch(`/api/routes/passengers?stopId=${stopId}`);
@@ -97,6 +101,26 @@ export default function GuzergahlarClient({
       body: JSON.stringify({ id: passengerId }),
     });
     loadPassengers(stopId);
+  }
+
+  async function generateCredentials(stopId: string, passengerId: string, passengerName: string) {
+    if (!confirm(`${passengerName} için yeni giriş bilgisi oluşturulsun mu? Eski bilgiler geçersiz olur.`)) return;
+    setCredLoading(passengerId);
+    try {
+      const res = await fetch("/api/routes/passengers/credentials", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ passengerId }),
+      });
+      const data = await res.json();
+      if (!res.ok) { toast.error(data.error ?? "Hata"); return; }
+      setCredModal({ name: passengerName, veliUsername: data.veliUsername, veliPassword: data.veliPassword });
+      loadPassengers(stopId);
+    } catch {
+      toast.error("Bağlantı hatası");
+    } finally {
+      setCredLoading(null);
+    }
   }
 
   // Canlı zaman güncelleme
@@ -407,10 +431,20 @@ export default function GuzergahlarClient({
                                     <p className="text-xs text-slate-400 italic">Yolcu eklenmemiş.</p>
                                   )}
                                   {(stopPassengers ?? []).map((p) => (
-                                    <div key={p.id} className="flex items-center gap-2 text-sm">
-                                      <span className="flex-1 text-slate-700">{p.name}</span>
-                                      {p.parentPhone && <span className="text-xs bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded">👨‍👩‍👧 {p.parentPhone}</span>}
-                                      {p.phone && <span className="text-slate-400 text-xs">{p.phone}</span>}
+                                    <div key={p.id} className="flex items-center gap-2 text-sm py-1 border-b border-slate-100 last:border-0">
+                                      <span className="flex-1 text-slate-700 font-medium">{p.name}</span>
+                                      {p.veliUsername
+                                        ? <span className="text-xs bg-green-50 text-green-700 px-1.5 py-0.5 rounded font-mono">@{p.veliUsername}</span>
+                                        : <span className="text-xs text-slate-400 italic">Giriş yok</span>
+                                      }
+                                      <button
+                                        onClick={() => generateCredentials(stopId, p.id, p.name)}
+                                        disabled={credLoading === p.id}
+                                        className="text-xs px-2 py-0.5 rounded bg-indigo-50 text-indigo-600 hover:bg-indigo-100 font-medium disabled:opacity-40"
+                                        title="Veli giriş bilgisi oluştur / yenile"
+                                      >
+                                        {credLoading === p.id ? "..." : "Şifre"}
+                                      </button>
                                       <button onClick={() => removePassenger(stopId, p.id)} className="text-red-400 hover:text-red-600 text-xs">✕</button>
                                     </div>
                                   ))}
@@ -424,10 +458,10 @@ export default function GuzergahlarClient({
                                     onKeyDown={(e) => e.key === "Enter" && addPassenger(stopId)}
                                   />
                                   <input
-                                    placeholder="Veli Telefonu (uygulama girişi)"
+                                    placeholder="Veli tel. (opsiyonel)"
                                     value={newPassengerParentPhone}
                                     onChange={(e) => setNewPassengerParentPhone(e.target.value)}
-                                    className="w-40 border border-blue-200 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400"
+                                    className="w-36 border border-slate-200 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400"
                                   />
                                   <button
                                     onClick={() => addPassenger(stopId)}
@@ -663,6 +697,52 @@ export default function GuzergahlarClient({
                 {saving ? "Kaydediliyor..." : editingRoute ? "Güncelle" : "Kaydet"}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Veli Giriş Bilgisi Modal */}
+      {credModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4">
+            <h3 className="font-bold text-slate-800 text-lg">Veli Giriş Bilgisi</h3>
+            <p className="text-sm text-slate-500">
+              <span className="font-semibold text-slate-700">{credModal.name}</span> için oluşturuldu.
+              Bu bilgileri WhatsApp&apos;tan veliye gönderin.
+            </p>
+            <div className="bg-slate-50 rounded-xl p-4 space-y-3 font-mono text-sm">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <span className="text-xs text-slate-400 block">Kullanıcı Adı</span>
+                  <span className="font-bold text-slate-800">{credModal.veliUsername}</span>
+                </div>
+                <button
+                  onClick={() => { navigator.clipboard.writeText(credModal.veliUsername); toast.success("Kopyalandı"); }}
+                  className="text-xs px-2 py-1 bg-slate-200 hover:bg-slate-300 rounded-lg"
+                >Kopyala</button>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <span className="text-xs text-slate-400 block">Şifre</span>
+                  <span className="font-bold text-slate-800 tracking-widest">{credModal.veliPassword}</span>
+                </div>
+                <button
+                  onClick={() => { navigator.clipboard.writeText(credModal.veliPassword); toast.success("Kopyalandı"); }}
+                  className="text-xs px-2 py-1 bg-slate-200 hover:bg-slate-300 rounded-lg"
+                >Kopyala</button>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                const text = `Servis Takip Girişi\nKullanıcı: ${credModal.veliUsername}\nŞifre: ${credModal.veliPassword}`;
+                navigator.clipboard.writeText(text);
+                toast.success("WhatsApp mesajı kopyalandı");
+              }}
+              className="w-full bg-green-600 hover:bg-green-700 text-white rounded-xl py-2.5 text-sm font-semibold"
+            >
+              WhatsApp Mesajını Kopyala
+            </button>
+            <button onClick={() => setCredModal(null)} className="w-full text-sm text-slate-500 hover:text-slate-700">Kapat</button>
           </div>
         </div>
       )}

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { requireAdmin } from "@/lib/tenant";
 import bcrypt from "bcryptjs";
 
 function dbErr(e: unknown) {
@@ -18,6 +19,7 @@ function dbErr(e: unknown) {
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const _adminErr = requireAdmin(session); if (_adminErr) return _adminErr;
 
   try {
     const users = await prisma.panelUser.findMany({
@@ -33,6 +35,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const _adminErr = requireAdmin(session); if (_adminErr) return _adminErr;
 
   const { username, password, name, phone, role, companyId } = await req.json();
   if (!username || !password || !name) {
@@ -59,6 +62,7 @@ export async function POST(req: NextRequest) {
 export async function PUT(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const _adminErr = requireAdmin(session); if (_adminErr) return _adminErr;
 
   const { id, name, phone, role, active, password, companyId } = await req.json();
   if (!id) return NextResponse.json({ error: "id zorunlu" }, { status: 400 });
@@ -95,6 +99,7 @@ export async function PUT(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const _adminErr = requireAdmin(session); if (_adminErr) return _adminErr;
 
   const { id } = await req.json();
   if (!id) return NextResponse.json({ error: "id zorunlu" }, { status: 400 });

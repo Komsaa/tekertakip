@@ -2,12 +2,14 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { requireAdmin } from "@/lib/tenant";
 import bcrypt from "bcryptjs";
 import { randomBytes } from "crypto";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const adminErr = requireAdmin(session); if (adminErr) return adminErr;
 
   const log: string[] = [];
 
@@ -78,10 +80,23 @@ export async function GET() {
   await exec("RoutePassenger parentPushToken", `ALTER TABLE "RoutePassenger" ADD COLUMN IF NOT EXISTS "parentPushToken" TEXT`);
   await exec("RoutePassenger veliToken", `ALTER TABLE "RoutePassenger" ADD COLUMN IF NOT EXISTS "veliToken" TEXT`);
   await exec("RoutePassenger veliToken unique", `CREATE UNIQUE INDEX IF NOT EXISTS "RoutePassenger_veliToken_key" ON "RoutePassenger"("veliToken")`);
+  await exec("Document companyId", `ALTER TABLE "Document" ADD COLUMN IF NOT EXISTS "companyId" TEXT`);
+  await exec("Check companyId", `ALTER TABLE "Check" ADD COLUMN IF NOT EXISTS "companyId" TEXT`);
+  await exec("RoutePassenger veliUsername", `ALTER TABLE "RoutePassenger" ADD COLUMN IF NOT EXISTS "veliUsername" TEXT`);
+  await exec("RoutePassenger veliPasswordHash", `ALTER TABLE "RoutePassenger" ADD COLUMN IF NOT EXISTS "veliPasswordHash" TEXT`);
+  await exec("RoutePassenger veliUsername unique", `CREATE UNIQUE INDEX IF NOT EXISTS "RoutePassenger_veliUsername_key" ON "RoutePassenger"("veliUsername")`);
+  await exec("Driver mobileTokenAt", `ALTER TABLE "Driver" ADD COLUMN IF NOT EXISTS "mobileTokenAt" TIMESTAMP(3)`);
 
   // ── Kullanıcı oluştur (tamamen raw SQL, Prisma model API kullanmadan) ──
+  // Şifre env var'dan alınır; tanımlı değilse kullanıcı oluşturulmaz.
+  const bootstrapPassword = process.env.BOOTSTRAP_PASSWORD;
+  if (!bootstrapPassword) {
+    log.push("→ BOOTSTRAP_PASSWORD env var tanımlı değil, kullanıcı oluşturulmadı");
+    const errors = log.filter(l => l.startsWith("✗"));
+    return NextResponse.json({ success: errors.length === 0, log, ...(errors.length > 0 ? { errors } : {}) });
+  }
   const usersToCreate = [
-    { username: "yigittur", password: "123", name: "Yiğit YILDIRIM", role: "admin", phone: null as string | null },
+    { username: process.env.BOOTSTRAP_USERNAME ?? "admin", password: bootstrapPassword, name: process.env.BOOTSTRAP_NAME ?? "Admin", role: "admin", phone: null as string | null },
   ];
 
   for (const u of usersToCreate) {
@@ -103,7 +118,7 @@ export async function GET() {
         `INSERT INTO "PanelUser" ("id","username","passwordHash","name","phone","role","active","createdAt","updatedAt") VALUES ($1,$2,$3,$4,$5,$6,true,NOW(),NOW())`,
         id, u.username, hash, u.name, u.phone, u.role
       );
-      log.push(`✓ Kullanıcı oluşturuldu: ${u.username} / ${u.password} (${u.name})`);
+      log.push(`✓ Kullanıcı oluşturuldu: ${u.username} (${u.name})`);
     } catch (e) {
       log.push(`✗ Kullanıcı hatası ${u.username}: ${String(e).slice(0, 120)}`);
     }

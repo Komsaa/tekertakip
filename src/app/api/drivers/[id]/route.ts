@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { logAction } from "@/lib/audit";
 import { getCompanyId, tenantWhere } from "@/lib/tenant";
+import bcrypt from "bcryptjs";
 
 function parseDate(s: string | undefined | null) {
   if (!s) return null;
@@ -38,7 +39,9 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
         licenseExpiry: parseDate(body.licenseExpiry),
         address: body.address || null,
         notes: body.notes || null,
-        ...(body.mobilePin !== undefined && { mobilePin: body.mobilePin || null }),
+        ...(body.mobilePin !== undefined && {
+          mobilePin: body.mobilePin ? await bcrypt.hash(body.mobilePin, 10) : null,
+        }),
         ...(body.mobileUsername !== undefined && { mobileUsername: body.mobileUsername || null }),
         ...(body.companyId !== undefined && { companyId: body.companyId || null }),
       },

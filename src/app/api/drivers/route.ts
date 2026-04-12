@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { logAction } from "@/lib/audit";
 import { getCompanyId, tenantWhere } from "@/lib/tenant";
+import bcrypt from "bcryptjs";
 
 function parseDate(s: string | undefined | null) {
   if (!s) return undefined;
@@ -38,7 +39,7 @@ export async function POST(req: NextRequest) {
         status: body.status || "active",
         companyId: companyId ?? body.companyId ?? null,
         mobileUsername: body.mobileUsername || null,
-        mobilePin: body.mobilePin || null,
+        mobilePin: body.mobilePin ? await bcrypt.hash(body.mobilePin, 10) : null,
       },
     });
     await logAction({ userEmail: session.user?.email ?? "admin", action: "CREATE", entity: "Driver", entityId: driver.id, entityName: driver.name, changes: { name: driver.name, phone: driver.phone, mobileUsername: driver.mobileUsername } });

@@ -2,10 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { requireAdmin } from "@/lib/tenant";
+import bcrypt from "bcryptjs";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const _adminErr = requireAdmin(session); if (_adminErr) return _adminErr;
 
   const drivers = await prisma.driver.findMany({
     where: { mobileUsername: { not: null } },
@@ -27,6 +30,7 @@ export async function GET() {
 export async function PUT(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const _adminErr = requireAdmin(session); if (_adminErr) return _adminErr;
 
   const { id, mobileUsername, mobilePin } = await req.json();
   if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
@@ -35,7 +39,9 @@ export async function PUT(req: NextRequest) {
     where: { id },
     data: {
       ...(mobileUsername !== undefined ? { mobileUsername: mobileUsername || null } : {}),
-      ...(mobilePin !== undefined ? { mobilePin: mobilePin || null } : {}),
+      ...(mobilePin !== undefined ? {
+        mobilePin: mobilePin ? await bcrypt.hash(mobilePin, 10) : null,
+      } : {}),
     },
     select: { id: true, name: true, mobileUsername: true, mobilePin: true },
   });

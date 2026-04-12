@@ -1,27 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { randomBytes } from "crypto";
+import bcrypt from "bcryptjs";
 
 export async function POST(req: NextRequest) {
-  const { companyCode, parentPhone } = await req.json();
-  if (!companyCode || !parentPhone) {
-    return NextResponse.json({ error: "companyCode ve parentPhone zorunlu" }, { status: 400 });
+  const { username, password } = await req.json();
+  if (!username || !password) {
+    return NextResponse.json({ error: "Kullanıcı adı ve şifre zorunlu" }, { status: 400 });
   }
 
-  const company = await prisma.company.findFirst({
-    where: { code: companyCode.trim().toUpperCase(), active: true },
-  });
-  if (!company) return NextResponse.json({ error: "İşletme kodu geçersiz" }, { status: 401 });
-
-  // Bu şirkete ait güzergahlar → duraklar → yolcular içinde parentPhone ara
-  const passenger = await prisma.routePassenger.findFirst({
-    where: {
-      parentPhone: parentPhone.trim(),
-      active: true,
-      stop: {
-        route: { companyId: company.id, active: true },
-      },
-    },
+  const passenger = await prisma.routePassenger.findUnique({
+    where: { veliUsername: username.trim().toLowerCase() },
     include: {
       stop: {
         include: {
@@ -35,11 +23,33 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  if (!passenger) return NextResponse.json({ error: "Bu telefon ile kayıtlı öğrenci bulunamadı" }, { status: 401 });
+  if (!passenger || !passenger.veliPasswordHash) {
+    return NextResponse.json({ error: "Kullanıcı adı veya şifre hatalı" }, { status: 401 });
+  }
 
-  // Token oluştur veya mevcut olanı döndür
+  if (!passenger.active) {
+    return NextResponse.json({ error: "Bu hesap pasif durumda" }, { status: 403 });
+  }
+
+  const valid = await bcrypt.compare(password, passenger.veliPasswordHash);
+  if (!valid) {
+    return NextResponse.json({ error: "Kullanıcı adı veya şifre hatalı" }, { status: 401 });
+  }
+
+  // Şirket aktiflik kontrolü
+  const route = passenger.stop.route;
+  const company = await prisma.company.findUnique({
+    where: { id: route.companyId ?? "" },
+    select: { active: true, name: true },
+  });
+  if (company && !company.active) {
+    return NextResponse.json({ error: "Bu işletmenin erişimi askıya alınmış" }, { status: 403 });
+  }
+
+  // veliToken yoksa oluştur (kalıcı session token)
   let token = passenger.veliToken;
   if (!token) {
+    const { randomBytes } = await import("crypto");
     token = randomBytes(24).toString("hex");
     await prisma.routePassenger.update({ where: { id: passenger.id }, data: { veliToken: token } });
   }
@@ -47,8 +57,17 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({
     token,
     passenger: { id: passenger.id, name: passenger.name },
-    stop: { id: passenger.stop.id, name: passenger.stop.name, order: passenger.stop.order, estimatedTime: passenger.stop.estimatedTime },
-    route: { id: passenger.stop.route.id, name: passenger.stop.route.name, totalStops: passenger.stop.route.stops.length },
-    company: { name: company.name },
+    stop: {
+      id: passenger.stop.id,
+      name: passenger.stop.name,
+      order: passenger.stop.order,
+      estimatedTime: passenger.stop.estimatedTime,
+    },
+    route: {
+      id: route.id,
+      name: route.name,
+      totalStops: route.stops.length,
+    },
+    company: { name: company?.name ?? "" },
   });
 }

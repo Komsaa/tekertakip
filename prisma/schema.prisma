@@ -32,6 +32,7 @@ model Company {
   clients      Client[]
   invoices     Invoice[]
   paymentCalendars PaymentCalendar[]
+  checks       Check[]
 }
 
 // ============ AUTH (NextAuth) ============
@@ -119,6 +120,7 @@ model Driver {
   mobileUsername String? // özel kullanıcı adı (boşsa ad soyad kullanılır)
   mobilePin      String? // şöförün mobil şifresi (admin tarafından atanır)
   mobileToken    String? @unique // login sonrası oluşturulan token
+  mobileTokenAt  DateTime?       // token oluşturulma zamanı (expiry için)
 
   // Canlı konum (GPS takip)
   latitude       Float?
@@ -384,6 +386,8 @@ model Check {
   status String @default("bekliyor")
 
   notes     String?
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -427,6 +431,7 @@ model Document {
   notes      String?   @db.Text
   entityType String                        // "driver" | "vehicle"
   entityId   String
+  companyId  String?
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
 }
@@ -464,19 +469,21 @@ model RouteStop {
 }
 
 model RoutePassenger {
-  id              String     @id @default(cuid())
-  stopId          String
-  stop            RouteStop  @relation(fields: [stopId], references: [id], onDelete: Cascade)
-  name            String
-  phone           String?
-  notes           String?
-  active          Boolean    @default(true)
-  order           Int        @default(0)
-  parentPhone     String?    // veli girişi için
-  parentPushToken String?    // Expo push token
-  veliToken       String?    @unique
-  attendances     TripAttendance[]
-  createdAt       DateTime   @default(now())
+  id               String     @id @default(cuid())
+  stopId           String
+  stop             RouteStop  @relation(fields: [stopId], references: [id], onDelete: Cascade)
+  name             String
+  phone            String?
+  notes            String?
+  active           Boolean    @default(true)
+  order            Int        @default(0)
+  parentPhone      String?
+  parentPushToken  String?    // Expo push token
+  veliToken        String?    @unique
+  veliUsername     String?    @unique  // veli panel girişi için kullanıcı adı
+  veliPasswordHash String?             // bcrypt hash
+  attendances      TripAttendance[]
+  createdAt        DateTime   @default(now())
 }
 
 model TripAttendance {

@@ -1,14 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { headers } from "next/headers";
-
-async function getDriverFromToken() {
-  const h = await headers();
-  const auth = h.get("authorization") ?? "";
-  const token = auth.replace("Bearer ", "").trim();
-  if (!token) return null;
-  return prisma.driver.findFirst({ where: { mobileToken: token } });
-}
+import { getDriverFromHeaders } from "@/lib/mobile-auth";
 
 async function sendPushNotifications(tokens: string[], title: string, body: string) {
   const messages = tokens.map((to) => ({ to, title, body, sound: "default" }));
@@ -24,7 +16,7 @@ async function sendPushNotifications(tokens: string[], title: string, body: stri
 // Bir duraktaki tüm yolcuların yoklamasını kaydet
 // nextStopId varsa o durağın velilerine bildirim gönderir
 export async function POST(req: NextRequest) {
-  const driver = await getDriverFromToken();
+  const driver = await getDriverFromHeaders();
   if (!driver) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { routeId, date, attendances, nextStopId, isFirst } = await req.json();

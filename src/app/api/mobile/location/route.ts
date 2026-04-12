@@ -2,17 +2,11 @@ export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-
-async function getDriverFromToken(req: NextRequest) {
-  const auth = req.headers.get("authorization");
-  const token = auth?.startsWith("Bearer ") ? auth.slice(7) : null;
-  if (!token) return null;
-  return prisma.driver.findUnique({ where: { mobileToken: token } });
-}
+import { getDriverFromRequest } from "@/lib/mobile-auth";
 
 // Konum güncelle
 export async function POST(req: NextRequest) {
-  const driver = await getDriverFromToken(req);
+  const driver = await getDriverFromRequest(req);
   if (!driver) return NextResponse.json({ error: "Yetkisiz" }, { status: 401 });
 
   const { latitude, longitude } = await req.json();
@@ -44,7 +38,7 @@ export async function POST(req: NextRequest) {
 
 // Takibi durdur
 export async function DELETE(req: NextRequest) {
-  const driver = await getDriverFromToken(req);
+  const driver = await getDriverFromRequest(req);
   if (!driver) return NextResponse.json({ error: "Yetkisiz" }, { status: 401 });
 
   await prisma.driver.update({

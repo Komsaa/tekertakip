@@ -3,6 +3,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { randomUUID } from "crypto";
+import bcrypt from "bcryptjs";
 
 export async function POST(req: NextRequest) {
   try {
@@ -12,12 +13,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Kullanıcı adı ve şifre zorunlu" }, { status: 400 });
     }
 
-    // Kullanıcı adına göre şöförü bul (tüm şirketlerde, büyük/küçük harf fark etmez)
+    // Kullanıcı adına göre şöförü bul (PIN karşılaştırması aşağıda yapılır)
     const driver = await prisma.driver.findFirst({
       where: {
         status: "active",
         mobileUsername: { equals: username.trim(), mode: "insensitive" },
-        mobilePin: password,
       },
       select: {
         id: true,
@@ -29,7 +29,25 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    if (!driver) {
+    if (!driver || !driver.mobilePin) {
+      return NextResponse.json({ error: "Kullanıcı adı veya şifre hatalı" }, { status: 401 });
+    }
+
+    // PIN doğrulama: bcrypt hash mi yoksa düz metin mi?
+    let pinValid = false;
+    if (driver.mobilePin.startsWith("$2")) {
+      // Yeni format: bcrypt hash
+      pinValid = await bcrypt.compare(password, driver.mobilePin);
+    } else {
+      // Eski format: düz metin — geçerli ise hash'e migrate et
+      pinValid = driver.mobilePin === password;
+      if (pinValid) {
+        const hash = await bcrypt.hash(password, 10);
+        await prisma.driver.update({ where: { id: driver.id }, data: { mobilePin: hash } });
+      }
+    }
+
+    if (!pinValid) {
       return NextResponse.json({ error: "Kullanıcı adı veya şifre hatalı" }, { status: 401 });
     }
 
@@ -40,7 +58,7 @@ export async function POST(req: NextRequest) {
     const token = randomUUID();
     await prisma.driver.update({
       where: { id: driver.id },
-      data: { mobileToken: token },
+      data: { mobileToken: token, mobileTokenAt: new Date() },
     });
 
     return NextResponse.json({
