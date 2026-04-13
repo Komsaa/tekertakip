@@ -548,6 +548,7 @@ export default function HomePage() {
             <div className="flex items-center gap-6 text-sm text-slate-500">
               <a href="#ozellikler" className="hover:text-white transition-colors">Özellikler</a>
               <a href="#sss" className="hover:text-white transition-colors">SSS</a>
+              <Link href="/gizlilik" className="hover:text-white transition-colors">Gizlilik Politikası</Link>
               <Link href="/login" className="hover:text-white transition-colors">Panel Girişi</Link>
             </div>
             <div className="text-slate-600 text-sm">
