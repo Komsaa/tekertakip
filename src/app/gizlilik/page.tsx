@@ -2,12 +2,12 @@ import Link from "next/link";
 import { LogoIcon } from "@/components/Logo";
 
 export const metadata = {
-  title: "Gizlilik Politikası – TékerTakip",
-  description: "TékerTakip uygulaması gizlilik politikası ve kişisel veri işleme bilgilendirmesi.",
+  title: "Gizlilik Politikası – Teker Takip",
+  description: "Teker Takip uygulaması gizlilik politikası ve kişisel veri işleme bilgilendirmesi.",
 };
 
 const LAST_UPDATED = "13 Nisan 2026";
-const COMPANY = "TékerTakip";
+const COMPANY = "Teker Takip";
 const EMAIL = "destek@tekertakip.com";
 const SITE = "tekertakip.com";
 
@@ -19,7 +19,7 @@ export default function GizlilikPage() {
       <nav className="bg-[#1B2437] border-b border-white/5">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5">
-            <LogoIcon size={30} />
+            <LogoIcon size={30} className="text-white" />
             <span className="text-white font-black text-lg">
               teker<span className="text-[#DC2626]">takip</span>
             </span>
@@ -44,7 +44,7 @@ export default function GizlilikPage() {
             <h2 className="text-xl font-bold text-slate-800 mb-3">1. Genel Bilgi</h2>
             <p>
               Bu gizlilik politikası, <strong>{COMPANY}</strong> tarafından sunulan web paneli
-              ({SITE}) ve mobil uygulamalar (TékerTakip Şöför, TékerTakip Veli) aracılığıyla
+              ({SITE}) ve mobil uygulamalar (Teker Takip Şöför, Teker Takip Veli) aracılığıyla
               toplanan kişisel verilerin nasıl işlendiğini açıklamaktadır.
             </p>
             <p className="mt-3">
@@ -102,7 +102,7 @@ export default function GizlilikPage() {
           <section>
             <h2 className="text-xl font-bold text-slate-800 mb-3">4. Konum Verisi</h2>
             <p className="text-sm">
-              TékerTakip Şöför uygulaması, yalnızca aktif sefer süresince arka planda konum verisi toplar.
+              Teker Takip Şöför uygulaması, yalnızca aktif sefer süresince arka planda konum verisi toplar.
               Konum verisi;
             </p>
             <ul className="list-disc pl-5 space-y-1 text-sm mt-2">
@@ -200,7 +200,7 @@ export default function GizlilikPage() {
       {/* Footer */}
       <footer className="bg-slate-50 border-t border-slate-200 py-8 mt-8">
         <div className="max-w-4xl mx-auto px-4 text-center text-sm text-slate-400 space-y-2">
-          <p>© {new Date().getFullYear()} TékerTakip · Tüm hakları saklıdır</p>
+          <p>© {new Date().getFullYear()} Teker Takip · Tüm hakları saklıdır</p>
           <p>
             <Link href="/" className="hover:text-slate-600 transition-colors">Ana Sayfa</Link>
             {" · "}

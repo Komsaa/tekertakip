@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 
 export const metadata = {
-  title: "TékerTakip – Okul ve Personel Servis Firmalarına Özel Filo Yönetimi",
+  title: "Teker Takip – Okul ve Personel Servis Firmalarına Özel Filo Yönetimi",
   description: "Şöför mobil uygulaması, canlı GPS takibi, yakıt ve belge yönetimi, veli bildirimleri. Pahalı GPS cihazlarına gerek yok.",
 };
 
@@ -20,7 +20,7 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-2.5">
-              <LogoIcon size={32} />
+              <LogoIcon size={32} className="text-white" />
               <span className="text-white font-black text-xl tracking-tight">
                 teker<span className="text-[#DC2626]">takip</span>
               </span>
@@ -56,7 +56,7 @@ export default function HomePage() {
               <div className="flex flex-wrap gap-2 mb-8">
                 <div className="inline-flex items-center gap-2 bg-[#DC2626]/15 border border-[#DC2626]/30 text-red-400 rounded-full px-4 py-1.5 text-sm font-medium">
                   <Zap className="w-3.5 h-3.5" />
-                  GPS aboneliklerinin 1/5 fiyatına
+                  Tüm özellikler tek platformda
                 </div>
                 <div className="inline-flex items-center gap-2 bg-green-500/15 border border-green-500/30 text-green-400 rounded-full px-4 py-1.5 text-sm font-medium">
                   <Check className="w-3.5 h-3.5" />
@@ -73,7 +73,7 @@ export default function HomePage() {
                 Bunları WhatsApp grubundan takip etmenin zamanı geçti.
               </p>
               <p className="text-slate-400 text-base leading-relaxed mb-10 max-w-lg">
-                TékerTakip ile tüm filo operasyonunuz tek panelde — şöför uygulaması, canlı harita,
+                Teker Takip ile tüm filo operasyonunuz tek panelde — şöför uygulaması, canlı harita,
                 belge takibi, veli bildirimleri ve finans yönetimi.
               </p>
               {/* Primary CTA */}
@@ -336,20 +336,20 @@ export default function HomePage() {
       <section id="karsilastirma" className="py-24 bg-slate-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-14">
-            <h2 className="text-3xl md:text-4xl font-black text-[#1B2437] mb-4">Neden TékerTakip?</h2>
+            <h2 className="text-3xl md:text-4xl font-black text-[#1B2437] mb-4">Neden Teker Takip?</h2>
             <p className="text-slate-500">Rakiplerinizle ve mevcut yöntemlerinizle karşılaştırın.</p>
           </div>
           <div className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm">
             <div className="grid grid-cols-4 bg-[#1B2437] text-white text-sm font-semibold">
               <div className="p-4 text-slate-400">Özellik</div>
               <div className="p-4 text-center">
-                <div className="text-[#DC2626] font-black">TékerTakip</div>
+                <div className="text-[#DC2626] font-black">Teker Takip</div>
               </div>
               <div className="p-4 text-center text-slate-400 font-normal">Kurumsal GPS Sistemleri</div>
               <div className="p-4 text-center text-slate-400 font-normal">WhatsApp + Excel</div>
             </div>
             {[
-              { feature: "Aylık maliyet (10 araç)", us: "₺999", them: "₺1.500–4.000", excel: "₺0 (ama saatleriniz)" },
+              { feature: "Aylık abonelik", us: "₺10.000 + KDV", them: "₺1.500–4.000 + donanım", excel: "₺0 (ama saatleriniz)" },
               { feature: "GPS cihazı gerekli mi?", us: false, them: true, excel: false },
               { feature: "Canlı konum takibi", us: true, them: true, excel: false },
               { feature: "Yakıt takibi + OCR", us: true, them: false, excel: false },
@@ -466,7 +466,7 @@ export default function HomePage() {
               },
               {
                 q: "GPS takibi şöförün pilini ne kadar tüketir?",
-                a: "Uygulama arka planda çalışır ve 30 saniyede bir konum gönderir. Optimize edilmiş yapısıyla günlük ek pil tüketimi %5–10 arasındadır.",
+                a: "Uygulama arka planda çalışır ve 5 saniyede bir konum gönderir. Optimize edilmiş yapısıyla günlük ek pil tüketimi %10–15 arasındadır.",
               },
               {
                 q: "Mevcut verilerimi aktarabilir miyim?",
@@ -539,7 +539,7 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-3">
-              <LogoIcon size={36} />
+              <LogoIcon size={36} className="text-white" />
               <div>
                 <div className="font-black text-lg">teker<span className="text-[#DC2626]">takip</span></div>
                 <div className="text-slate-600 text-xs">tekertakip.com</div>
@@ -552,7 +552,7 @@ export default function HomePage() {
               <Link href="/login" className="hover:text-white transition-colors">Panel Girişi</Link>
             </div>
             <div className="text-slate-600 text-sm">
-              © {new Date().getFullYear()} TékerTakip
+              © {new Date().getFullYear()} Teker Takip
             </div>
           </div>
         </div>

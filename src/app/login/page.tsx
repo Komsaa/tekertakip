@@ -56,7 +56,7 @@ export default function LoginPage() {
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center mb-6">
-            <LogoIcon size={80} />
+            <LogoIcon size={80} className="text-white" />
           </div>
           <h1 className="text-white font-black text-3xl tracking-wide">
             teker<span className="text-[#DC2626]">takip</span>

@@ -104,7 +104,7 @@ export default function KayitPage() {
         {/* Logo */}
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2.5">
-            <LogoIcon size={38} />
+            <LogoIcon size={38} className="text-white" />
             <span className="text-white font-black text-2xl">
               teker<span className="text-[#DC2626]">takip</span>
             </span>

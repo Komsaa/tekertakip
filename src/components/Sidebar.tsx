@@ -117,7 +117,7 @@ export default function Sidebar({ userName, role }: SidebarProps) {
       {/* Logo */}
       <div className="p-5 border-b border-white/10">
         <Link href="/panel" className="flex items-center gap-3" onClick={() => setMobileOpen(false)}>
-          <LogoIcon size={38} />
+          <LogoIcon size={38} className="text-white" />
           <div>
             <div className="text-white font-black text-base leading-tight">
               teker<span className="text-[#DC2626]">takip</span>

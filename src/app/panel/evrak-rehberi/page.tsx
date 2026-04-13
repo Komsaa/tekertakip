@@ -213,7 +213,7 @@ const PRIORITY: { emoji: string; title: string; items: string[]; color: string }
     title: "1. Öncelik — Yasal Zorunluluk (Hemen Tamamlanmalı)",
     color: "border-red-200 bg-red-50",
     items: [
-      "Araç ruhsatları → TékerTakip'e yükle",
+      "Araç ruhsatları → Teker Takip'e yükle",
       "Trafik sigortası → bitiş tarihi ile sisteme gir",
       "Fenni muayene → bitiş tarihi ile sisteme gir",
       "Taşıt kartları (okul servisi)",
@@ -238,7 +238,7 @@ const PRIORITY: { emoji: string; title: string; items: string[]; color: string }
     title: "3. Öncelik — Tamamlayıcı (İlk Ay)",
     color: "border-green-200 bg-green-50",
     items: [
-      "Tüm evrakların dijital kopyalarını TékerTakip'e yükle",
+      "Tüm evrakların dijital kopyalarını Teker Takip'e yükle",
       "Bitiş tarihi 60 günden az olan evraklara uyarı kur",
       "Şöför bilgilerini (adres, acil iletişim) panele ekle",
       "Araç bakım geçmişini yakıt kayıtlarıyla başlat",
@@ -272,7 +272,7 @@ export default function EvrakRehberiPage() {
           <p className="text-sm font-semibold text-amber-800">Yasal Hatırlatma</p>
           <p className="text-sm text-amber-700 mt-0.5">
             Süresi dolan evrak = trafik cezası + sigorta geçersizliği + yasal sorumluluk. Tüm belgeleri
-            TékerTakip'e girmek bitiş tarihlerini otomatik takip eder.
+            Teker Takip'e girmek bitiş tarihlerini otomatik takip eder.
           </p>
         </div>
       </div>
@@ -380,7 +380,7 @@ export default function EvrakRehberiPage() {
       <div className="bg-[#1B2437] rounded-2xl p-5 text-white">
         <h3 className="font-bold text-base mb-3 flex items-center gap-2">
           <CheckCircle2 className="w-4 h-4 text-green-400" />
-          TékerTakip'te Evrak Takibi Nasıl Yapılır?
+          Teker Takip'te Evrak Takibi Nasıl Yapılır?
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {[
