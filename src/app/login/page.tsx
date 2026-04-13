@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import { Eye, EyeOff, LogIn, AlertCircle } from "lucide-react";
+import { LogoIcon } from "@/components/Logo";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -56,14 +56,7 @@ export default function LoginPage() {
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center mb-6">
-            <Image
-              src="/logo.png"
-              alt="Mert Tur"
-              width={80}
-              height={80}
-              className="rounded-2xl shadow-2xl"
-              priority
-            />
+            <LogoIcon size={80} />
           </div>
           <h1 className="text-white font-black text-3xl tracking-wide">
             teker<span className="text-[#DC2626]">takip</span>

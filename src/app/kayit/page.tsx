@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CheckCircle, Eye, EyeOff, ArrowRight, Shield } from "lucide-react";
+import { LogoIcon } from "@/components/Logo";
 
 export default function KayitPage() {
   const router = useRouter();
@@ -103,9 +104,7 @@ export default function KayitPage() {
         {/* Logo */}
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2.5">
-            <div className="w-9 h-9 bg-[#DC2626] rounded-xl flex items-center justify-center">
-              <span className="text-white font-black text-sm">TT</span>
-            </div>
+            <LogoIcon size={38} />
             <span className="text-white font-black text-2xl">
               teker<span className="text-[#DC2626]">takip</span>
             </span>

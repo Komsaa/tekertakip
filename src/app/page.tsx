@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { LogoIcon } from "@/components/Logo";
 import {
   MapPin, Fuel, FileCheck, Smartphone, ChevronRight,
   CheckCircle, Building2, Zap, Shield, ArrowRight, Phone,
@@ -19,9 +20,7 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 bg-[#DC2626] rounded-lg flex items-center justify-center">
-                <span className="text-white font-black text-sm">TT</span>
-              </div>
+              <LogoIcon size={32} />
               <span className="text-white font-black text-xl tracking-tight">
                 teker<span className="text-[#DC2626]">takip</span>
               </span>
@@ -540,9 +539,7 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 bg-[#DC2626] rounded-xl flex items-center justify-center">
-                <span className="text-white font-black text-sm">TT</span>
-              </div>
+              <LogoIcon size={36} />
               <div>
                 <div className="font-black text-lg">teker<span className="text-[#DC2626]">takip</span></div>
                 <div className="text-slate-600 text-xs">tekertakip.com</div>

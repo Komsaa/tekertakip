@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
+import { LogoIcon } from "@/components/Logo";
 import {
   LayoutDashboard,
   Users,
@@ -116,9 +117,7 @@ export default function Sidebar({ userName, role }: SidebarProps) {
       {/* Logo */}
       <div className="p-5 border-b border-white/10">
         <Link href="/panel" className="flex items-center gap-3" onClick={() => setMobileOpen(false)}>
-          <div className="w-9 h-9 bg-[#DC2626] rounded-xl flex items-center justify-center flex-shrink-0">
-            <span className="text-white font-black text-sm">TT</span>
-          </div>
+          <LogoIcon size={38} />
           <div>
             <div className="text-white font-black text-base leading-tight">
               teker<span className="text-[#DC2626]">takip</span>
