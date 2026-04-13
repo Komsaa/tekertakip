@@ -12,10 +12,14 @@ async function getData() {
     const session = await getServerSession(authOptions);
     if (!session) redirect("/login");
 
-    const [drivers, vehicles, todayJobs, creditCards, upcomingChecks, pendingInvoices, notesSetting] =
+    const companyId = (session.user as any)?.companyId ?? null;
+    const cFilter = companyId ? { companyId } : {};
+
+    const [drivers, vehicles, todayJobs, creditCards, upcomingChecks, pendingInvoices, notesSetting,
+           activeDriverCount, activeVehicleCount, activeRouteCount, monthJobCount] =
       await Promise.all([
-        prisma.driver.findMany({ where: { status: "active" } }),
-        prisma.vehicle.findMany({ where: { status: "active" } }),
+        prisma.driver.findMany({ where: { status: "active", ...cFilter } }),
+        prisma.vehicle.findMany({ where: { status: "active", ...cFilter } }),
         prisma.job.findMany({
           where: { date: { gte: startOfDay(today), lte: endOfDay(today) } },
           include: { driver: { select: { id: true, name: true } }, vehicle: { select: { id: true, plate: true } } },
@@ -40,6 +44,10 @@ async function getData() {
           take: 20,
         }).catch(() => []),
         prisma.setting.findFirst({ where: { key: "dashboard_notes", companyId: null } }).catch(() => null),
+        prisma.driver.count({ where: { status: "active", ...cFilter } }),
+        prisma.vehicle.count({ where: { status: "active", ...cFilter } }),
+        prisma.route.count({ where: { active: true, ...cFilter } }),
+        prisma.job.count({ where: { date: { gte: new Date(today.getFullYear(), today.getMonth(), 1) }, ...cFilter } }),
       ]);
 
     // Belge uyarıları
@@ -104,6 +112,15 @@ async function getData() {
       alertDocs,
       initialNotes: notesSetting?.value ?? "",
       today: todayStr,
+      stats: {
+        activeDrivers: activeDriverCount,
+        activeVehicles: activeVehicleCount,
+        activeRoutes: activeRouteCount,
+        plannedToday: todayJobs.length,
+        completedToday: todayJobs.filter(j => j.status === "completed" || j.status === "active").length,
+        cancelledToday: todayJobs.filter(j => j.status === "cancelled").length,
+        monthJobs: monthJobCount,
+      },
     };
   } catch (e) {
     console.error("Dashboard hata:", e);
@@ -111,6 +128,7 @@ async function getData() {
       todayJobs: [], creditCardAlerts: [], upcomingChecks: [],
       pendingInvoices: [], alertDocs: [], initialNotes: "",
       today: new Date().toLocaleDateString("tr-TR"),
+      stats: { activeDrivers: 0, activeVehicles: 0, activeRoutes: 0, plannedToday: 0, completedToday: 0, cancelledToday: 0, monthJobs: 0 },
     };
   }
 }

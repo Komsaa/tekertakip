@@ -5,7 +5,7 @@ import Link from "next/link";
 import CommandCenterMap from "./CommandCenterMap";
 import {
   CheckCircle2, XCircle, Clock, CreditCard, FileText,
-  AlertTriangle, StickyNote, ChevronRight, Banknote, CalendarDays,
+  AlertTriangle, StickyNote, Banknote, Truck, Users, Route,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -38,6 +38,16 @@ type AlertDoc = {
   expiryDate: string | null; daysLeft: number | null; href: string; status: string;
 };
 
+type Stats = {
+  activeDrivers: number;
+  activeVehicles: number;
+  activeRoutes: number;
+  plannedToday: number;
+  completedToday: number;
+  cancelledToday: number;
+  monthJobs: number;
+};
+
 interface Props {
   todayJobs: Job[];
   creditCardAlerts: CreditCardAlert[];
@@ -46,6 +56,7 @@ interface Props {
   alertDocs: AlertDoc[];
   initialNotes: string;
   today: string;
+  stats: Stats;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -58,7 +69,7 @@ const TYPE_LABELS: Record<string, string> = {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 export default function CommandCenter({
-  todayJobs: initialJobs, creditCardAlerts, upcomingChecks, pendingInvoices, alertDocs, initialNotes, today,
+  todayJobs: initialJobs, creditCardAlerts, upcomingChecks, pendingInvoices, alertDocs, initialNotes, today, stats,
 }: Props) {
   const [jobs, setJobs] = useState(initialJobs);
   const [notes, setNotes] = useState(initialNotes);
@@ -260,6 +271,79 @@ export default function CommandCenter({
           </div>{/* end scrollable */}
         </div>{/* end right panel */}
       </div>{/* end flex main */}
+
+      {/* ═══ ALT STAT BAR ══════════════════════════════════════════════════ */}
+      <div className="flex-shrink-0 bg-[#1B2437] border-t border-white/10">
+        <div className="flex items-stretch divide-x divide-white/10">
+
+          {/* Bugün Planlanan */}
+          <div className="flex-1 flex flex-col items-center justify-center py-2.5 px-2 min-w-0">
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <Clock className="w-3.5 h-3.5 text-slate-400" />
+              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Bugün Planlandı</span>
+            </div>
+            <span className="text-xl font-black text-white">{stats.plannedToday}</span>
+          </div>
+
+          {/* Tamamlanan */}
+          <div className="flex-1 flex flex-col items-center justify-center py-2.5 px-2 min-w-0">
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <CheckCircle2 className="w-3.5 h-3.5 text-green-400" />
+              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Tamamlandı</span>
+            </div>
+            <span className="text-xl font-black text-green-400">{stats.completedToday}</span>
+          </div>
+
+          {/* İptal */}
+          <div className="flex-1 flex flex-col items-center justify-center py-2.5 px-2 min-w-0">
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <XCircle className="w-3.5 h-3.5 text-red-400" />
+              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">İptal</span>
+            </div>
+            <span className="text-xl font-black text-red-400">{stats.cancelledToday}</span>
+          </div>
+
+          {/* Divider */}
+          <div className="w-px bg-white/20 self-stretch" />
+
+          {/* Aktif Araç */}
+          <div className="flex-1 flex flex-col items-center justify-center py-2.5 px-2 min-w-0">
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <Truck className="w-3.5 h-3.5 text-blue-400" />
+              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Aktif Araç</span>
+            </div>
+            <span className="text-xl font-black text-white">{stats.activeVehicles}</span>
+          </div>
+
+          {/* Aktif Şöför */}
+          <div className="flex-1 flex flex-col items-center justify-center py-2.5 px-2 min-w-0">
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <Users className="w-3.5 h-3.5 text-purple-400" />
+              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Aktif Şöför</span>
+            </div>
+            <span className="text-xl font-black text-white">{stats.activeDrivers}</span>
+          </div>
+
+          {/* Aktif Güzergah */}
+          <div className="flex-1 flex flex-col items-center justify-center py-2.5 px-2 min-w-0">
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <Route className="w-3.5 h-3.5 text-amber-400" />
+              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Güzergah</span>
+            </div>
+            <span className="text-xl font-black text-white">{stats.activeRoutes}</span>
+          </div>
+
+          {/* Bu ay sefer */}
+          <div className="flex-1 flex flex-col items-center justify-center py-2.5 px-2 min-w-0">
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <FileText className="w-3.5 h-3.5 text-slate-400" />
+              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Bu Ay Sefer</span>
+            </div>
+            <span className="text-xl font-black text-white">{stats.monthJobs}</span>
+          </div>
+
+        </div>
+      </div>
 
       {/* ═══ ALT: Belge Uyarıları ════════════════════════════════════════════ */}
       {alertDocs.length > 0 && (

@@ -25,6 +25,8 @@ import {
   FileText,
   ShieldCheck,
   Sparkles,
+  BookOpen,
+  FlaskConical,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -79,6 +81,7 @@ const navGroups: NavGroup[] = [
   {
     label: "Diğer",
     items: [
+      { href: "/panel/evrak-rehberi", icon: BookOpen, label: "Evrak Rehberi" },
       { href: "/panel/gorevler", icon: CheckSquare, label: "Görevlerim" },
       { href: "/panel/sirketler", icon: Building2, label: "Şirketler" },
       { href: "/panel/ayarlar", icon: Settings, label: "Ayarlar" },
@@ -88,6 +91,7 @@ const navGroups: NavGroup[] = [
     label: "Sistem",
     items: [
       { href: "/panel/admin", icon: ShieldCheck, label: "Admin" },
+      { href: "/panel/admin/simulator", icon: FlaskConical, label: "Mobil Simülatör" },
     ],
   },
 ];
@@ -163,7 +167,7 @@ export default function Sidebar({ userName, role }: SidebarProps) {
       <div className="p-4 border-t border-white/10 space-y-2">
         <div className="px-4 py-2 rounded-xl bg-white/5">
           <div className="text-white text-sm font-medium truncate">{userName}</div>
-          <div className="text-slate-400 text-xs">Admin</div>
+          <div className="text-slate-400 text-xs capitalize">{role === "admin" ? "Süper Admin" : role === "firma" ? "Firma Yöneticisi" : role ?? "Kullanıcı"}</div>
         </div>
         <button
           onClick={() => signOut({ callbackUrl: "/login" })}
