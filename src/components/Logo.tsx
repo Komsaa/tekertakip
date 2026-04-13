@@ -11,27 +11,27 @@ export function LogoIcon({ size = 36, className = "" }: { size?: number; classNa
       xmlns="http://www.w3.org/2000/svg"
       className={className}
     >
-      {/* Sekizgen direksiyon halkası */}
+      {/* Sekizgen direksiyon halkası — logodaki gibi kalın ve yuvarlak köşeli */}
       <path
-        d="M34 6 L66 6 L94 34 L94 66 L66 94 L34 94 L6 66 L6 34 Z"
+        d="M29 6 L71 6 L94 29 L94 71 L71 94 L29 94 L6 71 L6 29 Z"
         fill="none"
         stroke="currentColor"
-        strokeWidth="13"
+        strokeWidth="14"
         strokeLinejoin="round"
       />
-      {/* Sol üst kol */}
-      <line x1="19" y1="19" x2="45" y2="45" stroke="currentColor" strokeWidth="12" strokeLinecap="round" />
-      {/* Sağ üst kol */}
-      <line x1="81" y1="19" x2="55" y2="45" stroke="currentColor" strokeWidth="12" strokeLinecap="round" />
+      {/* Sol yatay kol (göz etkisi) */}
+      <line x1="7" y1="50" x2="34" y2="46" stroke="currentColor" strokeWidth="13" strokeLinecap="round" />
+      {/* Sağ yatay kol (göz etkisi) */}
+      <line x1="93" y1="50" x2="66" y2="46" stroke="currentColor" strokeWidth="13" strokeLinecap="round" />
       {/* Alt kol */}
-      <line x1="50" y1="88" x2="50" y2="58" stroke="currentColor" strokeWidth="12" strokeLinecap="round" />
+      <line x1="50" y1="93" x2="50" y2="70" stroke="currentColor" strokeWidth="13" strokeLinecap="round" />
       {/* GPS pin gövdesi */}
       <path
-        d="M50 25 C36 25 25 36 25 50 C25 64 50 83 50 83 C50 83 75 64 75 50 C75 36 64 25 50 25 Z"
+        d="M50 22 C37 22 26 33 26 46 C26 60 50 80 50 80 C50 80 74 60 74 46 C74 33 63 22 50 22 Z"
         fill="#DC2626"
       />
-      {/* GPS pin deliği */}
-      <circle cx="50" cy="48" r="11" fill="white" />
+      {/* GPS pin beyaz delik */}
+      <circle cx="50" cy="44" r="11" fill="white" />
     </svg>
   );
 }
