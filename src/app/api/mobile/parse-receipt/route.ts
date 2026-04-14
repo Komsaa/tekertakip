@@ -3,6 +3,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { prisma } from "@/lib/prisma";
+import { s3, BUCKET } from "@/lib/storage";
+import { GetObjectCommand } from "@aws-sdk/client-s3";
 
 export const dynamic = "force-dynamic";
 
@@ -13,16 +15,6 @@ async function getDriverFromToken(req: NextRequest) {
     where: { mobileToken: auth.slice(7) },
     select: { id: true },
   });
-}
-
-async function urlToBase64(url: string): Promise<{ data: string; mimeType: string }> {
-  const res = await fetch(url);
-  const buffer = await res.arrayBuffer();
-  const bytes = Buffer.from(buffer);
-  return {
-    data: bytes.toString("base64"),
-    mimeType: res.headers.get("content-type") || "image/jpeg",
-  };
 }
 
 export async function POST(req: NextRequest) {
@@ -36,15 +28,22 @@ export async function POST(req: NextRequest) {
   if (!apiKey) return NextResponse.json({ parsed: null, error: "AI anahtarı eksik" });
 
   try {
+    // /api/files/fuel-receipts/xxx.jpg → MinIO key: fuel-receipts/xxx.jpg
+    const key = photoUrl.replace(/^\/api\/files\//, "");
+
+    const obj = await s3.send(new GetObjectCommand({ Bucket: BUCKET, Key: key }));
+    const chunks: Uint8Array[] = [];
+    for await (const chunk of obj.Body as AsyncIterable<Uint8Array>) chunks.push(chunk);
+    const base64 = Buffer.concat(chunks).toString("base64");
+
+    const ext = key.split(".").pop()?.toLowerCase() ?? "jpg";
+    const mimeType = ext === "png" ? "image/png" : "image/jpeg";
+
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-    const { data, mimeType } = await urlToBase64(photoUrl);
-
     const result = await model.generateContent([
-      {
-        inlineData: { data, mimeType },
-      },
+      { inlineData: { data: base64, mimeType } },
       `Bu bir akaryakıt (mazot/benzin) pompası fişi. Fişten bilgileri çıkar ve SADECE JSON döndür, başka hiçbir şey yazma:
 {
   "liters": number veya null,
@@ -53,7 +52,9 @@ export async function POST(req: NextRequest) {
   "station": string veya null,
   "date": "YYYY-MM-DD" veya null
 }
-Türk lirası (₺, TL, TRY) toplam tutarı totalAmount. Litre miktarı L/lt/LT olabilir. Emin olmadığına null yaz.`,
+Türk lirası (₺, TL, TRY) toplam tutarı totalAmount. Litre miktarı L/lt/LT olabilir.
+Nokta binlik ayraç, virgül ondalık ayraçtır (örn: 3.400,38 → 3400.38, 43,07 → 43.07).
+Emin olmadığına null yaz.`,
     ]);
 
     const text = result.response.text().trim();
