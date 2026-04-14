@@ -31,6 +31,8 @@ export async function POST(req: NextRequest) {
       endLocation: b.endLocation || null,
       route: b.route || null,
       revenue: b.revenue ? parseFloat(b.revenue) : null,
+      subcontractorId: b.subcontractorId || null,
+      subcontractorAmount: b.subcontractorAmount ? parseFloat(b.subcontractorAmount) : null,
       status: "planned",
       notes: b.notes || null,
       ...tenantData(companyId),

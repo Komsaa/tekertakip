@@ -33,6 +33,7 @@ model Company {
   invoices     Invoice[]
   paymentCalendars PaymentCalendar[]
   checks       Check[]
+  subcontractors Subcontractor[]
 }
 
 // ============ AUTH (NextAuth) ============
@@ -232,8 +233,35 @@ model Job {
   revenue Float? // bu işten kazanılan
   notes   String? @db.Text
 
+  // Taşeronluk
+  subcontractorId     String?
+  subcontractor       Subcontractor? @relation(fields: [subcontractorId], references: [id])
+  subcontractorAmount Float?         // taşerona ödenecek ücret
+  subcontractorPaid   Boolean        @default(false)
+  subcontractorPaidAt DateTime?
+
   companyId String?
   company   Company? @relation(fields: [companyId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ============ TAŞERON ============
+model Subcontractor {
+  id       String  @id @default(cuid())
+  name     String  // Ad soyad veya firma adı
+  phone    String?
+  taxNo    String? // Vergi no / TC
+  address  String?
+  bankIban String? // IBAN
+  notes    String? @db.Text
+  active   Boolean @default(true)
+
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id])
+
+  jobs Job[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

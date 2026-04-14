@@ -65,6 +65,7 @@ const navGroups: NavGroup[] = [
     label: "Operasyon",
     items: [
       { href: "/panel/isler", icon: ClipboardList, label: "İşler / Seferler" },
+      { href: "/panel/taseronlar", icon: Truck, label: "Taşeronlar" },
       { href: "/panel/yakit", icon: Fuel, label: "Yakıt Takibi" },
     ],
   },
