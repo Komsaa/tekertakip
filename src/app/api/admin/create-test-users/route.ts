@@ -13,17 +13,24 @@ export async function GET(req: Request) {
 
   const results: Record<string, any> = {};
 
-  // 1. Şöför
+  // 1. Şöför — araç da ata
   const driver = await prisma.driver.findFirst({ orderBy: { createdAt: "asc" } });
+  const vehicle = await prisma.vehicle.findFirst({ orderBy: { createdAt: "asc" } });
   if (driver) {
     await prisma.driver.update({
       where: { id: driver.id },
       data: {
         mobileUsername: "mertturburak",
         mobilePin: await bcrypt.hash("1234", 10),
+        ...(vehicle ? { vehicleId: vehicle.id } : {}),
       },
     });
-    results.sofor = { kullaniciAdi: "mertturburak", pin: "1234", isim: driver.name };
+    results.sofor = {
+      kullaniciAdi: "mertturburak",
+      pin: "1234",
+      isim: driver.name,
+      arac: vehicle?.plate ?? "Araç yok — panelden ekleyin",
+    };
   } else {
     results.sofor = { hata: "Sistemde hiç şöför yok" };
   }
