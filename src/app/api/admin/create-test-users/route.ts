@@ -59,7 +59,7 @@ export async function GET(req: Request) {
   // 3. Yönetici — mevcut panel kullanıcısı
   const user = await prisma.user.findFirst({ orderBy: { createdAt: "asc" } });
   results.yonetici = {
-    kullaniciAdi: user?.username ?? user?.email ?? "—",
+    kullaniciAdi: user?.email ?? "—",
     not: "Panel şifrenizle giriş yapın",
   };
 
