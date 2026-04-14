@@ -13,54 +13,72 @@ export async function GET(req: Request) {
 
   const results: Record<string, any> = {};
 
-  // 1. Şöför — ilk şöförü bul, mobile bilgilerini set et
+  // 1. Şöför
   const driver = await prisma.driver.findFirst({ orderBy: { createdAt: "asc" } });
   if (driver) {
-    const pin = "1234";
-    const username = "test.sofor";
     await prisma.driver.update({
       where: { id: driver.id },
       data: {
-        mobileUsername: username,
-        mobilePin: await bcrypt.hash(pin, 10),
+        mobileUsername: "mertturburak",
+        mobilePin: await bcrypt.hash("1234", 10),
       },
     });
-    results.sofor = { kullaniciAdi: username, pin, isim: driver.name };
+    results.sofor = { kullaniciAdi: "mertturburak", pin: "1234", isim: driver.name };
   } else {
-    results.sofor = { hata: "Sistemde hiç şöför yok, önce panel'den ekleyin" };
+    results.sofor = { hata: "Sistemde hiç şöför yok" };
   }
 
-  // 2. Veli — ilk RoutePassenger'ı bul, veli bilgilerini set et
-  const passenger = await prisma.routePassenger.findFirst({
-    orderBy: { createdAt: "asc" },
-    include: { stop: { include: { route: true } } },
-  });
-  if (passenger) {
-    const veliPass = "veli1234";
-    const veliUser = "test.veli";
+  // 2. Veli — mevcut yolcu varsa güncelle, yoksa route+stop+passenger oluştur
+  let passenger = await prisma.routePassenger.findFirst({ orderBy: { createdAt: "asc" } });
+
+  if (!passenger) {
+    // Test route oluştur
+    const route = await prisma.route.create({
+      data: {
+        name: "Test Güzergahı",
+        type: "okul",
+        stops: {
+          create: {
+            order: 1,
+            name: "Test Durağı",
+            estimatedTime: "07:30",
+            passengers: {
+              create: {
+                name: "Ahmet İzel",
+                order: 1,
+                active: true,
+                veliUsername: "ahmetizel",
+                veliPasswordHash: await bcrypt.hash("veli1234", 10),
+              },
+            },
+          },
+        },
+      },
+      include: { stops: { include: { passengers: true } } },
+    });
+    passenger = route.stops[0].passengers[0];
+  } else {
     await prisma.routePassenger.update({
       where: { id: passenger.id },
       data: {
-        veliUsername: veliUser,
-        veliPasswordHash: await bcrypt.hash(veliPass, 10),
+        veliUsername: "ahmetizel",
+        veliPasswordHash: await bcrypt.hash("veli1234", 10),
         active: true,
       },
     });
-    results.veli = {
-      kullaniciAdi: veliUser,
-      sifre: veliPass,
-      yolcu: passenger.name,
-      guzergah: passenger.stop.route.name,
-    };
-  } else {
-    results.veli = { hata: "Sistemde hiç yolcu yok, önce güzergah ve durak ekleyin" };
   }
 
-  // 3. Yönetici — mevcut panel kullanıcısı
-  const user = await prisma.user.findFirst({ orderBy: { createdAt: "asc" } });
+  results.veli = { kullaniciAdi: "ahmetizel", sifre: "veli1234", yolcu: passenger.name };
+
+  // 3. Yönetici
+  const user = await prisma.user.findFirst({
+    orderBy: { createdAt: "asc" },
+    select: { email: true, name: true },
+  });
   results.yonetici = {
-    kullaniciAdi: user?.email ?? "—",
-    not: "Panel şifrenizle giriş yapın",
+    email: user?.email ?? "—",
+    isim: user?.name ?? "—",
+    not: "tekertakip.com panel şifrenizle giriş yapın",
   };
 
   return NextResponse.json({ ok: true, kullanicilar: results });
