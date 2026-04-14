@@ -1,8 +1,7 @@
-import { writeFile, mkdir } from "fs/promises";
-import path from "path";
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { uploadToStorage } from "@/lib/storage";
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -21,12 +20,10 @@ export async function POST(req: NextRequest) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    const filename = `fuel_${Date.now()}.${ext}`;
-    const dir = path.join(process.cwd(), "uploads", "fuel");
-    await mkdir(dir, { recursive: true });
-    await writeFile(path.join(dir, filename), buffer);
+    const key = `fuel/${Date.now()}.${ext}`;
+    await uploadToStorage(key, buffer, "image/jpeg");
 
-    return NextResponse.json({ url: `/api/files/fuel/${filename}` });
+    return NextResponse.json({ url: `/api/files/${key}` });
   } catch (e) {
     console.error(e);
     return NextResponse.json({ error: "Sunucu hatası" }, { status: 500 });

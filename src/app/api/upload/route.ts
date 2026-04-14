@@ -1,9 +1,8 @@
-import { writeFile, mkdir } from "fs/promises";
-import path from "path";
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { uploadToStorage } from "@/lib/storage";
 
 const DRIVER_FILE_FIELDS: Record<string, string> = {
   src: "srcFile",
@@ -22,6 +21,13 @@ const VEHICLE_FILE_FIELDS: Record<string, string> = {
   kasko: "kaskoFile",
   ruhsat: "ruhsatFile",
   photo: "photo",
+};
+
+const CONTENT_TYPES: Record<string, string> = {
+  pdf: "application/pdf",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
 };
 
 export async function POST(request: Request) {
@@ -50,17 +56,13 @@ export async function POST(request: Request) {
 
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
+    const contentType = CONTENT_TYPES[ext] ?? "application/octet-stream";
 
-    const dir = path.join(process.cwd(), "uploads", entityType, entityId);
-    const filename = `${docType}.${ext}`;
-    const filepath = path.join(dir, filename);
+    const key = `${entityType}/${entityId}/${docType}.${ext}`;
+    await uploadToStorage(key, buffer, contentType);
 
-    await mkdir(dir, { recursive: true });
-    await writeFile(filepath, buffer);
+    const fileUrl = `/api/files/${key}`;
 
-    const fileUrl = `/api/files/${entityType}/${entityId}/${filename}`;
-
-    // DB'ye kaydet
     if (entityType === "driver") {
       const field = DRIVER_FILE_FIELDS[docType];
       if (field) {

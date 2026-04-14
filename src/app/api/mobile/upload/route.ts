@@ -1,8 +1,7 @@
 // Mobil uygulama: fiş fotoğrafı yükleme
-import { writeFile, mkdir } from "fs/promises";
-import path from "path";
 import { NextRequest, NextResponse } from "next/server";
 import { getDriverFromRequest } from "@/lib/mobile-auth";
+import { uploadToStorage } from "@/lib/storage";
 
 export async function POST(req: NextRequest) {
   try {
@@ -21,14 +20,10 @@ export async function POST(req: NextRequest) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    const dir = path.join(process.cwd(), "uploads", "fuel-receipts");
-    const filename = `${driver.id}_${Date.now()}.${ext}`;
-    const filepath = path.join(dir, filename);
+    const key = `fuel-receipts/${driver.id}_${Date.now()}.${ext}`;
+    await uploadToStorage(key, buffer, "image/jpeg");
 
-    await mkdir(dir, { recursive: true });
-    await writeFile(filepath, buffer);
-
-    const url = `/api/files/fuel-receipts/${filename}`;
+    const url = `/api/files/${key}`;
     return NextResponse.json({ url });
   } catch (e) {
     console.error(e);

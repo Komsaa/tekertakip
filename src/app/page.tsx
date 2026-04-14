@@ -179,7 +179,7 @@ export default function HomePage() {
           <div className="grid grid-cols-3 divide-x divide-slate-100">
             {[
               { value: "₺0", label: "GPS Cihaz Maliyeti", sub: "Şöförün telefonu yeterli" },
-              { value: "30 sn", label: "Konum Güncellemesi", sub: "Araçlar anlık haritada" },
+              { value: "5 sn", label: "Konum Güncellemesi", sub: "Araçlar anlık haritada" },
               { value: "1 gün", label: "Kurulum Süresi", sub: "Aynı gün kullanıma hazır" },
             ].map((s) => (
               <div key={s.label} className="py-8 px-6 text-center">
@@ -258,7 +258,7 @@ export default function HomePage() {
                 Siz haritada tüm araçları anlık görürsünüz. Araç başına ayrıca GPS cihazı almanıza gerek yok.
               </p>
               <div className="flex flex-col gap-2">
-                {["30 saniyede bir otomatik güncelleme", "Güzergah geçmişi ve analizi", "Şöför yokken takip durur — batarya tasarrufu"].map((f) => (
+                {["5 saniyede bir otomatik güncelleme", "Güzergah geçmişi ve analizi", "Şöför yokken takip durur — batarya tasarrufu"].map((f) => (
                   <div key={f} className="flex items-center gap-2 text-slate-300 text-sm">
                     <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0" />{f}
                   </div>
@@ -273,6 +273,104 @@ export default function HomePage() {
                   <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse flex-shrink-0" />
                   <span className="text-white text-xs font-medium">2 araç aktif takipte</span>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Büyük özellik — Veli Bildirimi */}
+          <div className="grid md:grid-cols-2 gap-10 items-center mb-16 bg-gradient-to-br from-blue-950 to-[#1B2437] rounded-3xl p-8 md:p-12">
+            <div className="order-2 md:order-1">
+              {/* Mock telefon bildirimi */}
+              <div className="bg-[#0f172a] rounded-2xl p-4 border border-white/10 max-w-xs mx-auto">
+                {/* Status bar */}
+                <div className="flex items-center justify-between mb-3 px-1">
+                  <span className="text-slate-500 text-[10px]">09:41</span>
+                  <div className="flex gap-1">
+                    <div className="w-3 h-1.5 bg-green-400 rounded-sm" />
+                    <div className="w-1 h-1.5 bg-slate-600 rounded-sm" />
+                  </div>
+                </div>
+                {/* Bildirim 1 — yaklaşıyor */}
+                <div className="bg-white rounded-xl p-3 mb-2 shadow-xl">
+                  <div className="flex items-start gap-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center flex-shrink-0">
+                      <span className="text-white text-xs">🚌</span>
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[#1B2437] text-xs font-bold">Teker Takip</span>
+                        <span className="text-slate-400 text-[10px]">az önce</span>
+                      </div>
+                      <p className="text-slate-700 text-xs mt-0.5 leading-relaxed">
+                        🚌 <span className="font-semibold">Durağa 3 dakika kaldı!</span><br />
+                        Yusuf için hazır olun.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                {/* Bildirim 2 — bindi */}
+                <div className="bg-white rounded-xl p-3 mb-2 shadow-xl">
+                  <div className="flex items-start gap-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-green-600 flex items-center justify-center flex-shrink-0">
+                      <span className="text-white text-xs">✅</span>
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[#1B2437] text-xs font-bold">Teker Takip</span>
+                        <span className="text-slate-400 text-[10px]">07:54</span>
+                      </div>
+                      <p className="text-slate-700 text-xs mt-0.5 leading-relaxed">
+                        <span className="font-semibold text-green-700">Yusuf servise bindi.</span><br />
+                        Güvenle yolculuk ediyor.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                {/* Bildirim 3 — binmedi uyarısı */}
+                <div className="bg-red-50 border border-red-100 rounded-xl p-3 shadow-xl">
+                  <div className="flex items-start gap-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-red-600 flex items-center justify-center flex-shrink-0">
+                      <span className="text-white text-xs">🚨</span>
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[#1B2437] text-xs font-bold">Teker Takip</span>
+                        <span className="text-slate-400 text-[10px]">dün</span>
+                      </div>
+                      <p className="text-slate-700 text-xs mt-0.5 leading-relaxed">
+                        <span className="font-semibold text-red-700">Uyarı: Durak geçildi!</span><br />
+                        Zeynep servise binmedi.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="order-1 md:order-2">
+              <div className="inline-flex items-center gap-2 bg-blue-500/20 text-blue-300 text-xs font-bold px-3 py-1.5 rounded-full mb-6 uppercase tracking-wide">
+                Okul Servisi için
+              </div>
+              <h3 className="text-2xl md:text-3xl font-black text-white mb-4">
+                Veliler telefona<br />bakmak zorunda kalmaz.<br />
+                <span className="text-blue-300">Bildirim zaten gelir.</span>
+              </h3>
+              <p className="text-slate-400 leading-relaxed mb-6">
+                Araç 3 dakika uzaktayken velinin telefonuna otomatik bildirim gider.
+                Çocuk servise bindiğinde tekrar bildirim — binmezse anında uyarı.
+                WhatsApp'a gerek yok, arama yok, merak yok.
+              </p>
+              <div className="flex flex-col gap-3">
+                {[
+                  { icon: "🔔", text: "\"3 dakika kaldı\" anlık push bildirimi" },
+                  { icon: "✅", text: "Çocuk bindi — güvenle yolculuk ediyor" },
+                  { icon: "🚨", text: "Binmedi uyarısı — durak geçildiğinde anında" },
+                  { icon: "📍", text: "Veliler kendi durağını haritada canlı takip eder" },
+                ].map((f) => (
+                  <div key={f.text} className="flex items-center gap-3 text-slate-300 text-sm">
+                    <span className="text-base w-6 flex-shrink-0">{f.icon}</span>
+                    {f.text}
+                  </div>
+                ))}
               </div>
             </div>
           </div>
@@ -301,7 +399,7 @@ export default function HomePage() {
               {
                 icon: Users,
                 title: "Veli Uygulaması",
-                desc: "Okul servisinde veliler WhatsApp'tan aldıkları şifreyle giriş yapar. Durakta ±20 dk aralığında canlı araç konumunu görür. Çocuk binmezse anında bildirim.",
+                desc: "Veliler WhatsApp'tan aldıkları şifreyle giriş yapar. Araç yaklaşınca bildirim alır, çocuk binince onay gelir.",
                 badge: "Okul Servisi",
               },
               {
