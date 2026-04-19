@@ -313,50 +313,61 @@ function BulkUploadSection() {
     if (waiting.length === 0) return;
     setAnalyzing(true);
 
-    // Waiting → analyzing
+    // Hepsini "analyzing" yap
     setEntries((prev) =>
       prev.map((e) => (e.status === "waiting" ? { ...e, status: "analyzing" } : e))
     );
 
-    const formData = new FormData();
-    waiting.forEach((e) => formData.append("files", e.file));
+    // Dosyaları tek tek gönder (body limiti ve rate limit sorununu önler)
+    for (const entry of waiting) {
+      const formData = new FormData();
+      formData.append("files", entry.file);
 
-    try {
-      const res = await fetch("/api/upload/bulk-analyze", {
-        method: "POST",
-        body: formData,
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Hata");
+      try {
+        const res = await fetch("/api/upload/bulk-analyze", {
+          method: "POST",
+          body: formData,
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error ?? "Sunucu hatası");
 
-      const results: BulkAnalyzeResult[] = data.results;
-      setEntries((prev) =>
-        prev.map((entry) => {
-          if (entry.status !== "analyzing") return entry;
-          const result = results.find((r) => r.fileName === entry.file.name);
-          if (!result) return { ...entry, status: "error" as FileStatus };
-          return {
-            ...entry,
-            status: result.error ? "error" : ("done" as FileStatus),
-            result,
-          };
-        })
-      );
-    } catch {
-      setEntries((prev) =>
-        prev.map((e) =>
-          e.status === "analyzing"
-            ? {
-                ...e,
-                status: "error" as FileStatus,
-                result: { ...e.result!, error: "Sunucu hatası" } as BulkAnalyzeResult,
-              }
-            : e
-        )
-      );
-    } finally {
-      setAnalyzing(false);
+        const result: BulkAnalyzeResult | undefined = data.results?.[0];
+        setEntries((prev) =>
+          prev.map((e) =>
+            e.id === entry.id
+              ? {
+                  ...e,
+                  status: result?.error ? "error" : ("done" as FileStatus),
+                  result: result ?? undefined,
+                }
+              : e
+          )
+        );
+      } catch (err: any) {
+        setEntries((prev) =>
+          prev.map((e) =>
+            e.id === entry.id
+              ? {
+                  ...e,
+                  status: "error" as FileStatus,
+                  result: {
+                    fileName: entry.file.name,
+                    category: "bilinmiyor",
+                    docType: null,
+                    docTitle: null,
+                    holderIdentifier: null,
+                    expiryDate: null,
+                    entityMatch: null,
+                    error: err.message ?? "Sunucu hatası",
+                  } as BulkAnalyzeResult,
+                }
+              : e
+          )
+        );
+      }
     }
+
+    setAnalyzing(false);
   };
 
   const waitingCount = entries.filter((e) => e.status === "waiting").length;
