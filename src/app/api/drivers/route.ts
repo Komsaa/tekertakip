@@ -16,7 +16,7 @@ export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const companyId = getCompanyId(session);
-  const drivers = await prisma.driver.findMany({ where: tenantWhere(companyId), orderBy: { name: "asc" }, include: { vehicle: true } });
+  const drivers = await prisma.driver.findMany({ where: { ...tenantWhere(companyId), status: { not: "deleted" } }, orderBy: { name: "asc" }, include: { vehicle: true } });
   return NextResponse.json(drivers);
 }
 

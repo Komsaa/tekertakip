@@ -86,7 +86,7 @@ export async function POST(request: Request) {
     if (!file || !entityType || !entityId || !docType) {
       return NextResponse.json({ error: "Eksik alan" }, { status: 400 });
     }
-    if (!["driver", "vehicle"].includes(entityType)) {
+    if (!["driver", "vehicle", "company"].includes(entityType)) {
       return NextResponse.json({ error: "Geçersiz tip" }, { status: 400 });
     }
 
@@ -110,6 +110,11 @@ export async function POST(request: Request) {
     } else if (entityType === "vehicle") {
       const field = VEHICLE_FILE_FIELDS[docType];
       if (field) await prisma.vehicle.update({ where: { id: entityId }, data: { [field]: fileUrl } });
+    }
+
+    // custom docType: sadece dosyayı depola, DB field güncellemesi yok
+    if (docType === "custom") {
+      return NextResponse.json({ url: fileUrl, parsed: null });
     }
 
     // Fotoğraf ve foto gerektirmeyen tipler için parse yapma

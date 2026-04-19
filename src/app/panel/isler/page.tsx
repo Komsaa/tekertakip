@@ -4,10 +4,10 @@ import JobsClient from "./JobsClient";
 
 async function getData() {
   try {
-    const [jobs, drivers, vehicles, clients] = await Promise.all([
+    const [jobs, drivers, vehicles, clients, subcontractors] = await Promise.all([
       prisma.job.findMany({
         orderBy: [{ date: "desc" }, { startTime: "asc" }],
-        include: { driver: true, vehicle: true },
+        include: { driver: true, vehicle: true, subcontractor: true },
         take: 200,
       }).catch(async () => {
         // vehicle include başarısız olursa ilişkisiz çek
@@ -15,7 +15,7 @@ async function getData() {
           orderBy: [{ date: "desc" }, { startTime: "asc" }],
           take: 200,
         }).catch(() => []);
-        return jobs.map((j) => ({ ...j, driver: null, vehicle: null }));
+        return jobs.map((j) => ({ ...j, driver: null, vehicle: null, subcontractor: null }));
       }),
       prisma.driver.findMany({
         where: { status: "active" },
@@ -28,15 +28,16 @@ async function getData() {
         select: { id: true, plate: true, brand: true, model: true },
       }).catch(() => []),
       prisma.client.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }).catch(() => []),
+      prisma.subcontractor.findMany({ where: { active: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }).catch(() => []),
     ]);
-    return { jobs, drivers, vehicles, clients };
+    return { jobs, drivers, vehicles, clients, subcontractors };
   } catch (e) {
     console.error("İşler sayfa hatası:", e);
-    return { jobs: [], drivers: [], vehicles: [], clients: [] };
+    return { jobs: [], drivers: [], vehicles: [], clients: [], subcontractors: [] };
   }
 }
 
 export default async function JobsPage() {
   const data = await getData();
-  return <JobsClient {...data} />;
+  return <JobsClient jobs={data.jobs as any} drivers={data.drivers} vehicles={data.vehicles} clients={data.clients} subcontractors={data.subcontractors} />;
 }

@@ -7,6 +7,7 @@ import EditVehicleForm from "./EditVehicleForm";
 import DocRow from "@/components/DocRow";
 import ExtraDocuments from "@/components/ExtraDocuments";
 import VehiclePhoto from "./VehiclePhoto";
+import DeleteButton from "@/components/DeleteButton";
 
 interface Props { params: { id: string } }
 
@@ -59,7 +60,15 @@ export default async function VehicleDetailPage({ params }: Props) {
             <p className="text-slate-500 text-sm">{vehicle.brand} {vehicle.model} {vehicle.year && `· ${vehicle.year}`} {vehicle.capacity && `· ${vehicle.capacity} kişi`}</p>
           </div>
         </div>
-        <EditVehicleForm vehicle={vehicle} />
+        <div className="flex items-center gap-2">
+          <DeleteButton
+            apiPath={`/api/vehicles/${vehicle.id}`}
+            redirectTo="/panel/araclar"
+            label="Sil"
+            confirmText={vehicle.plate}
+          />
+          <EditVehicleForm vehicle={vehicle} />
+        </div>
       </div>
 
       {/* Sigorta & Muayene — öne çıkan kartlar */}

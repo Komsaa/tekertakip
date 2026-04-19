@@ -17,6 +17,10 @@ type Job = {
   vehicle: { id: string; plate: string } | null;
 };
 
+type Vehicle = {
+  id: string; plate: string; brand: string | null; model: string | null;
+};
+
 type CreditCardAlert = {
   id: string; name: string; bank: string | null; color: string;
   daysToPayment: number; paymentDue: string; periodTotal: number;
@@ -50,6 +54,7 @@ type Stats = {
 
 interface Props {
   todayJobs: Job[];
+  vehicles: Vehicle[];
   creditCardAlerts: CreditCardAlert[];
   upcomingChecks: Check[];
   pendingInvoices: PendingInvoice[];
@@ -69,7 +74,7 @@ const TYPE_LABELS: Record<string, string> = {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 export default function CommandCenter({
-  todayJobs: initialJobs, creditCardAlerts, upcomingChecks, pendingInvoices, alertDocs, initialNotes, today, stats,
+  todayJobs: initialJobs, vehicles, creditCardAlerts, upcomingChecks, pendingInvoices, alertDocs, initialNotes, today, stats,
 }: Props) {
   const [jobs, setJobs] = useState(initialJobs);
   const [notes, setNotes] = useState(initialNotes);
@@ -344,6 +349,51 @@ export default function CommandCenter({
 
         </div>
       </div>
+
+      {/* ═══ ARAÇ DURUM ŞERIDI ══════════════════════════════════════════════ */}
+      {vehicles.length > 0 && (
+        <div className="flex-shrink-0 bg-[#151e2e] border-t border-white/10">
+          <div className="flex gap-2 overflow-x-auto px-3 py-2 scrollbar-hide">
+            {vehicles.map(v => {
+              const activeJob = jobs.find(j => j.vehicle?.id === v.id && (j.status === "active" || j.status === "planned"));
+              const isActive = activeJob?.status === "active";
+              const isPlanned = activeJob?.status === "planned";
+              return (
+                <div
+                  key={v.id}
+                  className={`flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs transition-all ${
+                    isActive
+                      ? "bg-green-500/20 border-green-500/40"
+                      : isPlanned
+                      ? "bg-blue-500/15 border-blue-500/30"
+                      : "bg-white/5 border-white/10"
+                  }`}
+                >
+                  {/* Pulsing dot */}
+                  <div className="relative flex-shrink-0">
+                    <div className={`w-2 h-2 rounded-full ${isActive ? "bg-green-400" : isPlanned ? "bg-blue-400" : "bg-slate-600"}`} />
+                    {(isActive || isPlanned) && (
+                      <div className={`absolute inset-0 w-2 h-2 rounded-full animate-ping ${isActive ? "bg-green-400" : "bg-blue-400"} opacity-75`} />
+                    )}
+                  </div>
+                  <div>
+                    <div className={`font-bold leading-none ${isActive ? "text-green-300" : isPlanned ? "text-blue-300" : "text-slate-500"}`}>
+                      {v.plate}
+                    </div>
+                    {activeJob ? (
+                      <div className="text-slate-400 leading-none mt-0.5 truncate max-w-[120px]">
+                        {activeJob.startTime} · {activeJob.driver?.name ?? activeJob.title}
+                      </div>
+                    ) : (
+                      <div className="text-slate-600 leading-none mt-0.5">Boşta</div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* ═══ ALT: Belge Uyarıları ════════════════════════════════════════════ */}
       {alertDocs.length > 0 && (

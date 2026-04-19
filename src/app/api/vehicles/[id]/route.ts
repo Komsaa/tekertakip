@@ -52,8 +52,9 @@ export async function DELETE(_: NextRequest, { params }: { params: { id: string 
   const companyId = getCompanyId(session);
   try {
     const existing = await prisma.vehicle.findUnique({ where: { id: params.id, ...tenantWhere(companyId) } });
-    await prisma.vehicle.delete({ where: { id: params.id, ...tenantWhere(companyId) } });
-    await logAction({ userEmail: session.user?.email ?? "admin", action: "DELETE", entity: "Vehicle", entityId: params.id, entityName: existing?.plate, changes: existing ?? undefined });
+    if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    await prisma.vehicle.update({ where: { id: params.id }, data: { status: "deleted" } });
+    await logAction({ userEmail: session.user?.email ?? "admin", action: "DELETE", entity: "Vehicle", entityId: params.id, entityName: existing.plate, changes: { status: "deleted" } });
     return NextResponse.json({ success: true });
   } catch (e) {
     console.error(e);

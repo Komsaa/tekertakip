@@ -6,6 +6,7 @@ import { ArrowLeft, Phone, FileText, Car, Clock } from "lucide-react";
 import EditDriverForm from "./EditDriverForm";
 import DocRow from "@/components/DocRow";
 import ExtraDocuments from "@/components/ExtraDocuments";
+import DeleteButton from "@/components/DeleteButton";
 
 interface Props {
   params: { id: string };
@@ -87,7 +88,15 @@ export default async function DriverDetailPage({ params }: Props) {
             </div>
           </div>
         </div>
-        <EditDriverForm driver={driver} />
+        <div className="flex items-center gap-2">
+          <DeleteButton
+            apiPath={`/api/drivers/${driver.id}`}
+            redirectTo="/panel/soforler"
+            label="Sil"
+            confirmText={driver.name}
+          />
+          <EditDriverForm driver={driver} />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">

@@ -23,11 +23,15 @@ type Job = {
   notes: string | null;
   driver: { id: string; name: string } | null;
   vehicle: { id: string; plate: string; brand: string | null; model: string | null } | null;
+  subcontractorId: string | null;
+  subcontractorAmount: number | null;
+  subcontractor: { id: string; name: string } | null;
 };
 
 type Driver = { id: string; name: string };
 type Vehicle = { id: string; plate: string; brand: string | null; model: string | null };
 type Client = { id: string; name: string };
+type Subcontractor = { id: string; name: string };
 
 const JOB_TYPES = { okul: "Okul Servisi", personel: "Personel Servisi", ozel: "Özel Sefer", transfer: "Transfer", gezi: "Gezi / Tur" };
 const STATUS_LABELS = { planned: "Planlandı", active: "Aktif", completed: "Tamamlandı", cancelled: "İptal" };
@@ -50,6 +54,7 @@ interface Props {
   drivers: Driver[];
   vehicles: Vehicle[];
   clients: Client[];
+  subcontractors: Subcontractor[];
 }
 
 const emptyForm = {
@@ -70,9 +75,12 @@ const emptyForm = {
   notes: "",
   repeatDays: "0",
   weekdaysOnly: false,
+  isSubcontractor: false,
+  subcontractorId: "",
+  subcontractorAmount: "",
 };
 
-export default function JobsClient({ jobs: initialJobs, drivers, vehicles, clients }: Props) {
+export default function JobsClient({ jobs: initialJobs, drivers, vehicles, clients, subcontractors }: Props) {
   const router = useRouter();
   const [jobs, setJobs] = useState(initialJobs);
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -81,6 +89,7 @@ export default function JobsClient({ jobs: initialJobs, drivers, vehicles, clien
   const [form, setForm] = useState(emptyForm);
   const [loading, setLoading] = useState(false);
   const [view, setView] = useState<"timeline" | "list">("timeline");
+  const [ownerFilter, setOwnerFilter] = useState<"all" | "ozmal" | "taseron">("all");
 
   function set(f: string, v: string) { setForm((p) => ({ ...p, [f]: v })); }
 
@@ -88,8 +97,13 @@ export default function JobsClient({ jobs: initialJobs, drivers, vehicles, clien
     const ds = format(selectedDate, "yyyy-MM-dd");
     return jobs
       .filter((j) => format(new Date(j.date), "yyyy-MM-dd") === ds)
+      .filter((j) => {
+        if (ownerFilter === "ozmal") return !j.subcontractorId;
+        if (ownerFilter === "taseron") return !!j.subcontractorId;
+        return true;
+      })
       .sort((a, b) => a.startTime.localeCompare(b.startTime));
-  }, [jobs, selectedDate]);
+  }, [jobs, selectedDate, ownerFilter]);
 
   function openAdd() {
     setEditJob(null);
@@ -117,6 +131,9 @@ export default function JobsClient({ jobs: initialJobs, drivers, vehicles, clien
       notes: job.notes ?? "",
       repeatDays: "0",
       weekdaysOnly: false,
+      isSubcontractor: !!job.subcontractorId,
+      subcontractorId: job.subcontractorId ?? "",
+      subcontractorAmount: job.subcontractorAmount?.toString() ?? "",
     });
     setShowModal(true);
   }
@@ -190,6 +207,11 @@ export default function JobsClient({ jobs: initialJobs, drivers, vehicles, clien
         </div>
         <div className="flex items-center gap-2">
           <div className="flex border border-slate-200 rounded-xl overflow-hidden bg-white">
+            <button onClick={() => setOwnerFilter("all")} className={`px-3 py-2 text-sm font-medium transition-colors ${ownerFilter === "all" ? "bg-[#1B2437] text-white" : "text-slate-600 hover:bg-slate-50"}`}>Tümü</button>
+            <button onClick={() => setOwnerFilter("ozmal")} className={`px-3 py-2 text-sm font-medium transition-colors ${ownerFilter === "ozmal" ? "bg-green-600 text-white" : "text-slate-600 hover:bg-slate-50"}`}>Özmal</button>
+            <button onClick={() => setOwnerFilter("taseron")} className={`px-3 py-2 text-sm font-medium transition-colors ${ownerFilter === "taseron" ? "bg-orange-500 text-white" : "text-slate-600 hover:bg-slate-50"}`}>Taşeron</button>
+          </div>
+          <div className="flex border border-slate-200 rounded-xl overflow-hidden bg-white">
             <button onClick={() => setView("timeline")} className={`px-3 py-2 text-sm font-medium transition-colors ${view === "timeline" ? "bg-[#1B2437] text-white" : "text-slate-600 hover:bg-slate-50"}`}>Zaman</button>
             <button onClick={() => setView("list")} className={`px-3 py-2 text-sm font-medium transition-colors ${view === "list" ? "bg-[#1B2437] text-white" : "text-slate-600 hover:bg-slate-50"}`}>Liste</button>
           </div>
@@ -256,12 +278,18 @@ export default function JobsClient({ jobs: initialJobs, drivers, vehicles, clien
                   <div className="flex items-center gap-3 mb-2">
                     <span className="font-bold text-slate-800">{job.title}</span>
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[job.status as keyof typeof STATUS_COLORS] ?? "bg-slate-100"}`}>{STATUS_LABELS[job.status as keyof typeof STATUS_LABELS] ?? job.status}</span>
+                    {job.subcontractorId
+                      ? <span className="text-xs px-2 py-0.5 rounded-full font-semibold bg-orange-100 text-orange-700">Taşeron</span>
+                      : <span className="text-xs px-2 py-0.5 rounded-full font-semibold bg-green-100 text-green-700">Özmal</span>
+                    }
                   </div>
                   <div className="flex flex-wrap gap-4 text-sm text-slate-500">
                     <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" />{job.startTime}{job.endTime && ` – ${job.endTime}`}</span>
-                    {job.driver && <span className="flex items-center gap-1"><User className="w-3.5 h-3.5" />{job.driver.name}</span>}
-                    {job.vehicle && <span className="flex items-center gap-1"><Truck className="w-3.5 h-3.5" />{job.vehicle.plate}</span>}
+                    {job.subcontractor && <span className="flex items-center gap-1"><User className="w-3.5 h-3.5" />{job.subcontractor.name}</span>}
+                    {!job.subcontractorId && job.driver && <span className="flex items-center gap-1"><User className="w-3.5 h-3.5" />{job.driver.name}</span>}
+                    {!job.subcontractorId && job.vehicle && <span className="flex items-center gap-1"><Truck className="w-3.5 h-3.5" />{job.vehicle.plate}</span>}
                     {job.clientName && <span className="text-slate-400">{job.clientName}</span>}
+                    {job.subcontractorAmount && <span className="text-orange-600 font-medium">₺{job.subcontractorAmount.toLocaleString("tr-TR")}</span>}
                   </div>
                   {(job.startLocation || job.endLocation) && (
                     <p className="text-xs text-slate-500 mt-1.5 flex items-center gap-1">
@@ -430,22 +458,59 @@ export default function JobsClient({ jobs: initialJobs, drivers, vehicles, clien
                   <input type="time" value={form.endTime} onChange={(e) => set("endTime", e.target.value)} />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label>Şöför</label>
-                  <select value={form.driverId} onChange={(e) => set("driverId", e.target.value)}>
-                    <option value="">Seçin...</option>
-                    {drivers.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label>Araç</label>
-                  <select value={form.vehicleId} onChange={(e) => set("vehicleId", e.target.value)}>
-                    <option value="">Seçin...</option>
-                    {vehicles.map((v) => <option key={v.id} value={v.id}>{v.plate}</option>)}
-                  </select>
+              {/* Özmal / Taşeron toggle */}
+              <div>
+                <label>Sefer Tipi</label>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setForm((f) => ({ ...f, isSubcontractor: false, subcontractorId: "", subcontractorAmount: "" }))}
+                    className={`flex-1 py-2 rounded-xl text-sm font-semibold border transition-colors ${!form.isSubcontractor ? "bg-green-600 text-white border-green-600" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"}`}
+                  >
+                    Özmal
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setForm((f) => ({ ...f, isSubcontractor: true, driverId: "", vehicleId: "" }))}
+                    className={`flex-1 py-2 rounded-xl text-sm font-semibold border transition-colors ${form.isSubcontractor ? "bg-orange-500 text-white border-orange-500" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"}`}
+                  >
+                    Taşeron
+                  </button>
                 </div>
               </div>
+
+              {form.isSubcontractor ? (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label>Taşeron</label>
+                    <select value={form.subcontractorId} onChange={(e) => set("subcontractorId", e.target.value)}>
+                      <option value="">Seçin...</option>
+                      {subcontractors.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label>Taşeron Tutarı (₺)</label>
+                    <input type="number" value={form.subcontractorAmount} onChange={(e) => set("subcontractorAmount", e.target.value)} placeholder="0" step="0.01" />
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label>Şöför</label>
+                    <select value={form.driverId} onChange={(e) => set("driverId", e.target.value)}>
+                      <option value="">Seçin...</option>
+                      {drivers.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label>Araç</label>
+                    <select value={form.vehicleId} onChange={(e) => set("vehicleId", e.target.value)}>
+                      <option value="">Seçin...</option>
+                      {vehicles.map((v) => <option key={v.id} value={v.id}>{v.plate}</option>)}
+                    </select>
+                  </div>
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label>Kalkış Noktası</label>

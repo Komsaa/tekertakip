@@ -106,6 +106,7 @@ async function getData() {
 
     return {
       todayJobs,
+      vehicles: vehicles.map(v => ({ id: v.id, plate: v.plate, brand: v.brand ?? null, model: v.model ?? null })),
       creditCardAlerts,
       upcomingChecks: upcomingChecks.map(c => ({ ...c, dueDate: c.dueDate.toISOString() })),
       pendingInvoices: pendingInvoices.map(i => ({ ...i, dueDate: i.dueDate.toISOString() })),
@@ -125,7 +126,7 @@ async function getData() {
   } catch (e) {
     console.error("Dashboard hata:", e);
     return {
-      todayJobs: [], creditCardAlerts: [], upcomingChecks: [],
+      todayJobs: [], vehicles: [], creditCardAlerts: [], upcomingChecks: [],
       pendingInvoices: [], alertDocs: [], initialNotes: "",
       today: new Date().toLocaleDateString("tr-TR"),
       stats: { activeDrivers: 0, activeVehicles: 0, activeRoutes: 0, plannedToday: 0, completedToday: 0, cancelledToday: 0, monthJobs: 0 },

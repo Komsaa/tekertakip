@@ -83,6 +83,7 @@ const navGroups: NavGroup[] = [
   {
     label: "Diğer",
     items: [
+      { href: "/panel/belgeler", icon: FileText, label: "Belge Arşivi" },
       { href: "/panel/evrak-rehberi", icon: BookOpen, label: "Evrak Rehberi" },
       { href: "/panel/gorevler", icon: CheckSquare, label: "Görevlerim" },
       { href: "/panel/sirketler", icon: Building2, label: "Şirketler" },

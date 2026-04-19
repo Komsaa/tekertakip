@@ -83,7 +83,7 @@ export default function LoginPage() {
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="admin"
+                placeholder="Merttur"
                 required
                 autoComplete="username"
                 className="mt-1"
