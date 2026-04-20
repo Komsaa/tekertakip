@@ -108,8 +108,16 @@ export default async function DriverDetailPage({ params }: Props) {
               <FileText className="w-5 h-5 text-[#DC2626]" />
               Şöför Belgeleri
             </h2>
-            <DocRow label="Ehliyet" expiry={driver.licenseExpiry} entityType="driver" entityId={driver.id} docType="license" fileUrl={driver.licenseFile} notes={`Sınıf: ${driver.licenseClass ?? "-"} · ${driver.licenseNumber ?? ""}`} />
-            <DocRow label="İkametgah Belgesi" expiry={driver.residenceDocDate} entityType="driver" entityId={driver.id} docType="residenceDoc" fileUrl={driver.residenceDocFile} notes={driver.address ?? ""} />
+            <DocRow label="Ehliyet" expiry={driver.licenseExpiry} entityType="driver" entityId={driver.id} docType="license" fileUrl={driver.licenseFile} notes={`Sınıf: ${driver.licenseClass ?? "-"} · ${driver.licenseNumber ?? ""}`}
+              edevletUrl="https://www.turkiye.gov.tr/emniyet-genel-mudurlugu-surucu-belgesi-sorgulama" />
+            <DocRow label="SRC-2 Belgesi" expiry={(driver as any).srcExpiry} entityType="driver" entityId={driver.id} docType="src" fileUrl={driver.srcFile}
+              edevletUrl="https://www.turkiye.gov.tr/arama?aramaMetni=src+belgesi+sorgulama" />
+            <DocRow label="Psikoteknik Belgesi" expiry={(driver as any).psychotechExpiry} entityType="driver" entityId={driver.id} docType="psychotech" fileUrl={driver.psychotechFile}
+              edevletUrl="https://www.turkiye.gov.tr/arama?aramaMetni=psikoteknik+belgesi" />
+            <DocRow label="Adli Sicil Kaydı" expiry={(driver as any).criminalRecordExpiry} entityType="driver" entityId={driver.id} docType="criminalRecord" fileUrl={driver.criminalRecordFile}
+              edevletUrl="https://www.turkiye.gov.tr/adalet-bakanligi-adli-sicil-belgesi-alma" />
+            <DocRow label="İkametgah Belgesi" expiry={driver.residenceDocDate} entityType="driver" entityId={driver.id} docType="residenceDoc" fileUrl={driver.residenceDocFile} notes={driver.address ?? ""}
+              edevletUrl="https://www.turkiye.gov.tr/nvi-adres-belgesi" />
           </div>
 
           <ExtraDocuments entityType="driver" entityId={driver.id} initialDocs={extraDocs} />

@@ -37,9 +37,10 @@ interface Props {
   entityId: string;
   docType: string;
   notes?: string;
+  edevletUrl?: string;
 }
 
-export default function DocRow({ label, expiry, fileUrl, entityType, entityId, docType, notes }: Props) {
+export default function DocRow({ label, expiry, fileUrl, entityType, entityId, docType, notes, edevletUrl }: Props) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -204,6 +205,14 @@ export default function DocRow({ label, expiry, fileUrl, entityType, entityId, d
 
         {!dragging && !showDateInput && (
           <div className="flex items-center gap-1">
+            {edevletUrl && (
+              <a href={edevletUrl} target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 px-2 py-1 rounded-lg font-medium"
+                title="e-Devlet'te aç">
+                <ExternalLink className="w-3 h-3" />
+                e-Devlet
+              </a>
+            )}
             {fileUrl && (
               <a href={fileUrl} target="_blank" rel="noopener noreferrer"
                 className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 hover:underline">

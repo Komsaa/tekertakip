@@ -25,6 +25,7 @@ export default function ExtraDocuments({ entityType, entityId, initialDocs }: Pr
   const [docs, setDocs] = useState(initialDocs);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: "", expiry: "", notes: "" });
+  const [formFile, setFormFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploadingId, setUploadingId] = useState<string | null>(null);
 
@@ -42,8 +43,29 @@ export default function ExtraDocuments({ entityType, entityId, initialDocs }: Pr
       });
       if (!res.ok) throw new Error();
       const doc = await res.json();
+
+      // Dosya seçildiyse hemen yükle
+      if (formFile) {
+        const fd = new FormData();
+        fd.append("file", formFile);
+        fd.append("entityType", entityType);
+        fd.append("entityId", entityId);
+        fd.append("docType", `extra_${doc.id}`);
+        const upRes = await fetch("/api/upload", { method: "POST", body: fd });
+        if (upRes.ok) {
+          const { url } = await upRes.json();
+          await fetch(`/api/documents/${doc.id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ fileUrl: url }),
+          });
+          doc.fileUrl = url;
+        }
+      }
+
       setDocs((prev) => [doc, ...prev]);
       setForm({ name: "", expiry: "", notes: "" });
+      setFormFile(null);
       setShowForm(false);
       toast.success("Belge eklendi!");
     } catch { toast.error("Eklenemedi"); }
@@ -144,8 +166,19 @@ export default function ExtraDocuments({ entityType, entityId, initialDocs }: Pr
               />
             </div>
           </div>
+          <div>
+            <label className="text-xs font-semibold text-slate-600 block mb-1">Dosya (opsiyonel)</label>
+            <label className="flex items-center gap-2 cursor-pointer border border-slate-200 rounded-lg px-3 py-2 hover:bg-slate-100 transition-colors">
+              <Upload className="w-4 h-4 text-slate-400 flex-shrink-0" />
+              <span className="text-sm text-slate-500 truncate">
+                {formFile ? formFile.name : "PDF, JPG veya PNG seç"}
+              </span>
+              <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden"
+                onChange={(e) => setFormFile(e.target.files?.[0] ?? null)} />
+            </label>
+          </div>
           <div className="flex gap-2">
-            <button type="button" onClick={() => setShowForm(false)} className="flex-1 py-2 border border-slate-200 text-slate-600 rounded-xl text-sm">İptal</button>
+            <button type="button" onClick={() => { setShowForm(false); setFormFile(null); }} className="flex-1 py-2 border border-slate-200 text-slate-600 rounded-xl text-sm">İptal</button>
             <button type="submit" disabled={saving} className="flex-1 py-2 bg-[#DC2626] hover:bg-[#B91C1C] text-white rounded-xl text-sm font-semibold disabled:opacity-60">
               {saving ? "Ekleniyor..." : "Ekle"}
             </button>
