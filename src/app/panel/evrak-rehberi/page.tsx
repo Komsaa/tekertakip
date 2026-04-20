@@ -1,13 +1,12 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import {
   FileCheck, Truck, Users, Building2, AlertTriangle,
   CheckCircle2, Clock, ChevronDown, ChevronUp, Info,
   Shield, Star, Upload, X, Loader2, Sparkles,
   ExternalLink, FileWarning, ChevronRight,
 } from "lucide-react";
-import type { BulkAnalyzeResult, DocCategory } from "@/app/api/upload/bulk-analyze/route";
 
 // ─── Rehber verisi ─────────────────────────────────────────────────────────
 
@@ -252,21 +251,71 @@ const PRIORITY: { emoji: string; title: string; items: string[]; color: string }
 
 // ─── Bulk Upload bölümü ───────────────────────────────────────────────────
 
+type DocCategory = "arac" | "sofor" | "bilinmiyor";
+
+type AnalysisResult = {
+  docTitle: string | null;
+  holderName: string | null;
+  expiryDate: string | null;
+  category: DocCategory;
+  entityMatch: { id: string; label: string; type: "driver" | "vehicle"; url: string } | null;
+  error?: string;
+};
+
 type FileStatus = "waiting" | "analyzing" | "done" | "error";
 
 type FileEntry = {
   id: string;
   file: File;
   status: FileStatus;
-  result?: BulkAnalyzeResult;
+  result?: AnalysisResult;
 };
 
-const CATEGORY_LABELS: Record<DocCategory, { label: string; color: string; bg: string }> = {
-  arac:     { label: "Araç",  color: "text-blue-700",   bg: "bg-blue-100"   },
-  sofor:    { label: "Şöför", color: "text-green-700",  bg: "bg-green-100"  },
-  firma:    { label: "Firma", color: "text-purple-700", bg: "bg-purple-100" },
-  bilinmiyor: { label: "?",   color: "text-slate-500",  bg: "bg-slate-100"  },
+const CATEGORY_META: Record<DocCategory, { label: string; color: string; bg: string }> = {
+  arac:       { label: "Araç",  color: "text-blue-700",  bg: "bg-blue-100"  },
+  sofor:      { label: "Şöför", color: "text-green-700", bg: "bg-green-100" },
+  bilinmiyor: { label: "?",     color: "text-slate-500", bg: "bg-slate-100" },
 };
+
+const SOFOR_KEYWORDS = ["ehliyet", "src", "psikoteknik", "sağlık", "ikametgah", "adli sicil", "sürücü belgesi"];
+const ARAC_KEYWORDS  = ["muayene", "sigorta", "güzergah", "ruhsat", "kasko", "tüvtürk", "uygunluk", "j plaka", "tescil", "zorunlu mali"];
+
+function inferCategory(docTitle: string | null): DocCategory {
+  if (!docTitle) return "bilinmiyor";
+  const t = docTitle.toLowerCase();
+  if (SOFOR_KEYWORDS.some((k) => t.includes(k))) return "sofor";
+  if (ARAC_KEYWORDS.some((k) => t.includes(k))) return "arac";
+  return "bilinmiyor";
+}
+
+function matchEntity(
+  holderName: string | null,
+  category: DocCategory,
+  drivers: { id: string; name: string }[],
+  vehicles: { id: string; plate: string }[]
+): AnalysisResult["entityMatch"] {
+  if (!holderName) return null;
+  const h = holderName.trim();
+
+  // Plaka pattern varsa araç dene
+  const plateMatch = h.match(/\d{2}\s*[A-ZÇĞİÖŞÜa-zçğışöü]+\s*\d{2,5}/i);
+  if (plateMatch || category === "arac") {
+    const normalized = (plateMatch?.[0] ?? h).replace(/\s+/g, "").toUpperCase();
+    const v = vehicles.find((v) => v.plate.replace(/\s+/g, "").toUpperCase() === normalized ||
+      v.plate.replace(/\s+/g, "").toUpperCase().includes(normalized));
+    if (v) return { id: v.id, label: v.plate, type: "vehicle", url: `/panel/araclar/${v.id}` };
+  }
+
+  if (category === "sofor" || category === "bilinmiyor") {
+    const parts = h.toLowerCase().split(/\s+/).filter(Boolean);
+    const d = drivers.find((d) =>
+      parts.length > 0 && parts.every((p) => d.name.toLowerCase().includes(p))
+    );
+    if (d) return { id: d.id, label: d.name, type: "driver", url: `/panel/soforler/${d.id}` };
+  }
+
+  return null;
+}
 
 function formatDate(iso: string | null) {
   if (!iso) return null;
@@ -279,7 +328,14 @@ function BulkUploadSection() {
   const [entries, setEntries] = useState<FileEntry[]>([]);
   const [analyzing, setAnalyzing] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [drivers, setDrivers] = useState<{ id: string; name: string }[]>([]);
+  const [vehicles, setVehicles] = useState<{ id: string; plate: string }[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    fetch("/api/drivers").then((r) => r.json()).then((d) => setDrivers(Array.isArray(d) ? d : d.drivers ?? []));
+    fetch("/api/vehicles").then((r) => r.json()).then((d) => setVehicles(Array.isArray(d) ? d : d.vehicles ?? []));
+  }, []);
 
   const addFiles = useCallback((newFiles: File[]) => {
     const valid = newFiles.filter((f) => {
@@ -296,49 +352,55 @@ function BulkUploadSection() {
     ]);
   }, []);
 
-  const handleDrop = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault();
-      setDragOver(false);
-      addFiles(Array.from(e.dataTransfer.files));
-    },
-    [addFiles]
-  );
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    addFiles(Array.from(e.dataTransfer.files));
+  }, [addFiles]);
 
   const removeEntry = (id: string) =>
     setEntries((prev) => prev.filter((e) => e.id !== id));
 
   const analyze = async () => {
     const waiting = entries.filter((e) => e.status === "waiting");
-    if (waiting.length === 0) return;
+    if (!waiting.length) return;
     setAnalyzing(true);
 
-    // Hepsini "analyzing" yap
     setEntries((prev) =>
       prev.map((e) => (e.status === "waiting" ? { ...e, status: "analyzing" } : e))
     );
 
-    // Dosyaları tek tek gönder (body limiti ve rate limit sorununu önler)
     for (const entry of waiting) {
-      const formData = new FormData();
-      formData.append("files", entry.file);
+      // Dosyayı /api/upload üzerinden MinIO'ya yükle → Gemini orada çalışır
+      // (bulk-analyze yerine proven upload endpoint kullanıyoruz)
+      const fd = new FormData();
+      fd.append("file", entry.file);
+      fd.append("entityType", "company");
+      fd.append("entityId", `analyze-${entry.id}`);
+      fd.append("docType", "custom");
 
       try {
-        const res = await fetch("/api/upload/bulk-analyze", {
-          method: "POST",
-          body: formData,
-        });
+        const res = await fetch("/api/upload", { method: "POST", body: fd });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error ?? "Sunucu hatası");
+        if (!res.ok) throw new Error(data.error ?? "Yükleme hatası");
 
-        const result: BulkAnalyzeResult | undefined = data.results?.[0];
+        const parsed = data.parsed as { expiryDate: string | null; holderName: string | null; docTitle: string | null } | null;
+        const category = inferCategory(parsed?.docTitle ?? null);
+        const entityMatch = matchEntity(parsed?.holderName ?? null, category, drivers, vehicles);
+
         setEntries((prev) =>
           prev.map((e) =>
             e.id === entry.id
               ? {
                   ...e,
-                  status: result?.error ? "error" : ("done" as FileStatus),
-                  result: result ?? undefined,
+                  status: "done" as FileStatus,
+                  result: {
+                    docTitle: parsed?.docTitle ?? null,
+                    holderName: parsed?.holderName ?? null,
+                    expiryDate: parsed?.expiryDate ?? null,
+                    category,
+                    entityMatch,
+                  },
                 }
               : e
           )
@@ -347,20 +409,7 @@ function BulkUploadSection() {
         setEntries((prev) =>
           prev.map((e) =>
             e.id === entry.id
-              ? {
-                  ...e,
-                  status: "error" as FileStatus,
-                  result: {
-                    fileName: entry.file.name,
-                    category: "bilinmiyor",
-                    docType: null,
-                    docTitle: null,
-                    holderIdentifier: null,
-                    expiryDate: null,
-                    entityMatch: null,
-                    error: err.message ?? "Sunucu hatası",
-                  } as BulkAnalyzeResult,
-                }
+              ? { ...e, status: "error" as FileStatus, result: { docTitle: null, holderName: null, expiryDate: null, category: "bilinmiyor", entityMatch: null, error: err.message } }
               : e
           )
         );
@@ -375,169 +424,109 @@ function BulkUploadSection() {
 
   return (
     <div className="space-y-4">
-      {/* Açıklama */}
       <div className="bg-[#1B2437] rounded-2xl p-5 text-white flex gap-4 items-start">
         <Sparkles className="w-5 h-5 text-[#DC2626] flex-shrink-0 mt-0.5" />
         <div>
           <p className="font-bold text-sm mb-1">AI Destekli Toplu Evrak Taraması</p>
           <p className="text-sm text-slate-300">
-            Evraklarınızı sürükleyin veya seçin. Yapay zeka her belgeyi okuyarak kategorisini
-            (araç / şöför / firma), belge türünü, son geçerlilik tarihini ve varsa sistemimizdeki
-            eşleşen kayıt bağlantısını otomatik olarak çıkarır.
+            Evraklarınızı sürükleyin veya seçin. Yapay zeka her belgeyi okuyarak belge türünü,
+            son geçerlilik tarihini ve sistemimizdeki eşleşen kaydı otomatik olarak çıkarır.
           </p>
         </div>
       </div>
 
-      {/* Drop zone */}
       <div
         onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
         onDragLeave={() => setDragOver(false)}
         onDrop={handleDrop}
         onClick={() => inputRef.current?.click()}
         className={`border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all ${
-          dragOver
-            ? "border-[#DC2626] bg-red-50"
-            : "border-slate-300 bg-slate-50 hover:border-slate-400 hover:bg-slate-100"
+          dragOver ? "border-[#DC2626] bg-red-50" : "border-slate-300 bg-slate-50 hover:border-slate-400"
         }`}
       >
         <Upload className="w-8 h-8 text-slate-400 mx-auto mb-3" />
-        <p className="text-sm font-semibold text-slate-700">
-          Evrakları buraya sürükleyin veya tıklayın
-        </p>
-        <p className="text-xs text-slate-400 mt-1">PDF, JPG, PNG — aynı anda 20 dosyaya kadar</p>
-        <input
-          ref={inputRef}
-          type="file"
-          multiple
-          accept=".pdf,.jpg,.jpeg,.png"
-          className="hidden"
-          onChange={(e) => addFiles(Array.from(e.target.files ?? []))}
-        />
+        <p className="text-sm font-semibold text-slate-700">Evrakları buraya sürükleyin veya tıklayın</p>
+        <p className="text-xs text-slate-400 mt-1">PDF, JPG, PNG</p>
+        <input ref={inputRef} type="file" multiple accept=".pdf,.jpg,.jpeg,.png" className="hidden"
+          onChange={(e) => addFiles(Array.from(e.target.files ?? []))} />
       </div>
 
-      {/* Dosya listesi */}
       {entries.length > 0 && (
         <div className="space-y-2">
           {entries.map((entry) => {
             const cat = entry.result?.category ?? "bilinmiyor";
-            const catMeta = CATEGORY_LABELS[cat];
+            const catMeta = CATEGORY_META[cat];
             const isAnalyzing = entry.status === "analyzing";
             const isDone = entry.status === "done";
             const isError = entry.status === "error";
-
             return (
-              <div
-                key={entry.id}
-                className="border border-slate-200 rounded-xl bg-white overflow-hidden"
-              >
-                {/* Dosya başlığı satırı */}
+              <div key={entry.id} className="border border-slate-200 rounded-xl bg-white overflow-hidden">
                 <div className="flex items-center gap-3 px-4 py-3">
-                  {isAnalyzing && (
-                    <Loader2 className="w-4 h-4 text-[#DC2626] animate-spin flex-shrink-0" />
-                  )}
-                  {isDone && (
-                    <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />
-                  )}
-                  {isError && (
-                    <FileWarning className="w-4 h-4 text-red-500 flex-shrink-0" />
-                  )}
+                  {isAnalyzing && <Loader2 className="w-4 h-4 text-[#DC2626] animate-spin flex-shrink-0" />}
+                  {isDone && <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />}
+                  {isError && <FileWarning className="w-4 h-4 text-red-500 flex-shrink-0" />}
+                  {entry.status === "waiting" && <Clock className="w-4 h-4 text-slate-300 flex-shrink-0" />}
+                  <span className="text-sm text-slate-700 font-medium flex-1 truncate">{entry.file.name}</span>
+                  {isAnalyzing && <span className="text-xs text-slate-400">Analiz ediliyor...</span>}
+                  {isError && <span className="text-xs text-red-500">{entry.result?.error ?? "Hata"}</span>}
                   {entry.status === "waiting" && (
-                    <Clock className="w-4 h-4 text-slate-300 flex-shrink-0" />
-                  )}
-
-                  <span className="text-sm text-slate-700 font-medium flex-1 truncate">
-                    {entry.file.name}
-                  </span>
-
-                  {isAnalyzing && (
-                    <span className="text-xs text-slate-400">Analiz ediliyor...</span>
-                  )}
-                  {isError && entry.result?.error && (
-                    <span className="text-xs text-red-500">{entry.result.error}</span>
-                  )}
-
-                  {entry.status === "waiting" && (
-                    <button
-                      onClick={(e) => { e.stopPropagation(); removeEntry(entry.id); }}
-                      className="text-slate-300 hover:text-red-500 transition-colors"
-                    >
+                    <button onClick={(e) => { e.stopPropagation(); removeEntry(entry.id); }}
+                      className="text-slate-300 hover:text-red-500 transition-colors">
                       <X className="w-4 h-4" />
                     </button>
                   )}
                 </div>
 
-                {/* Analiz sonucu */}
                 {isDone && entry.result && (
                   <div className="border-t border-slate-100 bg-slate-50 px-4 py-3 grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    {/* Kategori */}
                     <div>
                       <p className="text-[10px] text-slate-400 font-medium uppercase mb-1">Kategori</p>
                       <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${catMeta.bg} ${catMeta.color}`}>
                         {catMeta.label}
                       </span>
                     </div>
-
-                    {/* Belge türü */}
                     <div>
                       <p className="text-[10px] text-slate-400 font-medium uppercase mb-1">Belge</p>
-                      <p className="text-xs text-slate-700 font-medium leading-tight">
-                        {entry.result.docTitle ?? entry.result.docType ?? "—"}
-                      </p>
+                      <p className="text-xs text-slate-700 font-medium leading-tight">{entry.result.docTitle ?? "—"}</p>
                     </div>
-
-                    {/* Sahip / plaka */}
                     <div>
                       <p className="text-[10px] text-slate-400 font-medium uppercase mb-1">
                         {cat === "arac" ? "Plaka" : "Ad Soyad"}
                       </p>
-                      <p className="text-xs text-slate-700 font-medium">
-                        {entry.result.holderIdentifier ?? "—"}
-                      </p>
+                      <p className="text-xs text-slate-700 font-medium">{entry.result.holderName ?? "—"}</p>
                     </div>
-
-                    {/* Bitiş tarihi */}
                     <div>
-                      <p className="text-[10px] text-slate-400 font-medium uppercase mb-1">
-                        Geçerlilik Bitişi
-                      </p>
+                      <p className="text-[10px] text-slate-400 font-medium uppercase mb-1">Geçerlilik Bitişi</p>
                       <p className={`text-xs font-semibold ${
                         entry.result.expiryDate
-                          ? new Date(entry.result.expiryDate) < new Date()
-                            ? "text-red-600"
-                            : "text-green-600"
+                          ? new Date(entry.result.expiryDate) < new Date() ? "text-red-600" : "text-green-600"
                           : "text-slate-400"
                       }`}>
                         {formatDate(entry.result.expiryDate) ?? "—"}
                       </p>
                     </div>
 
-                    {/* Sistem eşleşmesi */}
                     {entry.result.entityMatch && (
                       <div className="col-span-2 sm:col-span-4 pt-2 border-t border-slate-200 flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           {entry.result.entityMatch.type === "vehicle"
                             ? <Truck className="w-3.5 h-3.5 text-blue-500" />
-                            : <Users className="w-3.5 h-3.5 text-green-500" />
-                          }
+                            : <Users className="w-3.5 h-3.5 text-green-500" />}
                           <span className="text-xs text-slate-600">
-                            Sistemde eşleşti:
-                            <span className="font-semibold ml-1">{entry.result.entityMatch.label}</span>
+                            Sistemde eşleşti: <span className="font-semibold">{entry.result.entityMatch.label}</span>
                           </span>
                         </div>
-                        <a
-                          href={entry.result.entityMatch.url}
-                          className="flex items-center gap-1 text-xs text-[#DC2626] font-semibold hover:underline"
-                        >
+                        <a href={entry.result.entityMatch.url}
+                          className="flex items-center gap-1 text-xs text-[#DC2626] font-semibold hover:underline">
                           Aç <ExternalLink className="w-3 h-3" />
                         </a>
                       </div>
                     )}
-
-                    {!entry.result.entityMatch && entry.result.holderIdentifier && (
+                    {!entry.result.entityMatch && entry.result.holderName && (
                       <div className="col-span-2 sm:col-span-4 pt-2 border-t border-slate-200">
                         <p className="text-xs text-amber-600 flex items-center gap-1.5">
                           <AlertTriangle className="w-3 h-3" />
-                          Sistemde eşleşen kayıt bulunamadı. Manuel olarak ilgili araca/şöföre ekleyin.
+                          Sistemde eşleşen kayıt bulunamadı.
                         </p>
                       </div>
                     )}
@@ -549,31 +538,22 @@ function BulkUploadSection() {
         </div>
       )}
 
-      {/* Aksiyon butonları */}
       {entries.length > 0 && (
         <div className="flex items-center justify-between pt-1">
           <p className="text-xs text-slate-400">
-            {entries.length} dosya
-            {doneCount > 0 && ` · ${doneCount} analiz tamamlandı`}
+            {entries.length} dosya{doneCount > 0 && ` · ${doneCount} analiz tamamlandı`}
           </p>
           <div className="flex gap-2">
-            <button
-              onClick={() => setEntries([])}
-              disabled={analyzing}
-              className="text-xs text-slate-500 hover:text-red-500 transition-colors px-3 py-1.5 rounded-lg hover:bg-red-50"
-            >
+            <button onClick={() => setEntries([])} disabled={analyzing}
+              className="text-xs text-slate-500 hover:text-red-500 px-3 py-1.5 rounded-lg hover:bg-red-50">
               Temizle
             </button>
             {waitingCount > 0 && (
-              <button
-                onClick={analyze}
-                disabled={analyzing}
-                className="flex items-center gap-2 bg-[#DC2626] hover:bg-[#B91C1C] disabled:opacity-60 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-all"
-              >
+              <button onClick={analyze} disabled={analyzing}
+                className="flex items-center gap-2 bg-[#DC2626] hover:bg-[#B91C1C] disabled:opacity-60 text-white text-sm font-semibold px-4 py-2 rounded-xl">
                 {analyzing
                   ? <><Loader2 className="w-4 h-4 animate-spin" /> Analiz ediliyor...</>
-                  : <><Sparkles className="w-4 h-4" /> {waitingCount} Dosyayı Analiz Et</>
-                }
+                  : <><Sparkles className="w-4 h-4" /> {waitingCount} Dosyayı Analiz Et</>}
               </button>
             )}
           </div>

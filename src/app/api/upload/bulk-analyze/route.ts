@@ -137,6 +137,7 @@ export async function POST(request: Request) {
 
   const formData = await request.formData();
   const files = formData.getAll("files") as File[];
+  console.log("[bulk-analyze] dosya sayısı:", files.length, "GEMINI_API_KEY:", !!process.env.GEMINI_API_KEY);
 
   if (!files || files.length === 0) {
     return NextResponse.json({ error: "Dosya seçilmedi" }, { status: 400 });

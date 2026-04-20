@@ -112,11 +112,6 @@ export async function POST(request: Request) {
       if (field) await prisma.vehicle.update({ where: { id: entityId }, data: { [field]: fileUrl } });
     }
 
-    // custom docType: sadece dosyayı depola, DB field güncellemesi yok
-    if (docType === "custom") {
-      return NextResponse.json({ url: fileUrl, parsed: null });
-    }
-
     // Fotoğraf ve foto gerektirmeyen tipler için parse yapma
     const skipParse = ["photo", "ruhsat", "criminalRecord"];
     let parsed = null;
