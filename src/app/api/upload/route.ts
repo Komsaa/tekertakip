@@ -56,7 +56,7 @@ async function parseDocWithGemini(key: string, ext: string): Promise<{ expiryDat
     const mimeType = ext === "pdf" ? "application/pdf" : ext === "png" ? "image/png" : "image/jpeg";
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
     const result = await model.generateContent([
       { inlineData: { data: base64, mimeType } },
       `Bu bir Türkçe resmi belge. Belgeden bilgileri çıkar, SADECE JSON döndür:
