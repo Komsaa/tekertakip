@@ -290,6 +290,35 @@ async function startBot() {
     // Günlük sabah raporu - her gün 07:00'de gönder
     scheduleDailyReport(sock);
 
+    // WhatsApp mesaj kuyruğunu işle (her 5 saniyede bir)
+    setInterval(async () => {
+      try {
+        const { prisma: db } = await import("@/lib/prisma");
+        const pending = await db.whatsAppQueue.findMany({
+          where: { status: "pending" },
+          take: 5,
+          orderBy: { createdAt: "asc" },
+        });
+        for (const item of pending) {
+          try {
+            const jid = `${item.phone}@s.whatsapp.net`;
+            await sock.sendMessage(jid, { text: item.message });
+            await db.whatsAppQueue.update({
+              where: { id: item.id },
+              data: { status: "sent", sentAt: new Date() },
+            });
+            console.log(`✅ WA gönderildi → ${item.phone}`);
+          } catch (err) {
+            await db.whatsAppQueue.update({
+              where: { id: item.id },
+              data: { status: "failed" },
+            });
+            console.error(`❌ WA gönderilemedi → ${item.phone}:`, err);
+          }
+        }
+      } catch { /* DB hatası — sessizce geç */ }
+    }, 5_000);
+
     console.log("\n📋 Şöförlere söylenecek format:");
     console.log("   📸 Fiş fotoğrafı + mesaj: '45J9443 - 125400 km'");
     console.log(`   Panel: ${API_BASE}/panel/yakit`);

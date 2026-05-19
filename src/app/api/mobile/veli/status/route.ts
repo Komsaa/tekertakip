@@ -7,7 +7,8 @@ async function getPassengerFromToken() {
   const auth = h.get("authorization") ?? "";
   const token = auth.replace("Bearer ", "").trim();
   if (!token) return null;
-  return prisma.routePassenger.findUnique({
+
+  const passenger = await prisma.routePassenger.findUnique({
     where: { veliToken: token },
     include: {
       stop: {
@@ -27,6 +28,16 @@ async function getPassengerFromToken() {
       },
     },
   });
+  if (!passenger) return null;
+
+  // Token expiry kontrolü (format: "{randomHex}|{expiresAt}")
+  const expiresAt = parseInt(token.split("|")[1] ?? "0");
+  if (expiresAt && Date.now() > expiresAt) {
+    await prisma.routePassenger.update({ where: { id: passenger.id }, data: { veliToken: null } });
+    return null;
+  }
+
+  return passenger;
 }
 
 // "07:30" gibi saat stringini bugünün Date'ine çevirir

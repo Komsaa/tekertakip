@@ -450,12 +450,12 @@ export default function SimulatorPage() {
         <h3 className="text-sm font-bold text-amber-800 mb-2">⚡ Gerçek Mobil Test İçin</h3>
         <ol className="space-y-1 list-decimal list-inside">
           {[
-            "merttur-driver Expo projesinde: npx expo start --tunnel",
+            "tekertakip-driver Expo projesinde: npx expo start --tunnel",
             "Telefonunda Expo Go uygulamasını indir → QR kodu tara",
             "Şöför kullanıcı adı + PIN ile giriş yap",
             "Arka planda konum paylaşmayı aç (Ayarlar → Konum → Her zaman)",
             "Güzergah seç → Sefer başlat → Duraklarda öğrenci işaretle",
-            "Veliler push bildirim alıyor mu? → merttur-driver veli akışını test et",
+            "Veliler push bildirim alıyor mu? → tekertakip-driver veli akışını test et",
           ].map((s, i) => (
             <li key={i} className="text-sm text-amber-700">{s}</li>
           ))}

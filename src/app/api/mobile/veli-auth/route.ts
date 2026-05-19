@@ -46,13 +46,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Bu işletmenin erişimi askıya alınmış" }, { status: 403 });
   }
 
-  // veliToken yoksa oluştur (kalıcı session token)
-  let token = passenger.veliToken;
-  if (!token) {
-    const { randomBytes } = await import("crypto");
-    token = randomBytes(24).toString("hex");
-    await prisma.routePassenger.update({ where: { id: passenger.id }, data: { veliToken: token } });
-  }
+  // Her girişte yeni token oluştur — 30 günlük expiry token içine gömülü
+  const { randomBytes } = await import("crypto");
+  const expiresAt = Date.now() + 30 * 24 * 60 * 60 * 1000;
+  const token = `${randomBytes(24).toString("hex")}|${expiresAt}`;
+  await prisma.routePassenger.update({ where: { id: passenger.id }, data: { veliToken: token } });
 
   return NextResponse.json({
     token,

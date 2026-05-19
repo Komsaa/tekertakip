@@ -44,6 +44,7 @@ export default function DocRow({ label, expiry, fileUrl, entityType, entityId, d
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [dragging, setDragging] = useState(false);
   const [showDateInput, setShowDateInput] = useState(false);
   const [dateValue, setDateValue] = useState("");
@@ -105,7 +106,7 @@ export default function DocRow({ label, expiry, fileUrl, entityType, entityId, d
     e.preventDefault();
     setDragging(false);
     const file = e.dataTransfer.files?.[0];
-    if (file) uploadFile(file);
+    if (file) setPendingFile(file);
   }
 
   // Dosya yüklü ama tarih yok → özel durum
@@ -193,7 +194,7 @@ export default function DocRow({ label, expiry, fileUrl, entityType, entityId, d
           </button>
         )}
 
-        {!dragging && !showDateInput && (
+        {!dragging && !showDateInput && !pendingFile && (
           <span className={`text-xs px-2 py-1 rounded-full border font-medium ${
             fileUploadedNoDate
               ? "bg-amber-100 text-amber-700 border-amber-200"
@@ -203,7 +204,25 @@ export default function DocRow({ label, expiry, fileUrl, entityType, entityId, d
           </span>
         )}
 
-        {!dragging && !showDateInput && (
+        {!dragging && !showDateInput && pendingFile && (
+          <div className="flex items-center gap-1 bg-blue-50 border border-blue-200 rounded-lg px-2 py-1">
+            <span className="text-xs text-blue-700 max-w-[120px] truncate">{pendingFile.name}</span>
+            <button
+              onClick={() => { uploadFile(pendingFile); setPendingFile(null); }}
+              disabled={uploading}
+              className="flex items-center gap-1 text-xs bg-green-500 hover:bg-green-600 text-white px-2 py-0.5 rounded-md font-medium disabled:opacity-50"
+            >
+              {uploading ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
+              Kaydet
+            </button>
+            <button
+              onClick={() => { setPendingFile(null); if (inputRef.current) inputRef.current.value = ""; }}
+              className="text-xs text-slate-400 hover:text-slate-600"
+            >✕</button>
+          </div>
+        )}
+
+        {!dragging && !showDateInput && !pendingFile && (
           <div className="flex items-center gap-1">
             {edevletUrl && (
               <a href={edevletUrl} target="_blank" rel="noopener noreferrer"
@@ -234,7 +253,7 @@ export default function DocRow({ label, expiry, fileUrl, entityType, entityId, d
       </div>
 
       <input ref={inputRef} type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden"
-        onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadFile(f); }} />
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) setPendingFile(f); }} />
     </div>
   );
 }

@@ -10,8 +10,9 @@ export async function GET() {
   const companyId = getCompanyId(session);
 
   const year = new Date().getFullYear();
+  // Global sayım: invoiceNo @unique olduğu için şirketten bağımsız tüm faturalara bakılmalı
   const count = await prisma.invoice.count({
-    where: { ...tenantWhere(companyId), invoiceNo: { startsWith: `KOM${year}` } },
+    where: { invoiceNo: { startsWith: `KOM${year}` } },
   });
   const no = String(count + 1).padStart(9, "0");
   return NextResponse.json({ invoiceNo: `KOM${year}${no}` });

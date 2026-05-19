@@ -14,15 +14,16 @@ export async function POST(req: NextRequest) {
     if (!vehicleId) {
       return NextResponse.json({ error: "Araç bilgisi eksik" }, { status: 400 });
     }
-    if (!b.liters || !b.totalAmount) {
-      return NextResponse.json({ error: "Litre ve tutar zorunlu" }, { status: 400 });
+    if (!b.liters || parseFloat(b.liters) <= 0 || !b.totalAmount || parseFloat(b.totalAmount) <= 0) {
+      return NextResponse.json({ error: "Litre ve tutar zorunlu ve sıfırdan büyük olmalı" }, { status: 400 });
     }
 
     const entry = await prisma.fuelEntry.create({
       data: {
         vehicleId,
         driverId: driver.id,
-        date: new Date(b.date || Date.now()),
+        companyId: driver.companyId || null,
+        date: new Date(),
         liters: parseFloat(b.liters),
         pricePerLiter: b.pricePerLiter ? parseFloat(b.pricePerLiter) : null,
         totalAmount: parseFloat(b.totalAmount),

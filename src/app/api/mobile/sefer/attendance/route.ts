@@ -51,6 +51,21 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // "Bindi" işaretlenen yolcuların velilerine bildirim
+  const boardedIds = attendances.filter((a: { passengerId: string; status: string }) => a.status === "boarded").map((a: { passengerId: string }) => a.passengerId);
+  if (boardedIds.length > 0) {
+    const boardedPassengers = await prisma.routePassenger.findMany({
+      where: { id: { in: boardedIds }, parentPushToken: { not: null } },
+    });
+    for (const p of boardedPassengers) {
+      await sendPushNotifications(
+        [p.parentPushToken!],
+        "✅ Servise Bindi",
+        `${p.name} servise bindi`
+      );
+    }
+  }
+
   // Sıradaki durağın velilerine bildirim
   if (nextStopId) {
     const nextStop = await prisma.routeStop.findUnique({

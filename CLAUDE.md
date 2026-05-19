@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Tekertakip** — Multi-tenant fleet management SaaS for Turkish transport companies (school buses, personnel shuttles). The codebase lives in the `merttur/` folder but the product is deployed as `tekertakip.com`.
+**Tekertakip** — Multi-tenant fleet management SaaS for Turkish transport companies (school buses, personnel shuttles). The codebase lives in the `tekertakip/` folder and is deployed as `tekertakip.com`.
 
 ## Commands
 

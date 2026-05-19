@@ -38,7 +38,7 @@ export default async function PanelLayout({
       <Sidebar userName={session.user?.name || "Admin"} role={(session.user as any)?.role} />
 
       {/* Ana içerik */}
-      <main className="flex-1 overflow-y-auto flex flex-col">
+      <main className="flex-1 overflow-y-auto flex flex-col pt-14 lg:pt-0">
         {demoBanner && <DemoBanner daysLeft={demoBanner.daysLeft} expired={demoBanner.expired} />}
         {children}
       </main>

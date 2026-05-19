@@ -115,10 +115,10 @@ export default function CommandCenter({
     <div className="flex flex-col h-full">
 
       {/* ═══ ANA ALAN: Harita sol + Panel sağ ═══════════════════════════════ */}
-      <div className="flex flex-1 overflow-hidden" style={{ minHeight: 0 }}>
+      <div className="flex flex-col lg:flex-row flex-1 overflow-hidden" style={{ minHeight: 0 }}>
 
-        {/* ── Sol: Canlı Harita ──────────────────────────────────────────── */}
-        <div className="flex-1 relative bg-[#1B2437]">
+        {/* ── Sol: Canlı Harita — sadece desktop ─────────────────────────── */}
+        <div className="hidden lg:flex flex-1 relative bg-[#1B2437] overflow-hidden">
           <CommandCenterMap />
           {/* Harita üstü overlay */}
           <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-700 shadow">
@@ -130,13 +130,18 @@ export default function CommandCenter({
         </div>
 
         {/* ── Sağ: Panel ─────────────────────────────────────────────────── */}
-        <div className="w-[360px] flex-shrink-0 bg-[#1B2437] flex flex-col overflow-hidden border-l border-white/10">
+        <div className="w-full lg:w-[360px] flex-shrink-0 bg-[#1B2437] flex flex-col overflow-hidden lg:border-l border-white/10">
           {/* Tarih başlık */}
-          <div className="px-4 py-3 border-b border-white/10">
-            <p className="text-white font-black text-sm">{today}</p>
-            <p className="text-slate-400 text-xs mt-0.5">
-              {jobs.length} sefer · {jobs.filter(j => j.status === "active").length} aktif
-            </p>
+          <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between gap-2">
+            <div>
+              <p className="text-white font-black text-sm">{today}</p>
+              <p className="text-slate-400 text-xs mt-0.5">
+                {jobs.length} sefer · {jobs.filter(j => j.status === "active").length} aktif
+              </p>
+            </div>
+            <Link href="/panel/konum" className="lg:hidden flex-shrink-0 bg-white/10 hover:bg-white/20 rounded-xl px-3 py-1.5 text-xs font-semibold text-[#DC2626]">
+              🗺 Harita
+            </Link>
           </div>
 
           <div className="flex-1 overflow-y-auto space-y-0 divide-y divide-white/10">
@@ -278,8 +283,8 @@ export default function CommandCenter({
       </div>{/* end flex main */}
 
       {/* ═══ ALT STAT BAR ══════════════════════════════════════════════════ */}
-      <div className="flex-shrink-0 bg-[#1B2437] border-t border-white/10">
-        <div className="flex items-stretch divide-x divide-white/10">
+      <div className="flex-shrink-0 bg-[#1B2437] border-t border-white/10 relative z-10">
+        <div className="flex items-stretch divide-x divide-white/10 overflow-x-auto">
 
           {/* Bugün Planlanan */}
           <div className="flex-1 flex flex-col items-center justify-center py-2.5 px-2 min-w-0">
@@ -352,7 +357,7 @@ export default function CommandCenter({
 
       {/* ═══ ARAÇ DURUM ŞERIDI ══════════════════════════════════════════════ */}
       {vehicles.length > 0 && (
-        <div className="flex-shrink-0 bg-[#151e2e] border-t border-white/10">
+        <div className="flex-shrink-0 bg-[#151e2e] border-t border-white/10 relative z-10">
           <div className="flex gap-2 overflow-x-auto px-3 py-2 scrollbar-hide">
             {vehicles.map(v => {
               const activeJob = jobs.find(j => j.vehicle?.id === v.id && (j.status === "active" || j.status === "planned"));
@@ -397,7 +402,7 @@ export default function CommandCenter({
 
       {/* ═══ ALT: Belge Uyarıları ════════════════════════════════════════════ */}
       {alertDocs.length > 0 && (
-        <div className="flex-shrink-0 bg-white border-t border-slate-100">
+        <div className="flex-shrink-0 bg-white border-t border-slate-100 relative z-10">
           <div className="flex items-center gap-2 px-4 py-2 border-b border-slate-100">
             <AlertTriangle className="w-4 h-4 text-amber-500" />
             <span className="text-xs font-bold text-slate-700 uppercase tracking-wide">Belge Uyarıları</span>

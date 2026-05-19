@@ -64,9 +64,9 @@ export default function GuzergahlarClient({
 
   // Yolcu yönetimi
   const [openStopId, setOpenStopId] = useState<string | null>(null);
-  const [passengers, setPassengers] = useState<Record<string, { id: string; name: string; phone: string | null; parentPhone: string | null; active: boolean; veliUsername: string | null }[]>>({});
+  const [passengers, setPassengers] = useState<Record<string, { id: string; name: string; phone: string | null; parentName: string | null; parentPhone: string | null; active: boolean; veliUsername: string | null }[]>>({});
   const [newPassengerName, setNewPassengerName] = useState("");
-  const [newPassengerPhone, setNewPassengerPhone] = useState("");
+  const [newPassengerParentName, setNewPassengerParentName] = useState("");
   const [newPassengerParentPhone, setNewPassengerParentPhone] = useState("");
   const [passengerSaving, setPassengerSaving] = useState(false);
 
@@ -88,10 +88,25 @@ export default function GuzergahlarClient({
     const res = await fetch("/api/routes/passengers", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ stopId, name: newPassengerName, phone: newPassengerPhone, parentPhone: newPassengerParentPhone }),
+      body: JSON.stringify({
+        stopId,
+        name: newPassengerName,
+        parentName: newPassengerParentName,
+        parentPhone: newPassengerParentPhone,
+      }),
     });
     setPassengerSaving(false);
-    if (res.ok) { setNewPassengerName(""); setNewPassengerPhone(""); setNewPassengerParentPhone(""); loadPassengers(stopId); }
+    if (res.ok) {
+      const data = await res.json();
+      setNewPassengerName("");
+      setNewPassengerParentName("");
+      setNewPassengerParentPhone("");
+      loadPassengers(stopId);
+      // Otomatik oluşturulan veli bilgilerini göster
+      if (data.veliUsername && data.veliPassword) {
+        setCredModal({ name: newPassengerName, veliUsername: data.veliUsername, veliPassword: data.veliPassword });
+      }
+    }
   }
 
   async function removePassenger(stopId: string, passengerId: string) {
@@ -451,17 +466,23 @@ export default function GuzergahlarClient({
                                 </div>
                                 <div className="flex gap-1.5 flex-wrap">
                                   <input
-                                    placeholder="Ad Soyad *"
+                                    placeholder="Öğrenci adı *"
                                     value={newPassengerName}
                                     onChange={(e) => setNewPassengerName(e.target.value)}
                                     className="flex-1 min-w-24 border border-slate-200 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400"
                                     onKeyDown={(e) => e.key === "Enter" && addPassenger(stopId)}
                                   />
                                   <input
-                                    placeholder="Veli tel. (opsiyonel)"
+                                    placeholder="Veli adı soyadı"
+                                    value={newPassengerParentName}
+                                    onChange={(e) => setNewPassengerParentName(e.target.value)}
+                                    className="w-36 border border-slate-200 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400"
+                                  />
+                                  <input
+                                    placeholder="Veli tel. (WA)"
                                     value={newPassengerParentPhone}
                                     onChange={(e) => setNewPassengerParentPhone(e.target.value)}
-                                    className="w-36 border border-slate-200 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400"
+                                    className="w-32 border border-slate-200 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400"
                                   />
                                   <button
                                     onClick={() => addPassenger(stopId)}

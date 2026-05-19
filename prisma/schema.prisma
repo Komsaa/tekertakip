@@ -506,6 +506,7 @@ model RoutePassenger {
   notes            String?
   active           Boolean    @default(true)
   order            Int        @default(0)
+  parentName       String?             // veli adı soyadı
   parentPhone      String?
   parentPushToken  String?    // Expo push token
   veliToken        String?    @unique
@@ -679,6 +680,16 @@ model PanelUser {
   company      Company? @relation(fields: [companyId], references: [id])
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+}
+
+// ============ WHATSAPP MESAJ KUYRUĞU ============
+model WhatsAppQueue {
+  id        String    @id @default(cuid())
+  phone     String
+  message   String    @db.Text
+  status    String    @default("pending") // pending, sent, failed
+  createdAt DateTime  @default(now())
+  sentAt    DateTime?
 }
 
 // ============ ÖDEME TAKVİMİ ============

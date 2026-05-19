@@ -11,6 +11,12 @@ export async function POST(req: NextRequest) {
   const { pushToken } = await req.json();
   if (!pushToken) return NextResponse.json({ error: "pushToken zorunlu" }, { status: 400 });
 
+  // Token expiry kontrolü
+  const expiresAt = parseInt(token.split("|")[1] ?? "0");
+  if (expiresAt && Date.now() > expiresAt) {
+    return NextResponse.json({ error: "Oturum süresi doldu" }, { status: 401 });
+  }
+
   await prisma.routePassenger.update({
     where: { veliToken: token },
     data: { parentPushToken: pushToken },

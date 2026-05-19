@@ -21,24 +21,25 @@ async function getData() {
         prisma.driver.findMany({ where: { status: "active", ...cFilter } }),
         prisma.vehicle.findMany({ where: { status: "active", ...cFilter } }),
         prisma.job.findMany({
-          where: { date: { gte: startOfDay(today), lte: endOfDay(today) } },
+          where: { date: { gte: startOfDay(today), lte: endOfDay(today) }, ...cFilter },
           include: { driver: { select: { id: true, name: true } }, vehicle: { select: { id: true, plate: true } } },
           orderBy: { startTime: "asc" },
         }),
         prisma.creditCard.findMany({
-          where: { active: true },
+          where: { active: true, ...cFilter },
           include: { expenses: { select: { amount: true, billingMonth: true, billingYear: true } } },
         }).catch(() => []),
         prisma.check.findMany({
           where: {
             status: "bekliyor",
             dueDate: { lte: new Date(today.getTime() + 7 * 86400000) },
+            ...cFilter,
           },
           include: { contact: { select: { name: true } } },
           orderBy: { dueDate: "asc" },
         }).catch(() => []),
         prisma.invoice.findMany({
-          where: { status: { in: ["bekliyor", "gecikti"] } },
+          where: { status: { in: ["bekliyor", "gecikti"] }, ...cFilter },
           include: { client: { select: { name: true } } },
           orderBy: { dueDate: "asc" },
           take: 20,
@@ -137,7 +138,7 @@ async function getData() {
 export default async function DashboardPage() {
   const data = await getData();
   return (
-    <div className="flex flex-col" style={{ height: "calc(100vh - 0px)" }}>
+    <div className="flex-1 flex flex-col min-h-0">
       <CommandCenter {...data} />
     </div>
   );

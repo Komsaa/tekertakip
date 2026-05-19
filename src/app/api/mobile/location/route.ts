@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
   if (!driver) return NextResponse.json({ error: "Yetkisiz" }, { status: 401 });
 
   const { latitude, longitude } = await req.json();
-  if (!latitude || !longitude)
+  if (latitude == null || longitude == null || typeof latitude !== "number" || typeof longitude !== "number")
     return NextResponse.json({ error: "Konum gerekli" }, { status: 400 });
 
   const now = new Date();
@@ -30,6 +30,11 @@ export async function POST(req: NextRequest) {
   if (secondsSinceLast >= 25) {
     await prisma.driverLocationHistory.create({
       data: { driverId: driver.id, latitude, longitude, timestamp: now },
+    });
+    // 7 günden eski kayıtları temizle
+    const cutoff = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    await prisma.driverLocationHistory.deleteMany({
+      where: { driverId: driver.id, timestamp: { lt: cutoff } },
     });
   }
 
