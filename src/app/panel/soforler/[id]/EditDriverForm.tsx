@@ -25,7 +25,7 @@ export default function EditDriverForm({ driver }: Props) {
       : "",
     address: driver.address ?? "",
     notes: driver.notes ?? "",
-    mobilePin: (driver as any).mobilePin ?? "",
+    mobilePin: "",
     mobileUsername: (driver as any).mobileUsername ?? "",
   });
 
@@ -40,7 +40,10 @@ export default function EditDriverForm({ driver }: Props) {
       const res = await fetch(`/api/drivers/${driver.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          ...form,
+          mobilePin: form.mobilePin.trim() !== "" ? form.mobilePin : undefined,
+        }),
       });
       if (!res.ok) throw new Error();
       toast.success("Kaydedildi!");
@@ -156,7 +159,7 @@ export default function EditDriverForm({ driver }: Props) {
                       type="text"
                       value={form.mobilePin}
                       onChange={(e) => set("mobilePin", e.target.value)}
-                      placeholder="örn: 1234"
+                      placeholder="Değiştirmek için yeni şifre gir"
                     />
                     <p className="text-xs text-slate-400 mt-1">Uygulamaya giriş şifresi</p>
                   </div>
