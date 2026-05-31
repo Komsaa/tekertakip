@@ -29,7 +29,7 @@ type PaymentEvent = {
   title: string;
   day: number;
   amount: number | null;
-  type: string;
+  type?: string | null;
   category: string;
   person: string | null;
   notes: string | null;
@@ -95,7 +95,7 @@ export default function TakvimClient({ initialEvents }: { initialEvents: Payment
 
   // Özet
   const totalGelir = monthEvents.filter(e => e.type === "gelir").reduce((s, e) => s + (e.amount ?? 0), 0);
-  const totalGider = monthEvents.filter(e => e.type !== "gelir").reduce((s, e) => s + (e.amount ?? 0), 0);
+  const totalGider = monthEvents.filter(e => e.type !== "gelir" && e.amount).reduce((s, e) => s + (e.amount ?? 0), 0);
   const netBakiye = totalGelir - totalGider;
   const pendingCount = monthEvents.filter(e => e.status === "bekliyor").length;
   const doneCount = monthEvents.filter(e => e.status === "tamamlandi").length;
@@ -519,7 +519,7 @@ function EventCard({ event, onToggle, onDelete, compact = false }: {
   const c = cat(event.category);
   const isDone = event.status === "tamamlandi";
 
-  const isGelir = event.type === "gelir";
+  const isGelir = (event.type ?? "gider") === "gelir";
 
   if (compact) {
     return (
