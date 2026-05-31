@@ -74,7 +74,7 @@ export default function SimulatorPage() {
       const res = await fetch("/api/mobile/auth", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: driver.mobileUsername, pin }),
+        body: JSON.stringify({ username: driver.mobileUsername, password: pin }),
       });
       const data = await res.json();
       if (!res.ok) { addLog("error", "Giriş başarısız: " + data.error); return; }
