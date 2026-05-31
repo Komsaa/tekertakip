@@ -240,7 +240,7 @@ export default function AdminClient() {
   // Mobile user actions
   function startEditMobileUser(u: MobileUser) {
     setEditingMobileUser(u.id);
-    setEditMobileForm({ mobileUsername: u.mobileUsername ?? "", mobilePin: u.mobilePin ?? "" });
+    setEditMobileForm({ mobileUsername: u.mobileUsername ?? "", mobilePin: "" });
   }
 
   async function saveMobileUser(id: string) {

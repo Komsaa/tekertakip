@@ -20,13 +20,13 @@ export async function GET(req: Request) {
     await prisma.driver.update({
       where: { id: driver.id },
       data: {
-        mobileUsername: "mertturburak",
+        mobileUsername: "testsofor",
         mobilePin: await bcrypt.hash("1234", 10),
         ...(vehicle ? { vehicleId: vehicle.id } : {}),
       },
     });
     results.sofor = {
-      kullaniciAdi: "mertturburak",
+      kullaniciAdi: "testsofor",
       pin: "1234",
       isim: driver.name,
       arac: vehicle?.plate ?? "Araç yok — panelden ekleyin",

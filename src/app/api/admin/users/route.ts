@@ -39,8 +39,8 @@ export async function PUT(req: NextRequest) {
     where: { id },
     data: {
       ...(mobileUsername !== undefined ? { mobileUsername: mobileUsername || null } : {}),
-      ...(mobilePin !== undefined ? {
-        mobilePin: mobilePin ? await bcrypt.hash(mobilePin, 10) : null,
+      ...(mobilePin !== undefined && mobilePin.trim() !== "" ? {
+        mobilePin: await bcrypt.hash(mobilePin.trim(), 10),
       } : {}),
     },
     select: { id: true, name: true, mobileUsername: true, mobilePin: true },

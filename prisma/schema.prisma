@@ -698,6 +698,7 @@ model PaymentCalendar {
   title         String
   day           Int      // ay günü (1-31)
   amount        Float?
+  type          String   @default("gider") // gelir, gider
   category      String   @default("diger") // banka, maas, cek, taksit, hatirlatma, diger
   person        String?
   notes         String?  @db.Text

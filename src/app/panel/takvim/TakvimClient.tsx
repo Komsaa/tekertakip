@@ -5,7 +5,7 @@ import toast from "react-hot-toast";
 import {
   ChevronLeft, ChevronRight, Plus, X, Trash2,
   CheckCircle2, Clock, Calendar, Banknote,
-  Bell, RotateCcw, AlertCircle,
+  Bell, RotateCcw, AlertCircle, TrendingUp, TrendingDown,
 } from "lucide-react";
 import { getDaysInMonth, getDay, startOfMonth } from "date-fns";
 import { formatCurrency } from "@/lib/utils";
@@ -29,6 +29,7 @@ type PaymentEvent = {
   title: string;
   day: number;
   amount: number | null;
+  type: string;
   category: string;
   person: string | null;
   notes: string | null;
@@ -40,7 +41,7 @@ type PaymentEvent = {
 };
 
 type FormState = {
-  title: string; day: string; amount: string; category: string;
+  title: string; day: string; amount: string; type: string; category: string;
   person: string; notes: string; recurring: boolean;
   specificMonth: string; specificYear: string;
 };
@@ -59,8 +60,8 @@ export default function TakvimClient({ initialEvents }: { initialEvents: Payment
   const [loading, setLoading] = useState(false);
   const [addModal, setAddModal] = useState(false);
   const [form, setForm] = useState<FormState>({
-    title: "", day: "", amount: "", category: "banka",
-    person: "", notes: "", recurring: true,
+    title: "", day: String(now.getDate()), amount: "", type: "gider", category: "diger",
+    person: "", notes: "", recurring: false,
     specificMonth: String(now.getMonth() + 1), specificYear: String(now.getFullYear()),
   });
 
@@ -93,7 +94,9 @@ export default function TakvimClient({ initialEvents }: { initialEvents: Payment
   const startOffset = firstDay === 0 ? 6 : firstDay - 1;
 
   // Özet
-  const totalAmount = monthEvents.reduce((s, e) => s + (e.amount ?? 0), 0);
+  const totalGelir = monthEvents.filter(e => e.type === "gelir").reduce((s, e) => s + (e.amount ?? 0), 0);
+  const totalGider = monthEvents.filter(e => e.type !== "gelir").reduce((s, e) => s + (e.amount ?? 0), 0);
+  const netBakiye = totalGelir - totalGider;
   const pendingCount = monthEvents.filter(e => e.status === "bekliyor").length;
   const doneCount = monthEvents.filter(e => e.status === "tamamlandi").length;
   const overdueEvents = isCurrentMonth
@@ -148,13 +151,14 @@ export default function TakvimClient({ initialEvents }: { initialEvents: Payment
         title: form.title.trim(),
         day: parseInt(form.day),
         amount: form.amount ? parseFloat(form.amount) : null,
+        type: form.type,
         category: form.category,
         person: form.person.trim() || null,
         notes: form.notes.trim() || null,
         recurring: form.recurring,
         specificMonth: !form.recurring ? parseInt(form.specificMonth) : null,
         specificYear: !form.recurring ? parseInt(form.specificYear) : null,
-        color: cat(form.category).color,
+        color: form.type === "gelir" ? "#10B981" : "#DC2626",
         status: "bekliyor",
       };
       const res = await fetch("/api/takvim", {
@@ -167,7 +171,7 @@ export default function TakvimClient({ initialEvents }: { initialEvents: Payment
       setEvents(prev => [...prev, newEvent].sort((a, b) => a.day - b.day));
       toast.success("Eklendi!");
       setAddModal(false);
-      setForm({ title: "", day: "", amount: "", category: "banka", person: "", notes: "", recurring: true, specificMonth: String(currentMonth + 1), specificYear: String(currentYear) });
+      setForm({ title: "", day: String(now.getDate()), amount: "", type: "gider", category: "diger", person: "", notes: "", recurring: false, specificMonth: String(currentMonth + 1), specificYear: String(currentYear) });
     } catch { toast.error("Hata"); } finally { setLoading(false); }
   }
 
@@ -215,10 +219,10 @@ export default function TakvimClient({ initialEvents }: { initialEvents: Payment
 
       {/* Özet Kartlar */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <SummaryCard icon={Calendar} label="Toplam Etkinlik" value={String(monthEvents.length)} color="blue" />
+        <SummaryCard icon={TrendingUp} label="Toplam Gelir" value={totalGelir > 0 ? formatCurrency(totalGelir) : "—"} color="green" small />
+        <SummaryCard icon={TrendingDown} label="Toplam Gider" value={totalGider > 0 ? formatCurrency(totalGider) : "—"} color="red" small />
+        <SummaryCard icon={Banknote} label="Net Bakiye" value={totalGelir > 0 || totalGider > 0 ? formatCurrency(netBakiye) : "—"} color={netBakiye >= 0 ? "green" : "red"} small />
         <SummaryCard icon={Clock} label="Bekleyen" value={String(pendingCount)} color="amber" />
-        <SummaryCard icon={CheckCircle2} label="Tamamlanan" value={String(doneCount)} color="green" />
-        <SummaryCard icon={Banknote} label="Toplam Tutar" value={totalAmount > 0 ? formatCurrency(totalAmount) : "—"} color="red" small />
       </div>
 
       {/* Takvim + Yan Panel */}
@@ -278,7 +282,7 @@ export default function TakvimClient({ initialEvents }: { initialEvents: Payment
                         <div
                           key={e.id}
                           className={`w-2 h-2 rounded-full ${e.status === "tamamlandi" ? "opacity-30" : ""}`}
-                          style={{ backgroundColor: cat(e.category).color }}
+                          style={{ backgroundColor: e.type === "gelir" ? "#10B981" : "#DC2626" }}
                         />
                       ))}
                       {dayEvts.length > 3 && (
@@ -406,6 +410,21 @@ export default function TakvimClient({ initialEvents }: { initialEvents: Payment
                 </div>
               </div>
               <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Tür</label>
+                <div className="flex gap-2">
+                  <button type="button" onClick={() => sf("type", "gider")}
+                    className={`flex-1 py-2.5 rounded-xl border text-sm font-semibold transition-all flex items-center justify-center gap-2
+                      ${form.type === "gider" ? "bg-[#DC2626] text-white border-[#DC2626]" : "border-slate-200 text-slate-600 hover:bg-slate-50"}`}>
+                    <TrendingDown className="w-4 h-4" /> Gider (−)
+                  </button>
+                  <button type="button" onClick={() => sf("type", "gelir")}
+                    className={`flex-1 py-2.5 rounded-xl border text-sm font-semibold transition-all flex items-center justify-center gap-2
+                      ${form.type === "gelir" ? "bg-emerald-600 text-white border-emerald-600" : "border-slate-200 text-slate-600 hover:bg-slate-50"}`}>
+                    <TrendingUp className="w-4 h-4" /> Gelir (+)
+                  </button>
+                </div>
+              </div>
+              <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">Kategori</label>
                 <div className="grid grid-cols-3 gap-2">
                   {Object.entries(CATEGORIES).map(([k, v]) => (
@@ -500,15 +519,21 @@ function EventCard({ event, onToggle, onDelete, compact = false }: {
   const c = cat(event.category);
   const isDone = event.status === "tamamlandi";
 
+  const isGelir = event.type === "gelir";
+
   if (compact) {
     return (
       <div className={`flex items-center gap-2 py-1.5 border-b border-slate-50 last:border-0 ${isDone ? "opacity-40" : ""}`}>
-        <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: c.color }} />
+        <div className={`w-2 h-2 rounded-full flex-shrink-0 ${isGelir ? "bg-emerald-500" : "bg-red-500"}`} />
         <span className="text-xs text-slate-400 w-5 flex-shrink-0 font-medium">{event.day}.</span>
         <span className={`text-xs flex-1 truncate ${isDone ? "line-through text-slate-400" : "text-slate-700"}`}>
           {event.title}
         </span>
-        {event.amount && <span className="text-xs font-semibold text-slate-500 flex-shrink-0">{formatCurrency(event.amount)}</span>}
+        {event.amount && (
+          <span className={`text-xs font-semibold flex-shrink-0 ${isGelir ? "text-emerald-600" : "text-red-600"}`}>
+            {isGelir ? "+" : "−"}{formatCurrency(event.amount)}
+          </span>
+        )}
         <button onClick={() => onToggle(event)} title={isDone ? "Geri al" : "Tamamla"}
           className={`flex-shrink-0 transition-colors ${isDone ? "text-green-500" : "text-slate-300 hover:text-green-500"}`}>
           <CheckCircle2 className="w-3.5 h-3.5" />
@@ -520,12 +545,15 @@ function EventCard({ event, onToggle, onDelete, compact = false }: {
   return (
     <div className={`rounded-xl border p-4 transition-all ${isDone ? "opacity-60 bg-slate-50 border-slate-100" : "bg-white border-slate-100 shadow-sm"}`}>
       <div className="flex items-start gap-3">
-        <div className="w-3 h-3 rounded-full mt-1 flex-shrink-0" style={{ backgroundColor: c.color }} />
+        <div className={`w-3 h-3 rounded-full mt-1 flex-shrink-0 ${isGelir ? "bg-emerald-500" : "bg-red-500"}`} />
         <div className="flex-1 min-w-0">
           <div className={`text-sm font-semibold ${isDone ? "line-through text-slate-400" : "text-slate-800"}`}>
             {event.title}
           </div>
           <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${isGelir ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"}`}>
+              {isGelir ? "Gelir" : "Gider"}
+            </span>
             <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${c.light}`}>{c.label}</span>
             {event.person && <span className="text-xs text-slate-400">{event.person}</span>}
             {event.recurring
@@ -534,7 +562,9 @@ function EventCard({ event, onToggle, onDelete, compact = false }: {
             }
           </div>
           {event.amount && (
-            <div className="mt-1.5 text-base font-black text-slate-700">{formatCurrency(event.amount)}</div>
+            <div className={`mt-1.5 text-base font-black ${isGelir ? "text-emerald-600" : "text-red-600"}`}>
+              {isGelir ? "+" : "−"}{formatCurrency(event.amount)}
+            </div>
           )}
           {event.notes && <div className="mt-1 text-xs text-slate-400 italic">{event.notes}</div>}
         </div>
