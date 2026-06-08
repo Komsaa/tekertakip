@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { getCompanyId, tenantWhere, tenantData } from "@/lib/tenant";
 import TakvimClient from "./TakvimClient";
 
 const SEED_DATA = [
@@ -31,12 +32,17 @@ export default async function TakvimPage() {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login");
 
-  const count = await prisma.paymentCalendar.count();
+  const companyId = getCompanyId(session);
+
+  const count = await prisma.paymentCalendar.count({ where: tenantWhere(companyId) });
   if (count === 0) {
-    await prisma.paymentCalendar.createMany({ data: SEED_DATA });
+    await prisma.paymentCalendar.createMany({
+      data: SEED_DATA.map(d => ({ ...d, ...tenantData(companyId) })),
+    });
   }
 
   const events = await prisma.paymentCalendar.findMany({
+    where: tenantWhere(companyId),
     orderBy: { day: "asc" },
   });
 
