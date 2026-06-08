@@ -2,11 +2,18 @@
 
 import { useEffect, useRef, useCallback } from "react";
 
+type BoardingInfo = {
+  total: number;
+  boarded: number;
+  passengers: { name: string; boarded: boolean }[];
+} | null;
+
 type DriverLocation = {
   id: string; name: string;
   latitude: number; longitude: number;
   lastLocationAt: string; isTracking: boolean;
   vehicle: { plate: string } | null;
+  boardingInfo: BoardingInfo;
 };
 
 interface Props {
@@ -38,19 +45,67 @@ export default function CommandCenterMap({ onDriversLoad }: Props) {
     data.forEach((d) => {
       const active = d.isTracking && isRecent(d.lastLocationAt);
       const color = active ? "#16a34a" : "#94a3b8";
+      const bi = d.boardingInfo;
+
+      const badge = bi
+        ? `<div style="position:absolute;top:-7px;right:-14px;background:${bi.boarded >= bi.total && bi.total > 0 ? "#16a34a" : "#DC2626"};color:white;border-radius:8px;padding:1px 5px;font-size:9px;font-weight:900;border:1.5px solid white;white-space:nowrap;z-index:10">${bi.boarded}/${bi.total}</div>`
+        : "";
+
+      const plate = d.vehicle
+        ? `<div style="background:#1B2437;color:white;border-radius:4px;padding:2px 5px;font-size:9px;font-weight:800;margin-top:3px;letter-spacing:0.5px;box-shadow:0 1px 4px rgba(0,0,0,0.4);white-space:nowrap">${d.vehicle.plate}</div>`
+        : "";
+
+      const html = `
+        <div style="display:flex;flex-direction:column;align-items:center;width:64px">
+          <div style="position:relative;width:36px;height:36px">
+            <div style="background:${color};width:36px;height:36px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center">
+              <span style="transform:rotate(45deg);font-size:14px">🚌</span>
+            </div>
+            ${badge}
+          </div>
+          ${plate}
+        </div>`;
+
       const icon = L.divIcon({
         className: "",
-        html: `<div style="background:${color};width:38px;height:38px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center"><div style="transform:rotate(45deg);font-size:15px">🚌</div></div>`,
-        iconSize: [38, 38], iconAnchor: [19, 38], popupAnchor: [0, -42],
+        html,
+        iconSize: [64, 54],
+        iconAnchor: [32, 36],
+        popupAnchor: [0, -40],
+        tooltipAnchor: [20, -20],
       });
-      const popup = `<div style="font-family:sans-serif;min-width:150px">
-        <div style="font-weight:800;font-size:14px;margin-bottom:3px">${d.name}</div>
-        ${d.vehicle ? `<div style="color:#DC2626;font-weight:700;margin-bottom:3px">${d.vehicle.plate}</div>` : ""}
-        <div style="font-size:11px;color:${active ? "#16a34a" : "#94a3b8"}">
-          ${active ? "● Aktif" : "○ Pasif"} · ${timeSince(d.lastLocationAt)} önce
-        </div></div>`;
-      markers.current[d.id] = L.marker([d.latitude, d.longitude], { icon })
-        .addTo(leafletMap.current).bindPopup(popup);
+
+      const popup = `
+        <div style="font-family:sans-serif;min-width:150px">
+          <div style="font-weight:800;font-size:14px;margin-bottom:3px">${d.name}</div>
+          ${d.vehicle ? `<div style="color:#DC2626;font-weight:700;margin-bottom:3px">${d.vehicle.plate}</div>` : ""}
+          <div style="font-size:11px;color:${active ? "#16a34a" : "#94a3b8"}">
+            ${active ? "● Aktif" : "○ Pasif"} · ${timeSince(d.lastLocationAt)} önce
+          </div>
+        </div>`;
+
+      const marker = L.marker([d.latitude, d.longitude], { icon })
+        .addTo(leafletMap.current)
+        .bindPopup(popup);
+
+      if (bi) {
+        const rows = bi.passengers
+          .map(p => `<div style="display:flex;align-items:center;gap:6px;padding:1.5px 0;font-size:11px">
+            <span style="color:${p.boarded ? "#16a34a" : "#DC2626"};font-weight:700">${p.boarded ? "✓" : "○"}</span>
+            <span style="color:${p.boarded ? "#1e293b" : "#94a3b8"}">${p.name}</span>
+          </div>`)
+          .join("");
+        const tooltip = `
+          <div style="font-family:sans-serif;min-width:170px;max-width:220px">
+            <div style="font-weight:800;font-size:12px;margin-bottom:6px;color:#1e293b">
+              👥 ${bi.boarded}/${bi.total} öğrenci bindi
+            </div>
+            ${rows}
+          </div>`;
+        marker.bindTooltip(tooltip, { direction: "top", offset: [0, -38], opacity: 1 });
+      }
+
+      markers.current[d.id] = marker;
     });
 
     if (data.length > 0) {

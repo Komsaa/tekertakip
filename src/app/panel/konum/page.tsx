@@ -3,6 +3,12 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { MapPin, RefreshCw, Wifi, WifiOff } from "lucide-react";
 
+type BoardingInfo = {
+  total: number;
+  boarded: number;
+  passengers: { name: string; boarded: boolean }[];
+} | null;
+
 type DriverLocation = {
   id: string;
   name: string;
@@ -11,7 +17,71 @@ type DriverLocation = {
   lastLocationAt: string;
   isTracking: boolean;
   vehicle: { plate: string } | null;
+  boardingInfo: BoardingInfo;
 };
+
+function buildIcon(L: any, d: DriverLocation) {
+  const active = d.isTracking && isRecent(d.lastLocationAt);
+  const color = active ? "#16a34a" : "#94a3b8";
+  const bi = d.boardingInfo;
+
+  const badge = bi
+    ? `<div style="position:absolute;top:-7px;right:-14px;background:${bi.boarded >= bi.total && bi.total > 0 ? "#16a34a" : "#DC2626"};color:white;border-radius:8px;padding:1px 5px;font-size:9px;font-weight:900;border:1.5px solid white;white-space:nowrap;z-index:10">${bi.boarded}/${bi.total}</div>`
+    : "";
+
+  const plate = d.vehicle
+    ? `<div style="background:#1B2437;color:white;border-radius:4px;padding:2px 5px;font-size:9px;font-weight:800;margin-top:3px;letter-spacing:0.5px;box-shadow:0 1px 4px rgba(0,0,0,0.4);white-space:nowrap">${d.vehicle.plate}</div>`
+    : "";
+
+  const html = `
+    <div style="display:flex;flex-direction:column;align-items:center;width:64px">
+      <div style="position:relative;width:36px;height:36px">
+        <div style="background:${color};width:36px;height:36px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.35);display:flex;align-items:center;justify-content:center">
+          <span style="transform:rotate(45deg);font-size:14px">🚌</span>
+        </div>
+        ${badge}
+      </div>
+      ${plate}
+    </div>`;
+
+  return L.divIcon({
+    className: "",
+    html,
+    iconSize: [64, 54],
+    iconAnchor: [32, 36],
+    popupAnchor: [0, -40],
+    tooltipAnchor: [20, -20],
+  });
+}
+
+function buildPopup(d: DriverLocation) {
+  const active = d.isTracking && isRecent(d.lastLocationAt);
+  const ago = timeSince(d.lastLocationAt);
+  return `
+    <div style="font-family:sans-serif;min-width:160px">
+      <div style="font-weight:800;font-size:15px;margin-bottom:3px">${d.name}</div>
+      ${d.vehicle ? `<div style="color:#DC2626;font-weight:700;margin-bottom:3px">${d.vehicle.plate}</div>` : ""}
+      <div style="font-size:12px;color:${active ? "#16a34a" : "#94a3b8"}">${active ? "● Aktif" : "○ Pasif"} · ${ago}</div>
+    </div>`;
+}
+
+function buildTooltip(d: DriverLocation) {
+  const bi = d.boardingInfo;
+  if (!bi) return null;
+  const rows = bi.passengers
+    .map(p => `<div style="display:flex;align-items:center;gap:6px;padding:1.5px 0;font-size:11px">
+      <span style="color:${p.boarded ? "#16a34a" : "#DC2626"};font-weight:700">${p.boarded ? "✓" : "○"}</span>
+      <span style="color:${p.boarded ? "#1e293b" : "#94a3b8"}">${p.name}</span>
+    </div>`)
+    .join("");
+  return `
+    <div style="font-family:sans-serif;min-width:170px;max-width:220px">
+      <div style="font-weight:800;font-size:12px;margin-bottom:6px;color:#1e293b">
+        👥 ${bi.boarded}/${bi.total} öğrenci bindi
+      </div>
+      ${rows}
+    </div>`;
+}
 
 export default function KonumPage() {
   const mapRef = useRef<HTMLDivElement>(null);
@@ -39,47 +109,22 @@ export default function KonumPage() {
     if (!leafletMap.current) return;
     const L = (window as any).L;
 
-    // Var olan markerları temizle
     Object.values(markers.current).forEach((m: any) => m.remove());
     markers.current = {};
 
     data.forEach((d) => {
-      const isActive = d.isTracking && isRecent(d.lastLocationAt);
-      const color = isActive ? "#16a34a" : "#94a3b8";
-
-      const icon = L.divIcon({
-        className: "",
-        html: `<div style="
-          background:${color};
-          width:36px;height:36px;border-radius:50% 50% 50% 0;
-          transform:rotate(-45deg);border:3px solid white;
-          box-shadow:0 2px 8px rgba(0,0,0,0.3);
-          display:flex;align-items:center;justify-content:center;
-        "><div style="transform:rotate(45deg);color:white;font-size:14px;font-weight:700">🚌</div></div>`,
-        iconSize: [36, 36],
-        iconAnchor: [18, 36],
-        popupAnchor: [0, -40],
-      });
-
-      const ago = timeSince(d.lastLocationAt);
-      const popup = `
-        <div style="font-family:sans-serif;min-width:160px">
-          <div style="font-weight:700;font-size:15px;margin-bottom:4px">${d.name}</div>
-          ${d.vehicle ? `<div style="color:#DC2626;font-weight:600;margin-bottom:4px">${d.vehicle.plate}</div>` : ""}
-          <div style="font-size:12px;color:${isActive ? "#16a34a" : "#94a3b8"}">
-            ${isActive ? "● Aktif" : "○ Pasif"} · ${ago}
-          </div>
-        </div>
-      `;
-
-      const marker = L.marker([d.latitude, d.longitude], { icon })
+      const tooltip = buildTooltip(d);
+      const marker = L.marker([d.latitude, d.longitude], { icon: buildIcon(L, d) })
         .addTo(leafletMap.current)
-        .bindPopup(popup);
+        .bindPopup(buildPopup(d));
+
+      if (tooltip) {
+        marker.bindTooltip(tooltip, { direction: "top", offset: [0, -38], opacity: 1 });
+      }
 
       markers.current[d.id] = marker;
     });
 
-    // İlk yüklemede haritayı konumlara göre ayarla
     if (data.length > 0 && Object.keys(markers.current).length > 0) {
       const group = L.featureGroup(Object.values(markers.current));
       leafletMap.current.fitBounds(group.getBounds().pad(0.3));
@@ -87,7 +132,6 @@ export default function KonumPage() {
   }
 
   useEffect(() => {
-    // Leaflet CSS yükle
     if (!document.getElementById("leaflet-css")) {
       const link = document.createElement("link");
       link.id = "leaflet-css";
@@ -96,7 +140,6 @@ export default function KonumPage() {
       document.head.appendChild(link);
     }
 
-    // Leaflet JS yükle
     if ((window as any).L) {
       initMap();
     } else {
@@ -121,22 +164,10 @@ export default function KonumPage() {
     return () => clearInterval(interval);
   }, [fetchLocations]);
 
-  function isRecent(dateStr: string) {
-    return Date.now() - new Date(dateStr).getTime() < 5 * 60 * 1000; // 5 dakika
-  }
-
-  function timeSince(dateStr: string) {
-    const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
-    if (diff < 60) return `${diff}sn önce`;
-    if (diff < 3600) return `${Math.floor(diff / 60)}dk önce`;
-    return `${Math.floor(diff / 3600)}sa önce`;
-  }
-
   const activeCount = drivers.filter((d) => d.isTracking && isRecent(d.lastLocationAt)).length;
 
   return (
     <div className="flex flex-col h-full">
-      {/* Üst bar */}
       <div className="flex items-center justify-between px-6 py-4 bg-white border-b border-slate-200">
         <div className="flex items-center gap-3">
           <MapPin className="w-5 h-5 text-[#DC2626]" />
@@ -163,10 +194,8 @@ export default function KonumPage() {
       </div>
 
       <div className="flex flex-1 overflow-hidden">
-        {/* Harita */}
         <div ref={mapRef} className="flex-1" style={{ minHeight: 400 }} />
 
-        {/* Şöför listesi */}
         <div className="w-64 bg-white border-l border-slate-200 overflow-y-auto flex-shrink-0">
           <div className="p-4 border-b border-slate-100">
             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Şöförler</p>
@@ -195,13 +224,18 @@ export default function KonumPage() {
                     ) : (
                       <WifiOff className="w-3.5 h-3.5 text-slate-300 flex-shrink-0" />
                     )}
-                    <div>
+                    <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-slate-700">{d.name}</p>
                       {d.vehicle && (
                         <p className="text-xs text-[#DC2626] font-medium">{d.vehicle.plate}</p>
                       )}
                       <p className="text-xs text-slate-400">{timeSince(d.lastLocationAt)}</p>
                     </div>
+                    {d.boardingInfo && (
+                      <div className={`flex-shrink-0 text-xs font-bold px-2 py-0.5 rounded-full ${d.boardingInfo.boarded >= d.boardingInfo.total && d.boardingInfo.total > 0 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-600"}`}>
+                        {d.boardingInfo.boarded}/{d.boardingInfo.total}
+                      </div>
+                    )}
                   </div>
                 </button>
               );
@@ -211,4 +245,15 @@ export default function KonumPage() {
       </div>
     </div>
   );
+}
+
+function isRecent(dateStr: string) {
+  return Date.now() - new Date(dateStr).getTime() < 5 * 60 * 1000;
+}
+
+function timeSince(dateStr: string) {
+  const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
+  if (diff < 60) return `${diff}sn önce`;
+  if (diff < 3600) return `${Math.floor(diff / 60)}dk önce`;
+  return `${Math.floor(diff / 3600)}sa önce`;
 }
