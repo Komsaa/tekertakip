@@ -9,13 +9,28 @@ import { randomBytes } from "crypto";
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   const stopId = req.nextUrl.searchParams.get("stopId");
-  if (!stopId) return NextResponse.json({ error: "stopId zorunlu" }, { status: 400 });
-  const passengers = await prisma.routePassenger.findMany({
-    where: { stopId },
-    orderBy: { order: "asc" },
-  });
-  return NextResponse.json(passengers);
+  const routeId = req.nextUrl.searchParams.get("routeId");
+
+  if (stopId) {
+    const passengers = await prisma.routePassenger.findMany({
+      where: { stopId },
+      orderBy: { order: "asc" },
+    });
+    return NextResponse.json(passengers);
+  }
+
+  if (routeId) {
+    const passengers = await prisma.routePassenger.findMany({
+      where: { stop: { routeId } },
+      include: { stop: { select: { id: true, name: true, order: true } } },
+      orderBy: [{ stop: { order: "asc" } }, { order: "asc" }],
+    });
+    return NextResponse.json(passengers);
+  }
+
+  return NextResponse.json({ error: "stopId veya routeId zorunlu" }, { status: 400 });
 }
 
 function slugify(name: string) {
@@ -101,6 +116,23 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json({ ...passenger, veliPassword }, { status: 201 });
+}
+
+export async function PATCH(req: NextRequest) {
+  const session = await getServerSession(authOptions);
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const { id, stopId, name, parentName, parentPhone } = await req.json();
+  if (!id) return NextResponse.json({ error: "id zorunlu" }, { status: 400 });
+  const updated = await prisma.routePassenger.update({
+    where: { id },
+    data: {
+      ...(stopId && { stopId }),
+      ...(name !== undefined && { name }),
+      ...(parentName !== undefined && { parentName }),
+      ...(parentPhone !== undefined && { parentPhone }),
+    },
+  });
+  return NextResponse.json(updated);
 }
 
 export async function DELETE(req: NextRequest) {

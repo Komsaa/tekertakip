@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, MapPin, Trash2, Edit2, CheckCircle, Clock, ChevronDown, ChevronUp, Search, X, GripVertical, Link2, Sparkles } from "lucide-react";
+import { Plus, MapPin, Trash2, Edit2, CheckCircle, Clock, ChevronDown, ChevronUp, Search, X, GripVertical, Link2, Sparkles, Users } from "lucide-react";
 import toast from "react-hot-toast";
 import { computeLiveStatus, type RouteStop } from "@/lib/routeStatus";
 import RouteMap from "@/components/RouteMap";
@@ -71,7 +71,7 @@ export default function GuzergahlarClient({
   const [passengerSaving, setPassengerSaving] = useState(false);
 
   // Veli giriş bilgisi
-  const [credModal, setCredModal] = useState<{ name: string; veliUsername: string; veliPassword: string } | null>(null);
+  const [credModal, setCredModal] = useState<{ name: string; veliUsername: string; veliPassword: string; parentPhone?: string | null } | null>(null);
   const [credLoading, setCredLoading] = useState<string | null>(null); // passengerId
 
   async function loadPassengers(stopId: string) {
@@ -104,7 +104,7 @@ export default function GuzergahlarClient({
       loadPassengers(stopId);
       // Otomatik oluşturulan veli bilgilerini göster
       if (data.veliUsername && data.veliPassword) {
-        setCredModal({ name: newPassengerName, veliUsername: data.veliUsername, veliPassword: data.veliPassword });
+        setCredModal({ name: newPassengerName, veliUsername: data.veliUsername, veliPassword: data.veliPassword, parentPhone: newPassengerParentPhone });
       }
     }
   }
@@ -129,7 +129,8 @@ export default function GuzergahlarClient({
       });
       const data = await res.json();
       if (!res.ok) { toast.error(data.error ?? "Hata"); return; }
-      setCredModal({ name: passengerName, veliUsername: data.veliUsername, veliPassword: data.veliPassword });
+      const parentPhone = passengers[stopId]?.find((p) => p.id === passengerId)?.parentPhone;
+      setCredModal({ name: passengerName, veliUsername: data.veliUsername, veliPassword: data.veliPassword, parentPhone });
       loadPassengers(stopId);
     } catch {
       toast.error("Bağlantı hatası");
@@ -344,6 +345,14 @@ export default function GuzergahlarClient({
                 </div>
 
                 <div className="flex items-center gap-2 flex-shrink-0">
+                  <button
+                    onClick={() => router.push(`/panel/guzergahlar/${r.id}/ogrenciler`)}
+                    className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 font-medium transition-colors"
+                    title="Öğrenci listesi"
+                  >
+                    <Users className="w-3.5 h-3.5" />
+                    Öğrenciler
+                  </button>
                   <button onClick={() => setExpandedId(isExpanded ? null : r.id)} className="p-2 text-slate-400 hover:text-slate-600">
                     {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                   </button>
@@ -753,16 +762,29 @@ export default function GuzergahlarClient({
                 >Kopyala</button>
               </div>
             </div>
-            <button
-              onClick={() => {
-                const text = `Servis Takip Girişi\nKullanıcı: ${credModal.veliUsername}\nŞifre: ${credModal.veliPassword}`;
-                navigator.clipboard.writeText(text);
-                toast.success("WhatsApp mesajı kopyalandı");
-              }}
-              className="w-full bg-green-600 hover:bg-green-700 text-white rounded-xl py-2.5 text-sm font-semibold"
-            >
-              WhatsApp Mesajını Kopyala
-            </button>
+            {credModal.parentPhone ? (
+              <button
+                onClick={() => {
+                  const phone = credModal.parentPhone!.replace(/\D/g, "").replace(/^0/, "90");
+                  const text = `Merhaba, ${credModal.name} öğrencisi için TékerTakip servis takip uygulaması hesabınız oluşturuldu.\n\nKullanıcı Adı: ${credModal.veliUsername}\nŞifre: ${credModal.veliPassword}\n\niOS: https://apps.apple.com/tr/app/id6770069894\n\nUygulamayı indirip bu bilgilerle giriş yapabilirsiniz.`;
+                  window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`, "_blank");
+                }}
+                className="w-full bg-green-600 hover:bg-green-700 text-white rounded-xl py-2.5 text-sm font-semibold"
+              >
+                WhatsApp&apos;ta Gönder
+              </button>
+            ) : (
+              <button
+                onClick={() => {
+                  const text = `Merhaba, ${credModal.name} öğrencisi için TékerTakip servis takip uygulaması hesabınız oluşturuldu.\n\nKullanıcı Adı: ${credModal.veliUsername}\nŞifre: ${credModal.veliPassword}\n\niOS: https://apps.apple.com/tr/app/id6770069894\n\nUygulamayı indirip bu bilgilerle giriş yapabilirsiniz.`;
+                  navigator.clipboard.writeText(text);
+                  toast.success("Mesaj kopyalandı");
+                }}
+                className="w-full bg-green-600 hover:bg-green-700 text-white rounded-xl py-2.5 text-sm font-semibold"
+              >
+                Mesajı Kopyala
+              </button>
+            )}
             <button onClick={() => setCredModal(null)} className="w-full text-sm text-slate-500 hover:text-slate-700">Kapat</button>
           </div>
         </div>

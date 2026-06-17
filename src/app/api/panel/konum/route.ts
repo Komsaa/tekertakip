@@ -44,7 +44,7 @@ export async function GET() {
   const schoolDriverIds = drivers.filter(d => d.routes.length > 0).map(d => d.id);
 
   const boardingRecords = schoolDriverIds.length > 0
-    ? await prisma.boardingRecord.findMany({
+    ? await prisma.tripAttendance.findMany({
         where: { driverId: { in: schoolDriverIds }, date: today },
         select: { driverId: true, passengerId: true, status: true },
       })
