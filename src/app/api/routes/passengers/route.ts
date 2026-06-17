@@ -121,7 +121,7 @@ export async function POST(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const { id, stopId, name, parentName, parentPhone } = await req.json();
+  const { id, stopId, name, parentName, parentPhone, monthlyFee } = await req.json();
   if (!id) return NextResponse.json({ error: "id zorunlu" }, { status: 400 });
   const updated = await prisma.routePassenger.update({
     where: { id },
@@ -130,6 +130,7 @@ export async function PATCH(req: NextRequest) {
       ...(name !== undefined && { name }),
       ...(parentName !== undefined && { parentName }),
       ...(parentPhone !== undefined && { parentPhone }),
+      ...(monthlyFee !== undefined && { monthlyFee: monthlyFee === "" ? null : parseFloat(monthlyFee) }),
     },
   });
   return NextResponse.json(updated);

@@ -512,8 +512,26 @@ model RoutePassenger {
   veliToken        String?    @unique
   veliUsername     String?    @unique  // veli panel girişi için kullanıcı adı
   veliPasswordHash String?             // bcrypt hash
+  monthlyFee       Float?              // aylık servis ücreti
   attendances      TripAttendance[]
+  payments         PassengerPayment[]
   createdAt        DateTime   @default(now())
+}
+
+model PassengerPayment {
+  id          String         @id @default(cuid())
+  passengerId String
+  passenger   RoutePassenger @relation(fields: [passengerId], references: [id], onDelete: Cascade)
+  month       Int            // 1-12
+  year        Int
+  amount      Float
+  paid        Boolean        @default(false)
+  paidAt      DateTime?
+  notes       String?
+  companyId   String?
+  createdAt   DateTime       @default(now())
+
+  @@unique([passengerId, month, year])
 }
 
 model TripAttendance {
