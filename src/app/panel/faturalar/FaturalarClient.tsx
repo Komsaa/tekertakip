@@ -417,108 +417,75 @@ function PdfUploadModal({ clients, routes, onClose, onSaved }: {
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const today = new Date().toISOString().split("T")[0];
   const [file, setFile] = useState<File | null>(null);
-  const [analyzing, setAnalyzing] = useState(false);
-  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({
-    invoiceNo: "",
-    clientId: "",
-    clientName: "",
-    routeId: "",
-    issueDate: "",
-    dueDate: "",
-    periodStart: "",
-    periodEnd: "",
-    tripCount: "",
-    unitPrice: "",
-    subtotal: "",
-    kdvRate: "",
-    kdvAmount: "",
-    tevkifatRate: "",
-    tevkifatAmount: "",
-    totalAmount: "",
-    payableAmount: "",
-    notes: "",
-  });
+  const [clientId, setClientId] = useState("");
+  const [routeId, setRouteId] = useState("");
+  const [invoiceNo, setInvoiceNo] = useState("");
+  const [issueDate, setIssueDate] = useState(today);
+  const [dueDate, setDueDate] = useState(today);
+  const [periodStart, setPeriodStart] = useState(today);
+  const [periodEnd, setPeriodEnd] = useState(today);
+  const [tripCount, setTripCount] = useState("0");
+  const [unitPrice, setUnitPrice] = useState("0");
+  const [kdvRate, setKdvRate] = useState("20");
+  const [tevkifatRate, setTevkifatRate] = useState("50");
+  const [notes, setNotes] = useState("");
 
-  const setF = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
-
-  async function analyze() {
-    if (!file) return;
-    setAnalyzing(true);
-    try {
-      const fd = new FormData();
-      fd.append("file", file);
-      const res = await fetch("/api/invoices/parse-pdf", { method: "POST", body: fd });
-      const data = await res.json();
-      if (data.pdfUrl) setPdfUrl(data.pdfUrl);
-      if (data.parsed) {
-        const p = data.parsed;
-        // Try to match clientName to existing client
-        let matchedClientId = "";
-        if (p.clientName) {
-          const lower = p.clientName.toLowerCase();
-          const match = clients.find(c => c.name.toLowerCase().includes(lower) || lower.includes(c.name.toLowerCase()));
-          if (match) matchedClientId = match.id;
-        }
-        setForm(f => ({
-          ...f,
-          invoiceNo: p.invoiceNo ?? f.invoiceNo,
-          clientId: matchedClientId || f.clientId,
-          clientName: p.clientName ?? "",
-          issueDate: p.issueDate ?? f.issueDate,
-          dueDate: p.dueDate ?? f.dueDate,
-          periodStart: p.periodStart ?? f.periodStart,
-          periodEnd: p.periodEnd ?? f.periodEnd,
-          tripCount: p.tripCount != null ? String(p.tripCount) : f.tripCount,
-          unitPrice: p.unitPrice != null ? String(p.unitPrice) : f.unitPrice,
-          subtotal: p.subtotal != null ? String(p.subtotal) : f.subtotal,
-          kdvRate: p.kdvRate != null ? String(p.kdvRate) : f.kdvRate,
-          kdvAmount: p.kdvAmount != null ? String(p.kdvAmount) : f.kdvAmount,
-          tevkifatRate: p.tevkifatRate != null ? String(p.tevkifatRate) : f.tevkifatRate,
-          tevkifatAmount: p.tevkifatAmount != null ? String(p.tevkifatAmount) : f.tevkifatAmount,
-          totalAmount: p.totalAmount != null ? String(p.totalAmount) : f.totalAmount,
-          payableAmount: p.payableAmount != null ? String(p.payableAmount) : f.payableAmount,
-          notes: p.notes ?? f.notes,
-        }));
-        toast.success("Fatura verileri çıkarıldı — kontrol edin");
-      } else {
-        toast.error(data.error ?? "Fatura verisi okunamadı");
-      }
-    } catch { toast.error("Analiz başarısız"); }
-    finally { setAnalyzing(false); }
+  // Seçili firmadan varsayılanları doldur
+  function onClientChange(id: string) {
+    setClientId(id);
+    const c = clients.find(cl => cl.id === id);
+    if (c) {
+      setUnitPrice(String(c.unitPrice));
+      setKdvRate(String(c.kdvRate));
+      setTevkifatRate(String(c.tevkifatRate));
+    }
   }
 
+  // Canlı hesaplama
+  const subtotal = parseFloat(tripCount || "0") * parseFloat(unitPrice || "0");
+  const kdvAmount = subtotal * (parseFloat(kdvRate || "0") / 100);
+  const tevkifatAmount = kdvAmount * (parseFloat(tevkifatRate || "0") / 100);
+  const totalAmount = subtotal + kdvAmount;
+  const payableAmount = totalAmount - tevkifatAmount;
+
+  useEffect(() => {
+    fetch("/api/invoices/next-no").then(r => r.json()).then(d => setInvoiceNo(d.invoiceNo ?? ""));
+  }, []);
+
   async function handleSave() {
-    if (!form.clientId) { toast.error("Firma seçiniz"); return; }
-    if (!form.invoiceNo) { toast.error("Fatura no zorunlu"); return; }
+    if (!clientId) { toast.error("Firma seçiniz"); return; }
+    if (!invoiceNo.trim()) { toast.error("Fatura no zorunlu"); return; }
     setSaving(true);
     try {
-      const n = (s: string) => parseFloat(s) || 0;
+      let pdfUrl: string | null = null;
+      if (file) {
+        const fd = new FormData();
+        fd.append("file", file);
+        const upRes = await fetch("/api/invoices/parse-pdf", { method: "POST", body: fd });
+        const upData = await upRes.json();
+        if (upData.pdfUrl) pdfUrl = upData.pdfUrl;
+        else toast("PDF yüklenemedi, fatura yine de kaydediliyor");
+      }
       const res = await fetch("/api/invoices", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          invoiceNo: form.invoiceNo,
-          clientId: form.clientId,
-          issueDate: form.issueDate || new Date().toISOString().split("T")[0],
-          dueDate: form.dueDate || new Date().toISOString().split("T")[0],
-          periodStart: form.periodStart || form.issueDate || new Date().toISOString().split("T")[0],
-          periodEnd: form.periodEnd || form.dueDate || new Date().toISOString().split("T")[0],
-          tripCount: n(form.tripCount),
-          unitPrice: n(form.unitPrice),
-          kdvRate: n(form.kdvRate),
-          tevkifatRate: n(form.tevkifatRate),
-          notes: form.notes || null,
-          routeId: form.routeId || null,
-          pdfUrl: pdfUrl || null,
-          // Pass pre-calculated amounts directly (override API calc)
-          _subtotal: n(form.subtotal),
-          _kdvAmount: n(form.kdvAmount),
-          _tevkifatAmount: n(form.tevkifatAmount),
-          _totalAmount: n(form.totalAmount),
-          _payableAmount: n(form.payableAmount),
+          invoiceNo,
+          clientId,
+          issueDate,
+          dueDate,
+          periodStart,
+          periodEnd,
+          tripCount: parseFloat(tripCount) || 0,
+          unitPrice: parseFloat(unitPrice) || 0,
+          kdvRate: parseFloat(kdvRate) || 0,
+          tevkifatRate: parseFloat(tevkifatRate) || 0,
+          notes: notes || null,
+          routeId: routeId || null,
+          pdfUrl,
         }),
       });
       if (!res.ok) throw new Error();
@@ -534,139 +501,121 @@ function PdfUploadModal({ clients, routes, onClose, onSaved }: {
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl relative z-10 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-6 border-b border-slate-100">
           <div>
-            <h2 className="text-lg font-bold text-slate-800">PDF'den Fatura Yükle</h2>
-            <p className="text-sm text-slate-500">PDF veya görüntü yükle, Gemini AI otomatik doldurur</p>
+            <h2 className="text-lg font-bold text-slate-800">Fatura Ekle</h2>
+            <p className="text-sm text-slate-500">PDF ekleyebilir veya sadece bilgileri girebilirsiniz</p>
           </div>
           <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100"><X className="w-5 h-5" /></button>
         </div>
         <div className="p-6 space-y-4">
-          {/* Dosya seçimi */}
-          <div className="border-2 border-dashed border-slate-200 rounded-xl p-5 text-center">
+          {/* PDF dosyası — isteğe bağlı */}
+          <div className="border-2 border-dashed border-slate-200 rounded-xl p-4">
             {file ? (
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2 text-sm text-slate-700 min-w-0">
                   <FileText className="w-5 h-5 text-blue-500 flex-shrink-0" />
-                  <span className="truncate">{file.name}</span>
+                  <span className="truncate font-medium">{file.name}</span>
                 </div>
-                <button
-                  onClick={analyze}
-                  disabled={analyzing}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white rounded-xl text-sm font-semibold flex-shrink-0"
-                >
-                  <TrendingUp className="w-4 h-4" />
-                  {analyzing ? "Analiz ediliyor..." : "Analiz Et"}
-                </button>
+                <label className="cursor-pointer text-xs text-slate-400 hover:text-slate-600 flex-shrink-0">
+                  Değiştir
+                  <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={e => setFile(e.target.files?.[0] ?? null)} />
+                </label>
               </div>
             ) : (
-              <label className="cursor-pointer block">
-                <Upload className="w-8 h-8 mx-auto text-slate-300 mb-2" />
-                <p className="text-sm text-slate-500">PDF veya görüntü seçin</p>
-                <p className="text-xs text-slate-400 mt-0.5">JPG, PNG, PDF desteklenir</p>
-                <input
-                  type="file"
-                  accept=".pdf,.jpg,.jpeg,.png"
-                  className="hidden"
-                  onChange={e => setFile(e.target.files?.[0] ?? null)}
-                />
+              <label className="cursor-pointer flex items-center gap-3">
+                <Upload className="w-6 h-6 text-slate-300 flex-shrink-0" />
+                <div>
+                  <p className="text-sm text-slate-500 font-medium">PDF ekle (isteğe bağlı)</p>
+                  <p className="text-xs text-slate-400">PDF, JPG veya PNG</p>
+                </div>
+                <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={e => setFile(e.target.files?.[0] ?? null)} />
               </label>
             )}
           </div>
 
-          {pdfUrl && (
-            <a href={pdfUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-xs text-blue-600 hover:underline">
-              <ExternalLink className="w-3.5 h-3.5" /> Yüklenen dosyayı görüntüle
-            </a>
-          )}
-
-          {/* Form alanları — Gemini sonrası doluyor */}
+          {/* Form */}
           <div className="grid grid-cols-2 gap-3">
-            <div>
+            <div className="col-span-2 sm:col-span-1">
               <label className="text-xs font-semibold text-slate-500">Firma *</label>
-              <select className="mt-1 w-full border border-slate-200 rounded-xl px-3 py-2 text-sm" value={form.clientId} onChange={e => setF("clientId", e.target.value)}>
+              <select className="mt-1 w-full border border-slate-200 rounded-xl px-3 py-2 text-sm" value={clientId} onChange={e => onClientChange(e.target.value)}>
                 <option value="">— Seçiniz —</option>
                 {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
-              {form.clientName && !form.clientId && (
-                <p className="text-xs text-orange-500 mt-0.5">PDF'de: "{form.clientName}" — eşleşme bulunamadı</p>
-              )}
             </div>
-            <div>
+            <div className="col-span-2 sm:col-span-1">
               <label className="text-xs font-semibold text-slate-500">Güzergah (isteğe bağlı)</label>
-              <select className="mt-1 w-full border border-slate-200 rounded-xl px-3 py-2 text-sm" value={form.routeId} onChange={e => setF("routeId", e.target.value)}>
+              <select className="mt-1 w-full border border-slate-200 rounded-xl px-3 py-2 text-sm" value={routeId} onChange={e => setRouteId(e.target.value)}>
                 <option value="">— Seçiniz —</option>
                 {routes.map(r => <option key={r.id} value={r.id}>{r.name}{r.driver ? ` (${r.driver.name})` : ""}</option>)}
               </select>
             </div>
             <div>
               <label className="text-xs font-semibold text-slate-500">Fatura No *</label>
-              <input className="mt-1 w-full border border-slate-200 rounded-xl px-3 py-2 text-sm" value={form.invoiceNo} onChange={e => setF("invoiceNo", e.target.value)} placeholder="Otomatik doldurulur" />
+              <input className="mt-1 w-full border border-slate-200 rounded-xl px-3 py-2 text-sm" value={invoiceNo} onChange={e => setInvoiceNo(e.target.value)} />
             </div>
             <div>
               <label className="text-xs font-semibold text-slate-500">Fatura Tarihi</label>
-              <input type="date" className="mt-1 w-full border border-slate-200 rounded-xl px-3 py-2 text-sm" value={form.issueDate} onChange={e => setF("issueDate", e.target.value)} />
+              <input type="date" className="mt-1 w-full border border-slate-200 rounded-xl px-3 py-2 text-sm" value={issueDate} onChange={e => setIssueDate(e.target.value)} />
             </div>
             <div>
               <label className="text-xs font-semibold text-slate-500">Son Ödeme</label>
-              <input type="date" className="mt-1 w-full border border-slate-200 rounded-xl px-3 py-2 text-sm" value={form.dueDate} onChange={e => setF("dueDate", e.target.value)} />
+              <input type="date" className="mt-1 w-full border border-slate-200 rounded-xl px-3 py-2 text-sm" value={dueDate} onChange={e => setDueDate(e.target.value)} />
             </div>
             <div>
               <label className="text-xs font-semibold text-slate-500">Dönem Başı</label>
-              <input type="date" className="mt-1 w-full border border-slate-200 rounded-xl px-3 py-2 text-sm" value={form.periodStart} onChange={e => setF("periodStart", e.target.value)} />
+              <input type="date" className="mt-1 w-full border border-slate-200 rounded-xl px-3 py-2 text-sm" value={periodStart} onChange={e => setPeriodStart(e.target.value)} />
             </div>
             <div>
               <label className="text-xs font-semibold text-slate-500">Dönem Sonu</label>
-              <input type="date" className="mt-1 w-full border border-slate-200 rounded-xl px-3 py-2 text-sm" value={form.periodEnd} onChange={e => setF("periodEnd", e.target.value)} />
+              <input type="date" className="mt-1 w-full border border-slate-200 rounded-xl px-3 py-2 text-sm" value={periodEnd} onChange={e => setPeriodEnd(e.target.value)} />
             </div>
             <div>
               <label className="text-xs font-semibold text-slate-500">Sefer Sayısı</label>
-              <input type="number" className="mt-1 w-full border border-slate-200 rounded-xl px-3 py-2 text-sm" value={form.tripCount} onChange={e => setF("tripCount", e.target.value)} />
+              <input type="number" className="mt-1 w-full border border-slate-200 rounded-xl px-3 py-2 text-sm" value={tripCount} onChange={e => setTripCount(e.target.value)} />
             </div>
             <div>
               <label className="text-xs font-semibold text-slate-500">Birim Fiyat (₺)</label>
-              <input type="number" className="mt-1 w-full border border-slate-200 rounded-xl px-3 py-2 text-sm" value={form.unitPrice} onChange={e => setF("unitPrice", e.target.value)} />
+              <input type="number" className="mt-1 w-full border border-slate-200 rounded-xl px-3 py-2 text-sm" value={unitPrice} onChange={e => setUnitPrice(e.target.value)} />
             </div>
             <div>
               <label className="text-xs font-semibold text-slate-500">KDV %</label>
-              <input type="number" className="mt-1 w-full border border-slate-200 rounded-xl px-3 py-2 text-sm" value={form.kdvRate} onChange={e => setF("kdvRate", e.target.value)} />
+              <input type="number" className="mt-1 w-full border border-slate-200 rounded-xl px-3 py-2 text-sm" value={kdvRate} onChange={e => setKdvRate(e.target.value)} />
             </div>
             <div>
-              <label className="text-xs font-semibold text-slate-500">Tevkifat %</label>
-              <input type="number" className="mt-1 w-full border border-slate-200 rounded-xl px-3 py-2 text-sm" value={form.tevkifatRate} onChange={e => setF("tevkifatRate", e.target.value)} />
+              <label className="text-xs font-semibold text-slate-500">Tevkifat % <span className="text-slate-400 font-normal">(KDV'nin)</span></label>
+              <input type="number" className="mt-1 w-full border border-slate-200 rounded-xl px-3 py-2 text-sm" value={tevkifatRate} onChange={e => setTevkifatRate(e.target.value)} />
             </div>
           </div>
 
-          {/* Tutar özeti */}
-          {form.payableAmount && (
-            <div className="bg-[#1B2437] rounded-xl p-4 text-sm space-y-1.5">
-              <div className="flex justify-between text-slate-400">
-                <span>Ara toplam</span>
-                <span className="text-white">{TRY(parseFloat(form.subtotal) || 0)}</span>
-              </div>
-              <div className="flex justify-between text-slate-400">
-                <span>KDV</span>
-                <span className="text-white">{TRY(parseFloat(form.kdvAmount) || 0)}</span>
-              </div>
-              <div className="flex justify-between text-slate-400">
-                <span>Tevkifat</span>
-                <span className="text-orange-400">-{TRY(parseFloat(form.tevkifatAmount) || 0)}</span>
-              </div>
-              <div className="border-t border-white/10 pt-1.5 flex justify-between">
-                <span className="text-white font-semibold">Ödenecek</span>
-                <span className="text-[#DC2626] font-black text-lg">{TRY(parseFloat(form.payableAmount) || 0)}</span>
-              </div>
+          {/* Canlı tutar özeti */}
+          <div className="bg-[#1B2437] rounded-xl p-4 text-sm space-y-2">
+            <div className="flex justify-between text-slate-400">
+              <span>{tripCount || 0} sefer × {TRY(parseFloat(unitPrice || "0"))}</span>
+              <span className="text-white font-semibold">{TRY(subtotal)}</span>
             </div>
-          )}
+            <div className="flex justify-between text-slate-400">
+              <span>KDV %{kdvRate}</span>
+              <span className="text-white">{TRY(kdvAmount)}</span>
+            </div>
+            <div className="flex justify-between text-slate-400">
+              <span>Tevkifat %{tevkifatRate}</span>
+              <span className="text-orange-400">-{TRY(tevkifatAmount)}</span>
+            </div>
+            <div className="border-t border-white/10 pt-2 flex justify-between">
+              <span className="text-white font-semibold">Ödenecek Tutar</span>
+              <span className="text-[#DC2626] font-black text-lg">{TRY(payableAmount)}</span>
+            </div>
+          </div>
 
           <div>
             <label className="text-xs font-semibold text-slate-500">Notlar</label>
-            <textarea className="mt-1 w-full border border-slate-200 rounded-xl px-3 py-2 text-sm resize-none" rows={2} value={form.notes} onChange={e => setF("notes", e.target.value)} />
+            <textarea className="mt-1 w-full border border-slate-200 rounded-xl px-3 py-2 text-sm resize-none" rows={2} value={notes} onChange={e => setNotes(e.target.value)} />
           </div>
 
           <div className="flex gap-3 pt-2">
             <button onClick={onClose} className="flex-1 py-2.5 border border-slate-200 text-slate-600 rounded-xl text-sm font-medium hover:bg-slate-50">İptal</button>
             <button
               onClick={handleSave}
-              disabled={saving || !form.clientId || !form.invoiceNo}
+              disabled={saving || !clientId || !invoiceNo}
               className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-[#DC2626] hover:bg-[#B91C1C] disabled:opacity-60 text-white rounded-xl text-sm font-semibold"
             >
               <Save className="w-4 h-4" />
