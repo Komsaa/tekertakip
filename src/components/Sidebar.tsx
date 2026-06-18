@@ -18,6 +18,7 @@ import {
   Route,
   CalendarDays,
   Building2,
+  Wallet,
   MapPin,
   FileText,
   ShieldCheck,
@@ -55,6 +56,7 @@ const navGroups: NavGroup[] = [
       { href: "/panel/konum", icon: MapPin, label: "Canlı Konum" },
       { href: "/panel/araclar", icon: Truck, label: "Araçlar" },
       { href: "/panel/guzergahlar", icon: Route, label: "Güzergahlar" },
+      { href: "/panel/servis-odemeler", icon: Wallet, label: "Servis Ödemeleri" },
     ],
   },
   {
