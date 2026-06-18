@@ -615,7 +615,7 @@ export default function OgrencilerClient({ route }: { route: Route }) {
 
             {/* Özet */}
             {!attLoading && attendance.length > 0 && (() => {
-              const days = [...new Set(attendance.map(a => a.date))].sort();
+              const days = Array.from(new Set(attendance.map(a => a.date))).sort();
               const totalDays = days.length;
               const boardedTotal = attendance.filter(a => a.status === "boarded").length;
               return (
@@ -639,7 +639,7 @@ export default function OgrencilerClient({ route }: { route: Route }) {
           ) : (
             <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-x-auto">
               {(() => {
-                const days = [...new Set(attendance.map(a => a.date))].sort();
+                const days = Array.from(new Set(attendance.map(a => a.date))).sort();
                 const attMap: Record<string, Record<string, string>> = {};
                 for (const r of attendance) {
                   if (!attMap[r.passengerId]) attMap[r.passengerId] = {};
