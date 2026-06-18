@@ -8,7 +8,7 @@ async function getVehicles() {
   return prisma.vehicle.findMany({
     orderBy: { plate: "asc" },
     include: {
-      drivers: { select: { id: true, name: true } },
+      assignedDrivers: { include: { driver: { select: { id: true, name: true } } } },
       _count: { select: { jobs: true, fuelEntries: true } },
     },
   }).catch(() => []);
@@ -120,8 +120,8 @@ export default async function VehiclesPage() {
                 {/* Alt: Şöför + sefer */}
                 <div className="flex items-center justify-between pt-4 border-t border-slate-50 text-xs text-slate-400">
                   <span>
-                    {vehicle.drivers.length > 0
-                      ? `Şöför: ${vehicle.drivers.map((d) => d.name).join(", ")}`
+                    {vehicle.assignedDrivers.length > 0
+                      ? `Şöför: ${vehicle.assignedDrivers.map((dv: any) => dv.driver.name).join(", ")}`
                       : "Şöför atanmadı"}
                   </span>
                   <span>{vehicle._count.jobs} sefer · {vehicle._count.fuelEntries} yakıt</span>
