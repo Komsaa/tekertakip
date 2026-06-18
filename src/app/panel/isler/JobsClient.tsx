@@ -272,7 +272,7 @@ export default function JobsClient({ jobs: initialJobs, drivers, vehicles, clien
       ) : view === "list" ? (
         <div className="space-y-3">
           {dayJobs.map((job) => (
-            <div key={job.id} className={`bg-white rounded-xl shadow-sm border-l-4 ${TYPE_COLORS[job.type as keyof typeof TYPE_COLORS] ?? "border-l-slate-300"} border border-slate-100 p-5`}>
+            <div key={job.id} className={`rounded-xl shadow-sm border-l-4 border p-5 ${job.subcontractorId ? "bg-orange-50 border-l-orange-500 border-orange-100" : `bg-white border-slate-100 ${TYPE_COLORS[job.type as keyof typeof TYPE_COLORS] ?? "border-l-slate-300"}`}`}>
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
