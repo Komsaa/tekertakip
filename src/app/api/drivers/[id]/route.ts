@@ -37,6 +37,10 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
         licenseClass: body.licenseClass || null,
         licenseNumber: body.licenseNumber || null,
         licenseExpiry: parseDate(body.licenseExpiry),
+        srcExpiry: parseDate(body.srcExpiry),
+        psychotechExpiry: parseDate(body.psychotechExpiry),
+        criminalRecordExpiry: parseDate(body.criminalRecordExpiry),
+        healthReportExpiry: parseDate(body.healthReportExpiry),
         address: body.address || null,
         notes: body.notes || null,
         ...(body.mobilePin !== undefined && {

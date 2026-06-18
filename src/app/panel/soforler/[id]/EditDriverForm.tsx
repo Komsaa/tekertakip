@@ -4,29 +4,46 @@ import { useState } from "react";
 import { Edit, X, Save, Trash2, Smartphone } from "lucide-react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
-import { Driver, Vehicle } from "@prisma/client";
-
 interface Props {
-  driver: Driver & { vehicle: Vehicle | null };
+  driver: {
+    id: string;
+    name: string;
+    phone?: string | null;
+    status: string;
+    licenseClass?: string | null;
+    licenseNumber?: string | null;
+    licenseExpiry?: Date | null;
+    srcExpiry?: Date | null;
+    psychotechExpiry?: Date | null;
+    criminalRecordExpiry?: Date | null;
+    healthReportExpiry?: Date | null;
+    address?: string | null;
+    notes?: string | null;
+    mobileUsername?: string | null;
+  };
 }
 
 export default function EditDriverForm({ driver }: Props) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  function toDate(d?: Date | null) { return d ? new Date(d).toISOString().split("T")[0] : ""; }
+
   const [form, setForm] = useState({
     name: driver.name,
     phone: driver.phone ?? "",
     status: driver.status,
     licenseClass: driver.licenseClass ?? "D",
     licenseNumber: driver.licenseNumber ?? "",
-    licenseExpiry: driver.licenseExpiry
-      ? driver.licenseExpiry.toISOString().split("T")[0]
-      : "",
+    licenseExpiry: toDate(driver.licenseExpiry),
+    srcExpiry: toDate(driver.srcExpiry),
+    psychotechExpiry: toDate(driver.psychotechExpiry),
+    criminalRecordExpiry: toDate(driver.criminalRecordExpiry),
+    healthReportExpiry: toDate(driver.healthReportExpiry),
     address: driver.address ?? "",
     notes: driver.notes ?? "",
     mobilePin: "",
-    mobileUsername: (driver as any).mobileUsername ?? "",
+    mobileUsername: driver.mobileUsername ?? "",
   });
 
   function set(field: string, value: string) {
@@ -134,6 +151,26 @@ export default function EditDriverForm({ driver }: Props) {
                 <div>
                   <label>Ehliyet No</label>
                   <input type="text" value={form.licenseNumber} onChange={(e) => set("licenseNumber", e.target.value)} />
+                </div>
+                <div>
+                  <label>Ehliyet Son Geçerlilik</label>
+                  <input type="date" value={form.licenseExpiry} onChange={(e) => set("licenseExpiry", e.target.value)} />
+                </div>
+                <div>
+                  <label>SRC-2 Son Geçerlilik</label>
+                  <input type="date" value={form.srcExpiry} onChange={(e) => set("srcExpiry", e.target.value)} />
+                </div>
+                <div>
+                  <label>Psikoteknik Son Geçerlilik</label>
+                  <input type="date" value={form.psychotechExpiry} onChange={(e) => set("psychotechExpiry", e.target.value)} />
+                </div>
+                <div>
+                  <label>Adli Sicil Son Geçerlilik</label>
+                  <input type="date" value={form.criminalRecordExpiry} onChange={(e) => set("criminalRecordExpiry", e.target.value)} />
+                </div>
+                <div>
+                  <label>Sağlık Raporu Son Geçerlilik</label>
+                  <input type="date" value={form.healthReportExpiry} onChange={(e) => set("healthReportExpiry", e.target.value)} />
                 </div>
               </div>
 

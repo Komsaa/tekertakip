@@ -16,7 +16,7 @@ async function getVehicle(id: string) {
     return await prisma.vehicle.findUnique({
       where: { id },
       include: {
-        drivers: true,
+        assignedDrivers: { include: { driver: { select: { id: true, name: true, phone: true } } } },
         jobs: { take: 10, orderBy: { date: "desc" }, include: { driver: true } },
         fuelEntries: { take: 10, orderBy: { date: "desc" }, include: { driver: true } },
       },
@@ -26,7 +26,7 @@ async function getVehicle(id: string) {
     try {
       const v = await prisma.vehicle.findUnique({ where: { id } });
       if (!v) return null;
-      return { ...v, drivers: [] as any[], jobs: [] as any[], fuelEntries: [] as any[] };
+      return { ...v, assignedDrivers: [] as any[], jobs: [] as any[], fuelEntries: [] as any[] };
     } catch {
       return null;
     }
@@ -192,14 +192,14 @@ export default async function VehicleDetailPage({ params }: Props) {
           {/* Şöförler */}
           <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
             <h2 className="font-bold text-slate-800 mb-4">Atanan Şöförler</h2>
-            {vehicle.drivers.length === 0 ? (
+            {vehicle.assignedDrivers.length === 0 ? (
               <p className="text-slate-400 text-sm">Şöför atanmadı</p>
             ) : (
               <div className="space-y-2">
-                {vehicle.drivers.map((d) => (
-                  <Link key={d.id} href={`/panel/soforler/${d.id}`} className="flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50">
-                    <div className="w-8 h-8 bg-[#1B2437] rounded-lg flex items-center justify-center text-white text-xs font-bold">{d.name.charAt(0)}</div>
-                    <span className="text-sm font-medium text-slate-700">{d.name}</span>
+                {vehicle.assignedDrivers.map((dv: any) => (
+                  <Link key={dv.driver.id} href={`/panel/soforler/${dv.driver.id}`} className="flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50">
+                    <div className="w-8 h-8 bg-[#1B2437] rounded-lg flex items-center justify-center text-white text-xs font-bold">{dv.driver.name.charAt(0)}</div>
+                    <span className="text-sm font-medium text-slate-700">{dv.driver.name}</span>
                   </Link>
                 ))}
               </div>

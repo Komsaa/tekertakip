@@ -25,6 +25,10 @@ import {
   Sparkles,
   BookOpen,
   FlaskConical,
+  Wrench,
+  Banknote,
+  Receipt,
+  HandCoins,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -65,12 +69,16 @@ const navGroups: NavGroup[] = [
       { href: "/panel/isler", icon: ClipboardList, label: "İşler / Seferler" },
       { href: "/panel/taseronlar", icon: Truck, label: "Taşeronlar" },
       { href: "/panel/yakit", icon: Fuel, label: "Yakıt Takibi" },
+      { href: "/panel/arizalar", icon: Wrench, label: "Arıza Bildirimleri" },
     ],
   },
   {
     label: "Finans",
     items: [
       { href: "/panel/takvim", icon: CalendarDays, label: "Gelir / Gider Takvimi" },
+      { href: "/panel/faturalar", icon: Receipt, label: "Faturalar" },
+      { href: "/panel/odeme", icon: HandCoins, label: "Alacak / Borç / Çek" },
+      { href: "/panel/maaslar", icon: Banknote, label: "Maaşlar" },
     ],
   },
   {

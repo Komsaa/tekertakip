@@ -66,6 +66,21 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // "Gelmedi" işaretlenen yolcuların velilerine bildirim
+  const absentIds = attendances.filter((a: { passengerId: string; status: string }) => a.status === "absent").map((a: { passengerId: string }) => a.passengerId);
+  if (absentIds.length > 0) {
+    const absentPassengers = await prisma.routePassenger.findMany({
+      where: { id: { in: absentIds }, parentPushToken: { not: null } },
+    });
+    for (const p of absentPassengers) {
+      await sendPushNotifications(
+        [p.parentPushToken!],
+        "⚠️ Servise Binmedi",
+        `${p.name} bugün durağında servise binmedi`
+      );
+    }
+  }
+
   // Sıradaki durağın velilerine bildirim
   if (nextStopId) {
     const nextStop = await prisma.routeStop.findUnique({

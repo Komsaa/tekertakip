@@ -101,15 +101,19 @@ model Driver {
 
   // SRC-2 Belgesi
   srcNumber String?
+  srcExpiry DateTime?
   srcFile   String?
 
   // Psikoteknik Belgesi
+  psychotechExpiry DateTime?
   psychotechFile   String?
 
   // Adli Sicil Kaydı
+  criminalRecordExpiry DateTime?
   criminalRecordFile   String?
 
   // Sağlık Raporu
+  healthReportExpiry DateTime?
   healthReportFile   String?
 
   // İkametgah

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Plus, Trash2, MessageCircle, Key, Users, CreditCard, Check, X } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, MessageCircle, Key, Users, CreditCard, Check, X, CalendarDays } from "lucide-react";
 import toast from "react-hot-toast";
 
 interface Stop {
@@ -46,7 +46,9 @@ interface CredModal {
   parentPhone?: string | null;
 }
 
-type Tab = "ogrenciler" | "odemeler";
+type Tab = "ogrenciler" | "odemeler" | "yoklamalar";
+
+interface AttendanceRecord { passengerId: string; date: string; status: string; }
 
 const MONTHS = ["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"];
 
@@ -63,6 +65,12 @@ export default function OgrencilerClient({ route }: { route: Route }) {
   const [passengers, setPassengers] = useState<Passenger[]>(flatPassengers);
   const [credModal, setCredModal] = useState<CredModal | null>(null);
   const [credLoading, setCredLoading] = useState<string | null>(null);
+
+  // Yoklama state
+  const [attMonth, setAttMonth] = useState(now.getMonth() + 1);
+  const [attYear, setAttYear] = useState(now.getFullYear());
+  const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
+  const [attLoading, setAttLoading] = useState(false);
 
   // Ödeme state
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
@@ -83,6 +91,20 @@ export default function OgrencilerClient({ route }: { route: Route }) {
     const res = await fetch(`/api/routes/passengers?routeId=${route.id}`);
     if (res.ok) setPassengers(await res.json());
   }
+
+  const loadAttendance = useCallback(async () => {
+    setAttLoading(true);
+    try {
+      const res = await fetch(`/api/routes/${route.id}/attendance?month=${attMonth}&year=${attYear}`);
+      if (res.ok) setAttendance(await res.json());
+    } finally {
+      setAttLoading(false);
+    }
+  }, [route.id, attMonth, attYear]);
+
+  useEffect(() => {
+    if (tab === "yoklamalar") loadAttendance();
+  }, [tab, loadAttendance]);
 
   const loadPayments = useCallback(async () => {
     setPaymentLoading(true);
@@ -269,6 +291,13 @@ export default function OgrencilerClient({ route }: { route: Route }) {
         >
           <CreditCard className="w-4 h-4" />
           Ödemeler
+        </button>
+        <button
+          onClick={() => setTab("yoklamalar")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${tab === "yoklamalar" ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+        >
+          <CalendarDays className="w-4 h-4" />
+          Yoklamalar
         </button>
       </div>
 
@@ -558,6 +587,115 @@ export default function OgrencilerClient({ route }: { route: Route }) {
                 <MessageCircle className="w-4 h-4" />
                 Hatırlatma Gönder
               </button>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* ===== YOKLAMALAR SEKMESİ ===== */}
+      {tab === "yoklamalar" && (
+        <>
+          {/* Ay/yıl seçici */}
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex items-center gap-3 flex-wrap">
+            <select
+              value={attMonth}
+              onChange={(e) => setAttMonth(parseInt(e.target.value))}
+              className="border border-slate-200 rounded-xl px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#DC2626] bg-white"
+            >
+              {MONTHS.map((m, i) => <option key={i + 1} value={i + 1}>{m}</option>)}
+            </select>
+            <select
+              value={attYear}
+              onChange={(e) => setAttYear(parseInt(e.target.value))}
+              className="border border-slate-200 rounded-xl px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#DC2626] bg-white"
+            >
+              {[2024, 2025, 2026, 2027].map((y) => <option key={y} value={y}>{y}</option>)}
+            </select>
+            <button onClick={loadAttendance} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 rounded-xl text-sm font-medium text-slate-600">Yenile</button>
+
+            {/* Özet */}
+            {!attLoading && attendance.length > 0 && (() => {
+              const days = [...new Set(attendance.map(a => a.date))].sort();
+              const totalDays = days.length;
+              const boardedTotal = attendance.filter(a => a.status === "boarded").length;
+              return (
+                <div className="ml-auto flex items-center gap-4 text-sm">
+                  <div className="text-center"><div className="font-black text-slate-700 text-lg leading-none">{totalDays}</div><div className="text-xs text-slate-400">Sefer günü</div></div>
+                  <div className="text-center"><div className="font-black text-green-600 text-lg leading-none">{boardedTotal}</div><div className="text-xs text-slate-400">Bindi</div></div>
+                  <div className="text-center"><div className="font-black text-red-500 text-lg leading-none">{attendance.filter(a => a.status === "absent").length}</div><div className="text-xs text-slate-400">Gelmedi</div></div>
+                </div>
+              );
+            })()}
+          </div>
+
+          {attLoading ? (
+            <div className="py-16 text-center text-slate-400 text-sm">Yükleniyor...</div>
+          ) : attendance.length === 0 ? (
+            <div className="bg-white rounded-2xl border border-dashed border-slate-200 p-12 text-center">
+              <CalendarDays className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+              <p className="text-slate-500 font-medium">Bu ay için yoklama kaydı yok</p>
+              <p className="text-slate-400 text-sm mt-1">Şöför mobil uygulamadan sefer başlatınca kayıtlar buraya gelir</p>
+            </div>
+          ) : (
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-x-auto">
+              {(() => {
+                const days = [...new Set(attendance.map(a => a.date))].sort();
+                const attMap: Record<string, Record<string, string>> = {};
+                for (const r of attendance) {
+                  if (!attMap[r.passengerId]) attMap[r.passengerId] = {};
+                  attMap[r.passengerId][r.date] = r.status;
+                }
+                return (
+                  <table className="w-full text-sm min-w-max">
+                    <thead>
+                      <tr className="bg-slate-50 border-b border-slate-100">
+                        <th className="text-left px-4 py-3 font-semibold text-slate-600 sticky left-0 bg-slate-50 min-w-40">Öğrenci</th>
+                        {days.map(d => (
+                          <th key={d} className="px-2 py-3 font-medium text-slate-500 text-xs whitespace-nowrap">
+                            {d.slice(8)}/{d.slice(5, 7)}
+                          </th>
+                        ))}
+                        <th className="px-4 py-3 font-semibold text-slate-600 text-right whitespace-nowrap">Toplam</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50">
+                      {passengers.map(p => {
+                        const pAtt = attMap[p.id] ?? {};
+                        const boardedCount = Object.values(pAtt).filter(s => s === "boarded").length;
+                        const absentCount = Object.values(pAtt).filter(s => s === "absent").length;
+                        return (
+                          <tr key={p.id} className="hover:bg-slate-50">
+                            <td className="px-4 py-2.5 sticky left-0 bg-white font-medium text-slate-800">
+                              {p.name}
+                              <div className="text-xs text-slate-400 font-normal">{p.stop.name}</div>
+                            </td>
+                            {days.map(d => {
+                              const s = pAtt[d];
+                              return (
+                                <td key={d} className="px-2 py-2.5 text-center">
+                                  {s === "boarded" ? (
+                                    <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-green-100 text-green-600 text-xs font-bold">✓</span>
+                                  ) : s === "absent" ? (
+                                    <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-red-100 text-red-500 text-xs font-bold">✗</span>
+                                  ) : (
+                                    <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-slate-100 text-slate-300 text-xs">—</span>
+                                  )}
+                                </td>
+                              );
+                            })}
+                            <td className="px-4 py-2.5 text-right">
+                              <span className="font-bold text-green-600">{boardedCount}</span>
+                              <span className="text-slate-400 text-xs mx-1">/</span>
+                              <span className="text-slate-500 text-xs">{days.length} gün</span>
+                              {absentCount > 0 && <span className="ml-1 text-xs text-red-400">({absentCount} gelmedi)</span>}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                );
+              })()}
             </div>
           )}
         </>

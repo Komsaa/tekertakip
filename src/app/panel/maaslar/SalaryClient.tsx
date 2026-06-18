@@ -44,6 +44,7 @@ export default function SalaryClient({ drivers, salaries: initialSalaries }: Pro
     bonusAmount: "0",
     notes: "",
   });
+  const [copying, setCopying] = useState(false);
 
   function set(f: string, v: string) { setForm((p) => ({ ...p, [f]: v })); }
 
@@ -128,6 +129,31 @@ export default function SalaryClient({ drivers, salaries: initialSalaries }: Pro
     } catch { toast.error("Güncellenemedi"); }
   }
 
+  async function copyFromPrevMonth() {
+    const prevM = month === 1 ? 12 : month - 1;
+    const prevY = month === 1 ? year - 1 : year;
+    const prevSalaries = salaries.filter((s) => s.month === prevM && s.year === prevY);
+    if (prevSalaries.length === 0) { toast.error(`${MONTHS[prevM - 1]} ${prevY} ayında kayıt yok`); return; }
+    if (!confirm(`${MONTHS[prevM - 1]} ${prevY} maaşları ${MONTHS[month - 1]} ${year}'e kopyalansın mı?`)) return;
+    setCopying(true);
+    try {
+      let copied = 0;
+      for (const s of prevSalaries) {
+        if (monthSalaries.find((x) => x.driverId === s.driverId)) continue;
+        const res = await fetch("/api/salaries", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ driverId: s.driverId, month, year, baseAmount: s.baseAmount, bonusAmount: s.bonusAmount, notes: s.notes }),
+        });
+        if (res.ok) copied++;
+      }
+      toast.success(`${copied} maaş kopyalandı`);
+      router.refresh();
+    } finally {
+      setCopying(false);
+    }
+  }
+
   async function handleDelete(id: string) {
     if (!confirm("Bu maaş kaydı silinsin mi?")) return;
     try {
@@ -147,13 +173,22 @@ export default function SalaryClient({ drivers, salaries: initialSalaries }: Pro
           <h1 className="text-2xl font-black text-slate-800">Maaşlar</h1>
           <p className="text-slate-500 text-sm mt-1">Şöför maaş takibi ve ödemeleri</p>
         </div>
-        <button
-          onClick={() => openAdd()}
-          className="flex items-center gap-2 bg-[#DC2626] hover:bg-[#B91C1C] text-white px-4 py-2 rounded-xl text-sm font-semibold"
-        >
-          <Plus className="w-4 h-4" />
-          Maaş Ekle
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={copyFromPrevMonth}
+            disabled={copying}
+            className="flex items-center gap-2 border border-slate-200 bg-white text-slate-600 hover:border-slate-300 px-4 py-2 rounded-xl text-sm font-medium transition-all disabled:opacity-40"
+          >
+            {copying ? "Kopyalanıyor..." : "Geçen Aydan Kopyala"}
+          </button>
+          <button
+            onClick={() => openAdd()}
+            className="flex items-center gap-2 bg-[#DC2626] hover:bg-[#B91C1C] text-white px-4 py-2 rounded-xl text-sm font-semibold"
+          >
+            <Plus className="w-4 h-4" />
+            Maaş Ekle
+          </button>
+        </div>
       </div>
 
       {/* Ay seçici */}
