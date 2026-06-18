@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import {
   FileText, Plus, Building2, TrendingUp, X, Save, Trash2,
   CheckCircle2, Clock, AlertCircle, ChevronDown, ChevronUp, Receipt,
+  Upload, MapPin, Fuel, Banknote, ExternalLink,
 } from "lucide-react";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -20,6 +21,9 @@ type Client = {
 type Invoice = {
   id: string; invoiceNo: string; clientId: string;
   client: { id: string; name: string };
+  route?: { id: string; name: string } | null;
+  routeId?: string | null;
+  pdfUrl?: string | null;
   issueDate: string; dueDate: string;
   periodStart: string; periodEnd: string;
   tripCount: number; unitPrice: number; subtotal: number;
@@ -28,6 +32,25 @@ type Invoice = {
   totalAmount: number; payableAmount: number;
   status: string; paidAt?: string; paidAmount: number;
   notes?: string;
+};
+
+type Route = {
+  id: string;
+  name: string;
+  driver?: { name: string } | null;
+};
+
+type RouteEarning = {
+  routeId: string;
+  routeName: string;
+  driver: { id: string; name: string } | null;
+  vehicle: { id: string; plate: string } | null;
+  revenue: number;
+  invoiceCount: number;
+  fuelCost: number;
+  salaryCost: number;
+  totalCost: number;
+  netProfit: number;
 };
 
 type ForecastData = {
@@ -237,8 +260,8 @@ function BulkPreviewModal({ preview, month, year, loading, onClose, onConfirm }:
 
 // ─── Invoice Create Modal ─────────────────────────────────────────────────────
 
-function InvoiceModal({ client, month, year, onClose, onSaved }: {
-  client: Client; month: number; year: number; onClose: () => void; onSaved: () => void;
+function InvoiceModal({ client, month, year, routes, onClose, onSaved }: {
+  client: Client; month: number; year: number; routes: Route[]; onClose: () => void; onSaved: () => void;
 }) {
   const [tripCount, setTripCount] = useState(0);
   const [loadingTrips, setLoadingTrips] = useState(true);
@@ -246,6 +269,7 @@ function InvoiceModal({ client, month, year, onClose, onSaved }: {
   const [issueDate, setIssueDate] = useState(new Date().toISOString().split("T")[0]);
   const [unitPrice, setUnitPrice] = useState(String(client.unitPrice));
   const [notes, setNotes] = useState("");
+  const [routeId, setRouteId] = useState("");
   const [loading, setLoading] = useState(false);
 
   const periodStart = new Date(year, month - 1, 1).toISOString().split("T")[0];
@@ -274,7 +298,7 @@ function InvoiceModal({ client, month, year, onClose, onSaved }: {
       const res = await fetch("/api/invoices", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ invoiceNo, clientId: client.id, issueDate, dueDate, periodStart, periodEnd, tripCount, unitPrice: parseFloat(unitPrice), kdvRate: client.kdvRate, tevkifatRate: client.tevkifatRate, notes }),
+        body: JSON.stringify({ invoiceNo, clientId: client.id, issueDate, dueDate, periodStart, periodEnd, tripCount, unitPrice: parseFloat(unitPrice), kdvRate: client.kdvRate, tevkifatRate: client.tevkifatRate, notes, routeId: routeId || null }),
       });
       if (!res.ok) throw new Error();
       toast.success("Fatura oluşturuldu!");
@@ -355,6 +379,18 @@ function InvoiceModal({ client, month, year, onClose, onSaved }: {
             </div>
           </div>
 
+          {routes.length > 0 && (
+            <div>
+              <label className="text-xs font-semibold text-slate-500">Güzergah (isteğe bağlı)</label>
+              <select className="mt-1 w-full border border-slate-200 rounded-xl px-3 py-2 text-sm" value={routeId} onChange={e => setRouteId(e.target.value)}>
+                <option value="">— Seçiniz —</option>
+                {routes.map(r => (
+                  <option key={r.id} value={r.id}>{r.name}{r.driver ? ` (${r.driver.name})` : ""}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
           <div>
             <label className="text-xs font-semibold text-slate-500">Notlar</label>
             <textarea className="mt-1 w-full border border-slate-200 rounded-xl px-3 py-2 text-sm resize-none" rows={2} value={notes} onChange={e => setNotes(e.target.value)} />
@@ -373,22 +409,300 @@ function InvoiceModal({ client, month, year, onClose, onSaved }: {
   );
 }
 
+// ─── PDF Upload Modal ────────────────────────────────────────────────────────
+
+function PdfUploadModal({ clients, routes, onClose, onSaved }: {
+  clients: Client[];
+  routes: Route[];
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [file, setFile] = useState<File | null>(null);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({
+    invoiceNo: "",
+    clientId: "",
+    clientName: "",
+    routeId: "",
+    issueDate: "",
+    dueDate: "",
+    periodStart: "",
+    periodEnd: "",
+    tripCount: "",
+    unitPrice: "",
+    subtotal: "",
+    kdvRate: "",
+    kdvAmount: "",
+    tevkifatRate: "",
+    tevkifatAmount: "",
+    totalAmount: "",
+    payableAmount: "",
+    notes: "",
+  });
+
+  const setF = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
+
+  async function analyze() {
+    if (!file) return;
+    setAnalyzing(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/invoices/parse-pdf", { method: "POST", body: fd });
+      const data = await res.json();
+      if (data.pdfUrl) setPdfUrl(data.pdfUrl);
+      if (data.parsed) {
+        const p = data.parsed;
+        // Try to match clientName to existing client
+        let matchedClientId = "";
+        if (p.clientName) {
+          const lower = p.clientName.toLowerCase();
+          const match = clients.find(c => c.name.toLowerCase().includes(lower) || lower.includes(c.name.toLowerCase()));
+          if (match) matchedClientId = match.id;
+        }
+        setForm(f => ({
+          ...f,
+          invoiceNo: p.invoiceNo ?? f.invoiceNo,
+          clientId: matchedClientId || f.clientId,
+          clientName: p.clientName ?? "",
+          issueDate: p.issueDate ?? f.issueDate,
+          dueDate: p.dueDate ?? f.dueDate,
+          periodStart: p.periodStart ?? f.periodStart,
+          periodEnd: p.periodEnd ?? f.periodEnd,
+          tripCount: p.tripCount != null ? String(p.tripCount) : f.tripCount,
+          unitPrice: p.unitPrice != null ? String(p.unitPrice) : f.unitPrice,
+          subtotal: p.subtotal != null ? String(p.subtotal) : f.subtotal,
+          kdvRate: p.kdvRate != null ? String(p.kdvRate) : f.kdvRate,
+          kdvAmount: p.kdvAmount != null ? String(p.kdvAmount) : f.kdvAmount,
+          tevkifatRate: p.tevkifatRate != null ? String(p.tevkifatRate) : f.tevkifatRate,
+          tevkifatAmount: p.tevkifatAmount != null ? String(p.tevkifatAmount) : f.tevkifatAmount,
+          totalAmount: p.totalAmount != null ? String(p.totalAmount) : f.totalAmount,
+          payableAmount: p.payableAmount != null ? String(p.payableAmount) : f.payableAmount,
+          notes: p.notes ?? f.notes,
+        }));
+        toast.success("Fatura verileri çıkarıldı — kontrol edin");
+      } else {
+        toast.error(data.error ?? "Fatura verisi okunamadı");
+      }
+    } catch { toast.error("Analiz başarısız"); }
+    finally { setAnalyzing(false); }
+  }
+
+  async function handleSave() {
+    if (!form.clientId) { toast.error("Firma seçiniz"); return; }
+    if (!form.invoiceNo) { toast.error("Fatura no zorunlu"); return; }
+    setSaving(true);
+    try {
+      const n = (s: string) => parseFloat(s) || 0;
+      const res = await fetch("/api/invoices", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          invoiceNo: form.invoiceNo,
+          clientId: form.clientId,
+          issueDate: form.issueDate || new Date().toISOString().split("T")[0],
+          dueDate: form.dueDate || new Date().toISOString().split("T")[0],
+          periodStart: form.periodStart || form.issueDate || new Date().toISOString().split("T")[0],
+          periodEnd: form.periodEnd || form.dueDate || new Date().toISOString().split("T")[0],
+          tripCount: n(form.tripCount),
+          unitPrice: n(form.unitPrice),
+          kdvRate: n(form.kdvRate),
+          tevkifatRate: n(form.tevkifatRate),
+          notes: form.notes || null,
+          routeId: form.routeId || null,
+          pdfUrl: pdfUrl || null,
+          // Pass pre-calculated amounts directly (override API calc)
+          _subtotal: n(form.subtotal),
+          _kdvAmount: n(form.kdvAmount),
+          _tevkifatAmount: n(form.tevkifatAmount),
+          _totalAmount: n(form.totalAmount),
+          _payableAmount: n(form.payableAmount),
+        }),
+      });
+      if (!res.ok) throw new Error();
+      toast.success("Fatura kaydedildi");
+      onSaved();
+    } catch { toast.error("Kayıt başarısız"); }
+    finally { setSaving(false); }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl relative z-10 max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-6 border-b border-slate-100">
+          <div>
+            <h2 className="text-lg font-bold text-slate-800">PDF'den Fatura Yükle</h2>
+            <p className="text-sm text-slate-500">PDF veya görüntü yükle, Gemini AI otomatik doldurur</p>
+          </div>
+          <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100"><X className="w-5 h-5" /></button>
+        </div>
+        <div className="p-6 space-y-4">
+          {/* Dosya seçimi */}
+          <div className="border-2 border-dashed border-slate-200 rounded-xl p-5 text-center">
+            {file ? (
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 text-sm text-slate-700 min-w-0">
+                  <FileText className="w-5 h-5 text-blue-500 flex-shrink-0" />
+                  <span className="truncate">{file.name}</span>
+                </div>
+                <button
+                  onClick={analyze}
+                  disabled={analyzing}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white rounded-xl text-sm font-semibold flex-shrink-0"
+                >
+                  <TrendingUp className="w-4 h-4" />
+                  {analyzing ? "Analiz ediliyor..." : "Analiz Et"}
+                </button>
+              </div>
+            ) : (
+              <label className="cursor-pointer block">
+                <Upload className="w-8 h-8 mx-auto text-slate-300 mb-2" />
+                <p className="text-sm text-slate-500">PDF veya görüntü seçin</p>
+                <p className="text-xs text-slate-400 mt-0.5">JPG, PNG, PDF desteklenir</p>
+                <input
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  className="hidden"
+                  onChange={e => setFile(e.target.files?.[0] ?? null)}
+                />
+              </label>
+            )}
+          </div>
+
+          {pdfUrl && (
+            <a href={pdfUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-xs text-blue-600 hover:underline">
+              <ExternalLink className="w-3.5 h-3.5" /> Yüklenen dosyayı görüntüle
+            </a>
+          )}
+
+          {/* Form alanları — Gemini sonrası doluyor */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-semibold text-slate-500">Firma *</label>
+              <select className="mt-1 w-full border border-slate-200 rounded-xl px-3 py-2 text-sm" value={form.clientId} onChange={e => setF("clientId", e.target.value)}>
+                <option value="">— Seçiniz —</option>
+                {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+              {form.clientName && !form.clientId && (
+                <p className="text-xs text-orange-500 mt-0.5">PDF'de: "{form.clientName}" — eşleşme bulunamadı</p>
+              )}
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-500">Güzergah (isteğe bağlı)</label>
+              <select className="mt-1 w-full border border-slate-200 rounded-xl px-3 py-2 text-sm" value={form.routeId} onChange={e => setF("routeId", e.target.value)}>
+                <option value="">— Seçiniz —</option>
+                {routes.map(r => <option key={r.id} value={r.id}>{r.name}{r.driver ? ` (${r.driver.name})` : ""}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-500">Fatura No *</label>
+              <input className="mt-1 w-full border border-slate-200 rounded-xl px-3 py-2 text-sm" value={form.invoiceNo} onChange={e => setF("invoiceNo", e.target.value)} placeholder="Otomatik doldurulur" />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-500">Fatura Tarihi</label>
+              <input type="date" className="mt-1 w-full border border-slate-200 rounded-xl px-3 py-2 text-sm" value={form.issueDate} onChange={e => setF("issueDate", e.target.value)} />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-500">Son Ödeme</label>
+              <input type="date" className="mt-1 w-full border border-slate-200 rounded-xl px-3 py-2 text-sm" value={form.dueDate} onChange={e => setF("dueDate", e.target.value)} />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-500">Dönem Başı</label>
+              <input type="date" className="mt-1 w-full border border-slate-200 rounded-xl px-3 py-2 text-sm" value={form.periodStart} onChange={e => setF("periodStart", e.target.value)} />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-500">Dönem Sonu</label>
+              <input type="date" className="mt-1 w-full border border-slate-200 rounded-xl px-3 py-2 text-sm" value={form.periodEnd} onChange={e => setF("periodEnd", e.target.value)} />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-500">Sefer Sayısı</label>
+              <input type="number" className="mt-1 w-full border border-slate-200 rounded-xl px-3 py-2 text-sm" value={form.tripCount} onChange={e => setF("tripCount", e.target.value)} />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-500">Birim Fiyat (₺)</label>
+              <input type="number" className="mt-1 w-full border border-slate-200 rounded-xl px-3 py-2 text-sm" value={form.unitPrice} onChange={e => setF("unitPrice", e.target.value)} />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-500">KDV %</label>
+              <input type="number" className="mt-1 w-full border border-slate-200 rounded-xl px-3 py-2 text-sm" value={form.kdvRate} onChange={e => setF("kdvRate", e.target.value)} />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-500">Tevkifat %</label>
+              <input type="number" className="mt-1 w-full border border-slate-200 rounded-xl px-3 py-2 text-sm" value={form.tevkifatRate} onChange={e => setF("tevkifatRate", e.target.value)} />
+            </div>
+          </div>
+
+          {/* Tutar özeti */}
+          {form.payableAmount && (
+            <div className="bg-[#1B2437] rounded-xl p-4 text-sm space-y-1.5">
+              <div className="flex justify-between text-slate-400">
+                <span>Ara toplam</span>
+                <span className="text-white">{TRY(parseFloat(form.subtotal) || 0)}</span>
+              </div>
+              <div className="flex justify-between text-slate-400">
+                <span>KDV</span>
+                <span className="text-white">{TRY(parseFloat(form.kdvAmount) || 0)}</span>
+              </div>
+              <div className="flex justify-between text-slate-400">
+                <span>Tevkifat</span>
+                <span className="text-orange-400">-{TRY(parseFloat(form.tevkifatAmount) || 0)}</span>
+              </div>
+              <div className="border-t border-white/10 pt-1.5 flex justify-between">
+                <span className="text-white font-semibold">Ödenecek</span>
+                <span className="text-[#DC2626] font-black text-lg">{TRY(parseFloat(form.payableAmount) || 0)}</span>
+              </div>
+            </div>
+          )}
+
+          <div>
+            <label className="text-xs font-semibold text-slate-500">Notlar</label>
+            <textarea className="mt-1 w-full border border-slate-200 rounded-xl px-3 py-2 text-sm resize-none" rows={2} value={form.notes} onChange={e => setF("notes", e.target.value)} />
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <button onClick={onClose} className="flex-1 py-2.5 border border-slate-200 text-slate-600 rounded-xl text-sm font-medium hover:bg-slate-50">İptal</button>
+            <button
+              onClick={handleSave}
+              disabled={saving || !form.clientId || !form.invoiceNo}
+              className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-[#DC2626] hover:bg-[#B91C1C] disabled:opacity-60 text-white rounded-xl text-sm font-semibold"
+            >
+              <Save className="w-4 h-4" />
+              {saving ? "Kaydediliyor..." : "Kaydet"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function FaturalarClient({
   clients: initialClients,
   invoices: initialInvoices,
+  routes: initialRoutes,
 }: {
   clients: Client[];
   invoices: Invoice[];
+  routes: Route[];
 }) {
   const router = useRouter();
-  const [tab, setTab] = useState<"firmalar" | "fatura-kes" | "faturalar" | "nakit-akisi">("fatura-kes");
+  const [tab, setTab] = useState<"firmalar" | "fatura-kes" | "faturalar" | "nakit-akisi" | "net-kazanc">("fatura-kes");
   const [clients, setClients] = useState(initialClients);
   const [invoices, setInvoices] = useState(initialInvoices);
+  const [routes] = useState(initialRoutes);
   const [forecast, setForecast] = useState<ForecastData | null>(null);
   const [clientModal, setClientModal] = useState<Client | null | "new">(null);
   const [invoiceModal, setInvoiceModal] = useState<Client | null>(null);
+  const [pdfModal, setPdfModal] = useState(false);
+  const [netKazanc, setNetKazanc] = useState<{ routes: RouteEarning[]; totals: { revenue: number; fuelCost: number; salaryCost: number; netProfit: number } } | null>(null);
+  const [netKazancLoading, setNetKazancLoading] = useState(false);
+  const [netYear, setNetYear] = useState(new Date().getFullYear());
+  const [netMonth, setNetMonth] = useState(new Date().getMonth() + 1);
 
   const now = new Date();
   const [selMonth, setSelMonth] = useState(now.getMonth() + 1);
@@ -417,7 +731,17 @@ export default function FaturalarClient({
     setForecast(await r.json());
   }
 
+  async function loadNetKazanc(year: number, month: number) {
+    setNetKazancLoading(true);
+    try {
+      const r = await fetch(`/api/invoices/route-earnings?year=${year}&month=${month}`);
+      setNetKazanc(await r.json());
+    } catch { /* ignore */ }
+    finally { setNetKazancLoading(false); }
+  }
+
   useEffect(() => { if (tab === "nakit-akisi") loadForecast(); }, [tab]);
+  useEffect(() => { if (tab === "net-kazanc") loadNetKazanc(netYear, netMonth); }, [tab, netYear, netMonth]);
 
   async function markPaid(inv: Invoice) {
     const today = new Date().toISOString().split("T")[0];
@@ -502,12 +826,13 @@ export default function FaturalarClient({
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 mb-6 bg-slate-100 p-1.5 rounded-2xl w-fit">
+      <div className="flex flex-wrap gap-2 mb-6 bg-slate-100 p-1.5 rounded-2xl w-fit">
         <button className={tabStyle("fatura-kes")} onClick={() => setTab("fatura-kes")}>Fatura Kes</button>
         <button className={tabStyle("faturalar")} onClick={() => setTab("faturalar")}>
           Faturalar {invoices.length > 0 && <span className="ml-1 bg-white/30 text-xs px-1.5 py-0.5 rounded-full">{invoices.length}</span>}
         </button>
         <button className={tabStyle("nakit-akisi")} onClick={() => setTab("nakit-akisi")}>Nakit Akışı</button>
+        <button className={tabStyle("net-kazanc")} onClick={() => setTab("net-kazanc")}>Net Kazanç</button>
         <button className={tabStyle("firmalar")} onClick={() => setTab("firmalar")}>Firmalar</button>
       </div>
 
@@ -531,14 +856,22 @@ export default function FaturalarClient({
               {years.map(y => <option key={y} value={y}>{y}</option>)}
             </select>
             <span className="text-slate-400 text-sm">dönemi</span>
-            <button
-              onClick={openBulkPreview}
-              disabled={bulkPreviewLoading || clients.length === 0}
-              className="flex items-center gap-2 px-4 py-2 bg-[#1B2437] hover:bg-[#2a3a55] disabled:opacity-50 text-white rounded-xl text-sm font-semibold ml-auto"
-            >
-              <Receipt className="w-4 h-4" />
-              {bulkPreviewLoading ? "Hesaplanıyor..." : "Tümüne Fatura Kes"}
-            </button>
+            <div className="flex items-center gap-2 ml-auto">
+              <button
+                onClick={() => setPdfModal(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold"
+              >
+                <Upload className="w-4 h-4" /> PDF'den Ekle
+              </button>
+              <button
+                onClick={openBulkPreview}
+                disabled={bulkPreviewLoading || clients.length === 0}
+                className="flex items-center gap-2 px-4 py-2 bg-[#1B2437] hover:bg-[#2a3a55] disabled:opacity-50 text-white rounded-xl text-sm font-semibold"
+              >
+                <Receipt className="w-4 h-4" />
+                {bulkPreviewLoading ? "Hesaplanıyor..." : "Tümüne Fatura Kes"}
+              </button>
+            </div>
           </div>
 
           {/* Toplu fatura sonucu */}
@@ -575,6 +908,14 @@ export default function FaturalarClient({
       {/* ── Tab: Faturalar ──────────────────────────────── */}
       {tab === "faturalar" && (
         <div>
+          <div className="flex justify-end mb-4">
+            <button
+              onClick={() => setPdfModal(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold"
+            >
+              <Upload className="w-4 h-4" /> PDF'den Yükle
+            </button>
+          </div>
           {invoices.length === 0 ? (
             <div className="text-center py-16 text-slate-400">
               <FileText className="w-12 h-12 mx-auto mb-3 opacity-30" />
@@ -587,9 +928,19 @@ export default function FaturalarClient({
                 <div key={inv.id} className="bg-white rounded-2xl border border-slate-100 p-4 shadow-sm">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <span className="text-xs font-mono text-slate-400">{inv.invoiceNo}</span>
                         {statusBadge(inv.status)}
+                        {inv.route && (
+                          <span className="flex items-center gap-1 text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full">
+                            <MapPin className="w-3 h-3" />{inv.route.name}
+                          </span>
+                        )}
+                        {inv.pdfUrl && (
+                          <a href={inv.pdfUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs bg-slate-100 text-slate-500 hover:text-slate-700 px-2 py-0.5 rounded-full">
+                            <ExternalLink className="w-3 h-3" /> PDF
+                          </a>
+                        )}
                       </div>
                       <p className="font-bold text-slate-800 truncate">{inv.client.name}</p>
                       <p className="text-xs text-slate-500 mt-0.5">
@@ -714,6 +1065,98 @@ export default function FaturalarClient({
         </div>
       )}
 
+      {/* ── Tab: Net Kazanç ─────────────────────────────── */}
+      {tab === "net-kazanc" && (
+        <div>
+          {/* Dönem seçici */}
+          <div className="flex flex-wrap items-center gap-3 mb-5">
+            <select
+              className="border border-slate-200 rounded-xl px-3 py-2 text-sm font-semibold bg-white"
+              value={netMonth}
+              onChange={e => setNetMonth(parseInt(e.target.value))}
+            >
+              {MONTHS_FULL.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
+            </select>
+            <select
+              className="border border-slate-200 rounded-xl px-3 py-2 text-sm font-semibold bg-white"
+              value={netYear}
+              onChange={e => setNetYear(parseInt(e.target.value))}
+            >
+              {[now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1].map(y => <option key={y} value={y}>{y}</option>)}
+            </select>
+            <span className="text-slate-400 text-sm">dönemi</span>
+          </div>
+
+          {netKazancLoading ? (
+            <div className="text-center py-16 text-slate-400">Yükleniyor...</div>
+          ) : !netKazanc || netKazanc.routes.length === 0 ? (
+            <div className="text-center py-16 text-slate-400">
+              <TrendingUp className="w-12 h-12 mx-auto mb-3 opacity-30" />
+              <p>Bu dönem için güzergah verisi yok</p>
+              <p className="text-xs mt-1">Faturalar güzergaha bağlandığında burada görünür</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {/* Dönem özeti */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="bg-blue-50 rounded-2xl p-4 text-center">
+                  <p className="text-xs text-blue-600 font-semibold uppercase tracking-wide">Fatura Geliri</p>
+                  <p className="text-xl font-black text-blue-700 mt-1">{TRY(netKazanc.totals.revenue)}</p>
+                </div>
+                <div className="bg-orange-50 rounded-2xl p-4 text-center">
+                  <p className="text-xs text-orange-600 font-semibold uppercase tracking-wide">Yakıt</p>
+                  <p className="text-xl font-black text-orange-700 mt-1">{TRY(netKazanc.totals.fuelCost)}</p>
+                </div>
+                <div className="bg-purple-50 rounded-2xl p-4 text-center">
+                  <p className="text-xs text-purple-600 font-semibold uppercase tracking-wide">Maaş</p>
+                  <p className="text-xl font-black text-purple-700 mt-1">{TRY(netKazanc.totals.salaryCost)}</p>
+                </div>
+                <div className={`rounded-2xl p-4 text-center ${netKazanc.totals.netProfit >= 0 ? "bg-green-50" : "bg-red-50"}`}>
+                  <p className={`text-xs font-semibold uppercase tracking-wide ${netKazanc.totals.netProfit >= 0 ? "text-green-600" : "text-red-600"}`}>Net Kazanç</p>
+                  <p className={`text-xl font-black mt-1 ${netKazanc.totals.netProfit >= 0 ? "text-green-700" : "text-red-700"}`}>{TRY(netKazanc.totals.netProfit)}</p>
+                </div>
+              </div>
+
+              {/* Güzergah bazlı */}
+              <div className="space-y-2">
+                {netKazanc.routes.map(r => (
+                  <div key={r.routeId} className="bg-white rounded-2xl border border-slate-100 p-4 shadow-sm">
+                    <div className="flex items-start justify-between gap-4 mb-3">
+                      <div>
+                        <p className="font-bold text-slate-800">{r.routeName}</p>
+                        <div className="flex gap-2 mt-0.5 flex-wrap">
+                          {r.driver && <span className="text-xs text-slate-500">{r.driver.name}</span>}
+                          {r.vehicle && <span className="text-xs bg-slate-100 px-2 py-0.5 rounded-full text-slate-500">{r.vehicle.plate}</span>}
+                          <span className="text-xs text-slate-400">{r.invoiceCount} fatura</span>
+                        </div>
+                      </div>
+                      <div className={`text-right flex-shrink-0`}>
+                        <p className={`text-lg font-black ${r.netProfit >= 0 ? "text-green-600" : "text-red-600"}`}>{TRY(r.netProfit)}</p>
+                        <p className="text-xs text-slate-400">net kazanç</p>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 text-xs">
+                      <div className="bg-blue-50 rounded-xl p-2 text-center">
+                        <p className="text-blue-500 flex items-center justify-center gap-1"><FileText className="w-3 h-3" /> Gelir</p>
+                        <p className="font-bold text-blue-700">{TRY(r.revenue)}</p>
+                      </div>
+                      <div className="bg-orange-50 rounded-xl p-2 text-center">
+                        <p className="text-orange-500 flex items-center justify-center gap-1"><Fuel className="w-3 h-3" /> Yakıt</p>
+                        <p className="font-bold text-orange-700">-{TRY(r.fuelCost)}</p>
+                      </div>
+                      <div className="bg-purple-50 rounded-xl p-2 text-center">
+                        <p className="text-purple-500 flex items-center justify-center gap-1"><Banknote className="w-3 h-3" /> Maaş</p>
+                        <p className="font-bold text-purple-700">-{TRY(r.salaryCost)}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* ── Tab: Firmalar ───────────────────────────────── */}
       {tab === "firmalar" && (
         <div>
@@ -771,8 +1214,17 @@ export default function FaturalarClient({
           client={invoiceModal}
           month={selMonth}
           year={selYear}
+          routes={routes}
           onClose={() => setInvoiceModal(null)}
           onSaved={refreshInvoices}
+        />
+      )}
+      {pdfModal && (
+        <PdfUploadModal
+          clients={clients}
+          routes={routes}
+          onClose={() => setPdfModal(false)}
+          onSaved={() => { setPdfModal(false); refreshInvoices(); }}
         />
       )}
       {bulkPreview && (

@@ -33,7 +33,10 @@ export async function GET(req: NextRequest) {
 
   const invoices = await prisma.invoice.findMany({
     where: { ...tenantWhere(companyId), ...(status ? { status } : {}), ...dateFilter },
-    include: { client: { select: { id: true, name: true } } },
+    include: {
+      client: { select: { id: true, name: true } },
+      route: { select: { id: true, name: true } },
+    },
     orderBy: { issueDate: "desc" },
   });
   return NextResponse.json(invoices);
@@ -45,11 +48,12 @@ export async function POST(req: NextRequest) {
   const companyId = getCompanyId(session);
   try {
     const body = await req.json();
-    const subtotal = body.tripCount * body.unitPrice;
-    const kdvAmount = subtotal * (body.kdvRate / 100);
-    const tevkifatAmount = kdvAmount * (body.tevkifatRate / 100);
-    const totalAmount = subtotal + kdvAmount;
-    const payableAmount = totalAmount - tevkifatAmount;
+    // Allow pre-calculated amounts from PDF upload (Gemini extraction)
+    const subtotal = body._subtotal ?? (body.tripCount * body.unitPrice);
+    const kdvAmount = body._kdvAmount ?? (subtotal * (body.kdvRate / 100));
+    const tevkifatAmount = body._tevkifatAmount ?? (kdvAmount * (body.tevkifatRate / 100));
+    const totalAmount = body._totalAmount ?? (subtotal + kdvAmount);
+    const payableAmount = body._payableAmount ?? (totalAmount - tevkifatAmount);
 
     const invoice = await prisma.invoice.create({
       data: {
@@ -69,9 +73,14 @@ export async function POST(req: NextRequest) {
         totalAmount,
         payableAmount,
         notes: body.notes || null,
+        routeId: body.routeId || null,
+        pdfUrl: body.pdfUrl || null,
         ...tenantData(companyId),
       },
-      include: { client: { select: { id: true, name: true } } },
+      include: {
+        client: { select: { id: true, name: true } },
+        route: { select: { id: true, name: true } },
+      },
     });
     return NextResponse.json(invoice, { status: 201 });
   } catch (e) {
