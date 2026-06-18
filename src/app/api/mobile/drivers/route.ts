@@ -9,7 +9,7 @@ export async function GET() {
     select: {
       id: true,
       name: true,
-      vehicle: { select: { id: true, plate: true } },
+      vehicles: { include: { vehicle: { select: { id: true, plate: true } } } },
     },
     orderBy: { name: "asc" },
   });
