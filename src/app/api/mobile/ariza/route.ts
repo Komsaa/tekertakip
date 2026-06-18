@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
   const report = await prisma.vehicleReport.create({
     data: {
       driverId: driver.id,
-      vehicleId: driver.vehicleId,
+      vehicleId: driver.vehicles?.[0]?.vehicleId ?? null,
       description: description.trim(),
       photoUrl: photoUrl || null,
       status: "open",

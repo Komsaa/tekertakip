@@ -40,19 +40,11 @@ export async function GET() {
       latitude: true,
       longitude: true,
       lastLocationAt: true,
-      vehicle: {
-        select: {
-          plate: true,
-          routes: {
-            where: { active: true },
-            select: {
-              id: true,
-              name: true,
-              stops: { orderBy: { order: "asc" } },
-            },
-            take: 1,
-          },
-        },
+      vehicles: { include: { vehicle: { select: { plate: true } } } },
+      routes: {
+        where: { active: true },
+        select: { id: true, name: true, stops: { orderBy: { order: "asc" } } },
+        take: 1,
       },
     },
   });
@@ -62,7 +54,7 @@ export async function GET() {
   const alerts: any[] = [];
 
   for (const driver of drivers) {
-    const route = driver.vehicle?.routes?.[0];
+    const route = driver.routes?.[0];
     if (!route || route.stops.length === 0) continue;
 
     for (const stop of route.stops) {
@@ -92,7 +84,7 @@ export async function GET() {
           driverId: driver.id,
           driverName: driver.name,
           driverPhone: driver.phone,
-          plate: driver.vehicle?.plate,
+          plate: driver.vehicles?.[0]?.vehicle?.plate,
           routeName: route.name,
           stopName: stop.name,
           scheduledTime: stop.estimatedTime,

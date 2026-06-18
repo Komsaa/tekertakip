@@ -12,6 +12,7 @@ export async function getDriverFromRequest(req: NextRequest) {
 
   const driver = await prisma.driver.findUnique({
     where: { mobileToken: token },
+    include: { vehicles: { include: { vehicle: { select: { id: true, plate: true } } } } },
   });
   if (!driver) return null;
 
@@ -40,7 +41,10 @@ export async function getDriverFromHeaders() {
   const token = auth.replace("Bearer ", "").trim();
   if (!token) return null;
 
-  const driver = await prisma.driver.findFirst({ where: { mobileToken: token } });
+  const driver = await prisma.driver.findFirst({
+    where: { mobileToken: token },
+    include: { vehicles: { include: { vehicle: { select: { id: true, plate: true } } } } },
+  });
   if (!driver) return null;
 
   if (driver.mobileTokenAt) {

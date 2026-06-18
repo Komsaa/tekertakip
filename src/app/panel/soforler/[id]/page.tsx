@@ -4,6 +4,7 @@ import { formatDate } from "@/lib/utils";
 import Link from "next/link";
 import { ArrowLeft, Phone, FileText, Car, Clock } from "lucide-react";
 import EditDriverForm from "./EditDriverForm";
+import DriverVehicles from "./DriverVehicles";
 import DocRow from "@/components/DocRow";
 import ExtraDocuments from "@/components/ExtraDocuments";
 import DeleteButton from "@/components/DeleteButton";
@@ -17,7 +18,7 @@ async function getDriver(id: string) {
     return await prisma.driver.findUnique({
       where: { id },
       include: {
-        vehicle: true,
+        vehicles: { include: { vehicle: true } },
         jobs: { take: 10, orderBy: { date: "desc" }, include: { vehicle: true } },
         fuelEntries: { take: 5, orderBy: { createdAt: "desc" }, include: { vehicle: true } },
       },
@@ -27,7 +28,7 @@ async function getDriver(id: string) {
     try {
       const d = await prisma.driver.findUnique({ where: { id } });
       if (!d) return null;
-      return { ...d, vehicle: null as any, jobs: [] as any[], fuelEntries: [] as any[] };
+      return { ...d, vehicles: [] as any[], jobs: [] as any[], fuelEntries: [] as any[] };
     } catch {
       return null;
     }
@@ -37,6 +38,12 @@ async function getDriver(id: string) {
 export default async function DriverDetailPage({ params }: Props) {
   const driver = await getDriver(params.id);
   if (!driver) notFound();
+
+  const allVehicles = await prisma.vehicle.findMany({
+    where: { status: "active" },
+    orderBy: { plate: "asc" },
+    select: { id: true, plate: true, brand: true, model: true },
+  }).catch(() => []);
 
   let extraDocs: Awaited<ReturnType<typeof prisma.document.findMany>> = [];
   try {
@@ -164,28 +171,12 @@ export default async function DriverDetailPage({ params }: Props) {
 
         {/* Sağ: Bilgi */}
         <div className="space-y-4">
-          {/* Araç */}
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
-            <h2 className="font-bold text-slate-800 mb-4">Atanan Araç</h2>
-            {driver.vehicle ? (
-              <Link
-                href={`/panel/araclar/${driver.vehicle.id}`}
-                className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl hover:bg-slate-100 transition-colors"
-              >
-                <div className="w-10 h-10 bg-[#1B2437] rounded-xl flex items-center justify-center text-white font-bold text-sm">
-                  {driver.vehicle.plate.slice(-3)}
-                </div>
-                <div>
-                  <div className="font-semibold text-slate-800">{driver.vehicle.plate}</div>
-                  <div className="text-xs text-slate-500">
-                    {driver.vehicle.brand} {driver.vehicle.model}
-                  </div>
-                </div>
-              </Link>
-            ) : (
-              <p className="text-slate-400 text-sm">Araç atanmadı</p>
-            )}
-          </div>
+          {/* Araçlar */}
+          <DriverVehicles
+            driverId={driver.id}
+            assignedVehicles={driver.vehicles.map((dv: any) => dv.vehicle)}
+            allVehicles={allVehicles}
+          />
 
           {/* İstatistik */}
           <div className="bg-[#1B2437] rounded-2xl p-6 text-white">

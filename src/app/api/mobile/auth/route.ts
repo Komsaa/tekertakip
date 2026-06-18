@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
         name: true,
         mobilePin: true,
         companyId: true,
-        vehicle: { select: { id: true, plate: true } },
+        vehicles: { include: { vehicle: { select: { id: true, plate: true } } } },
         company: { select: { name: true, active: true } },
       },
     });
@@ -66,7 +66,8 @@ export async function POST(req: NextRequest) {
       driver: {
         id: driver.id,
         name: driver.name,
-        vehicle: driver.vehicle,
+        vehicle: driver.vehicles?.[0]?.vehicle ?? null,
+        vehicles: driver.vehicles?.map(dv => dv.vehicle) ?? [],
         companyName: driver.company?.name ?? null,
       },
     });

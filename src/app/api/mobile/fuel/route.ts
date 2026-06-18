@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
 
     const b = await req.json();
 
-    const vehicleId = b.vehicleId || driver.vehicleId;
+    const vehicleId = b.vehicleId || driver.vehicles?.[0]?.vehicleId;
     if (!vehicleId) {
       return NextResponse.json({ error: "Araç bilgisi eksik" }, { status: 400 });
     }

@@ -16,7 +16,7 @@ export async function GET(_: NextRequest, { params }: { params: { id: string } }
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const companyId = getCompanyId(session);
-  const driver = await prisma.driver.findFirst({ where: { id: params.id, ...tenantWhere(companyId) }, include: { vehicle: true } });
+  const driver = await prisma.driver.findFirst({ where: { id: params.id, ...tenantWhere(companyId) }, include: { vehicles: { include: { vehicle: true } } } });
   if (!driver) return NextResponse.json({ error: "Not found" }, { status: 404 });
   return NextResponse.json(driver);
 }

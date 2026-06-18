@@ -16,7 +16,7 @@ import AddDriverModal from "./AddDriverModal";
 async function getDrivers() {
   return prisma.driver.findMany({
     orderBy: { name: "asc" },
-    include: { vehicle: true, company: { select: { id: true, name: true } }, _count: { select: { jobs: true } } },
+    include: { vehicles: { include: { vehicle: { select: { id: true, plate: true } } } }, company: { select: { id: true, name: true } }, _count: { select: { jobs: true } } },
   }).catch(() => []);
 }
 
@@ -140,11 +140,11 @@ export default async function DriversPage() {
                     >
                       {driver.status === "active" ? "Aktif" : "Pasif"}
                     </span>
-                    {driver.vehicle && (
-                      <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
-                        {driver.vehicle.plate}
+                    {driver.vehicles?.map((dv: any) => (
+                      <span key={dv.vehicleId} className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                        {dv.vehicle.plate}
                       </span>
-                    )}
+                    ))}
                     <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-slate-500" />
                   </div>
                 </div>

@@ -51,8 +51,8 @@ export async function POST(req: NextRequest) {
     const driver = await prisma.driver.findFirst({
       where: { status: "active", mobileUsername: { equals: u, mode: "insensitive" } },
       select: {
-        id: true, name: true, mobilePin: true, vehicleId: true,
-        vehicle: { select: { id: true, plate: true } },
+        id: true, name: true, mobilePin: true,
+        vehicles: { include: { vehicle: { select: { id: true, plate: true } } } },
         company: { select: { name: true, active: true } },
       },
     });
@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({
           role: "driver",
           token,
-          driver: { id: driver.id, name: driver.name, vehicle: driver.vehicle, companyName: driver.company?.name ?? null },
+          driver: { id: driver.id, name: driver.name, vehicle: driver.vehicles?.[0]?.vehicle ?? null, vehicles: driver.vehicles?.map(dv => dv.vehicle) ?? [], companyName: driver.company?.name ?? null },
         });
       }
     }
