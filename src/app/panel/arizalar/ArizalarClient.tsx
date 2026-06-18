@@ -11,8 +11,8 @@ interface Report {
   description: string;
   photoUrl: string | null;
   status: string;
-  resolvedAt: string | null;
-  createdAt: string;
+  resolvedAt: Date | string | null;
+  createdAt: Date | string;
   driver: { id: string; name: string; phone: string | null };
   vehicle: { id: string; plate: string } | null;
 }
