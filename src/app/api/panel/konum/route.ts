@@ -20,7 +20,7 @@ export async function GET() {
       longitude: true,
       lastLocationAt: true,
       isTracking: true,
-      vehicle: { select: { plate: true } },
+      vehicles: { take: 1, include: { vehicle: { select: { plate: true } } } },
       routes: {
         where: { active: true, type: "okul" },
         take: 1,
