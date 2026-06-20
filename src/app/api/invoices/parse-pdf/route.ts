@@ -7,7 +7,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { uploadToStorage } from "@/lib/storage";
 import { randomUUID } from "crypto";
-import pdfParse from "pdf-parse";
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const pdfParse: (buf: Buffer) => Promise<{ text: string }> = require("pdf-parse");
 
 // Türkçe sayı formatı: 70.875,00 → 70875.00
 function parseTRNumber(s: string): number {
