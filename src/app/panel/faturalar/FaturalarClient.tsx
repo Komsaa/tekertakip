@@ -427,8 +427,8 @@ function PdfUploadModal({ clients, routes, onClose, onSaved }: {
   const [dueDate, setDueDate] = useState(today);
   const [periodStart, setPeriodStart] = useState(today);
   const [periodEnd, setPeriodEnd] = useState(today);
-  const [tripCount, setTripCount] = useState("0");
-  const [unitPrice, setUnitPrice] = useState("0");
+  const [tripCount, setTripCount] = useState("");
+  const [unitPrice, setUnitPrice] = useState("");
   const [kdvRate, setKdvRate] = useState("20");
   const [tevkifatRate, setTevkifatRate] = useState("50");
   const [notes, setNotes] = useState("");
@@ -438,7 +438,7 @@ function PdfUploadModal({ clients, routes, onClose, onSaved }: {
     setClientId(id);
     const c = clients.find(cl => cl.id === id);
     if (c) {
-      setUnitPrice(String(c.unitPrice));
+      if (c.unitPrice > 0) setUnitPrice(String(c.unitPrice));
       setKdvRate(String(c.kdvRate));
       setTevkifatRate(String(c.tevkifatRate));
     }
@@ -578,11 +578,11 @@ function PdfUploadModal({ clients, routes, onClose, onSaved }: {
             </div>
             <div>
               <label className="text-xs font-semibold text-slate-500">Sefer Sayısı</label>
-              <input type="number" className="mt-1 w-full border border-slate-200 rounded-xl px-3 py-2 text-sm" value={tripCount} onChange={e => setTripCount(e.target.value)} />
+              <input type="number" min="0" placeholder="örn. 22" className="mt-1 w-full border border-slate-200 rounded-xl px-3 py-2 text-sm" value={tripCount} onChange={e => setTripCount(e.target.value)} />
             </div>
             <div>
               <label className="text-xs font-semibold text-slate-500">Birim Fiyat (₺)</label>
-              <input type="number" className="mt-1 w-full border border-slate-200 rounded-xl px-3 py-2 text-sm" value={unitPrice} onChange={e => setUnitPrice(e.target.value)} />
+              <input type="number" min="0" placeholder="örn. 1500" className="mt-1 w-full border border-slate-200 rounded-xl px-3 py-2 text-sm" value={unitPrice} onChange={e => setUnitPrice(e.target.value)} />
             </div>
             <div>
               <label className="text-xs font-semibold text-slate-500">KDV %</label>
