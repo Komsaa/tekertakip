@@ -459,16 +459,20 @@ function PdfUploadModal({ clients, routes, onClose, onSaved }: {
     if (!clientId) { toast.error("Firma seçiniz"); return; }
     if (!invoiceNo.trim()) { toast.error("Fatura no zorunlu"); return; }
     setSaving(true);
-    try {
-      let pdfUrl: string | null = null;
-      if (file) {
+    let pdfUrl: string | null = null;
+    if (file) {
+      try {
         const fd = new FormData();
         fd.append("file", file);
         const upRes = await fetch("/api/invoices/parse-pdf", { method: "POST", body: fd });
         const upData = await upRes.json();
         if (upData.pdfUrl) pdfUrl = upData.pdfUrl;
-        else toast("PDF yüklenemedi, fatura yine de kaydediliyor");
+        else toast("PDF yüklenemedi, devam ediliyor");
+      } catch {
+        toast("PDF yüklenemedi, devam ediliyor");
       }
+    }
+    try {
       const res = await fetch("/api/invoices", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -488,11 +492,15 @@ function PdfUploadModal({ clients, routes, onClose, onSaved }: {
           pdfUrl,
         }),
       });
-      if (!res.ok) throw new Error();
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `Hata ${res.status}`);
+      }
       toast.success("Fatura kaydedildi");
       onSaved();
-    } catch { toast.error("Kayıt başarısız"); }
-    finally { setSaving(false); }
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Kayıt başarısız");
+    } finally { setSaving(false); }
   }
 
   return (

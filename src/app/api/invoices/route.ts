@@ -83,8 +83,9 @@ export async function POST(req: NextRequest) {
       },
     });
     return NextResponse.json(invoice, { status: 201 });
-  } catch (e) {
+  } catch (e: unknown) {
     console.error(e);
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+    const msg = e instanceof Error ? e.message : "Server error";
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
