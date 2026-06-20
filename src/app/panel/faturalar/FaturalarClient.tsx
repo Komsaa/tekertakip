@@ -419,6 +419,7 @@ function PdfUploadModal({ clients, routes, onClose, onSaved }: {
 }) {
   const today = new Date().toISOString().split("T")[0];
   const [file, setFile] = useState<File | null>(null);
+  const [parsing, setParsing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [clientId, setClientId] = useState("");
   const [routeId, setRouteId] = useState("");
@@ -432,6 +433,7 @@ function PdfUploadModal({ clients, routes, onClose, onSaved }: {
   const [kdvRate, setKdvRate] = useState("20");
   const [tevkifatRate, setTevkifatRate] = useState("50");
   const [notes, setNotes] = useState("");
+  const [pdfUrlPreview, setPdfUrlPreview] = useState<string | null>(null);
 
   // Seçili firmadan varsayılanları doldur
   function onClientChange(id: string) {
@@ -441,6 +443,45 @@ function PdfUploadModal({ clients, routes, onClose, onSaved }: {
       if (c.unitPrice > 0) setUnitPrice(String(c.unitPrice));
       setKdvRate(String(c.kdvRate));
       setTevkifatRate(String(c.tevkifatRate));
+    }
+  }
+
+  // PDF seçilince hemen parse et ve formu doldur
+  async function onFileChange(f: File) {
+    setFile(f);
+    setParsing(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", f);
+      const res = await fetch("/api/invoices/parse-pdf", { method: "POST", body: fd });
+      const data = await res.json();
+      if (data.pdfUrl) setPdfUrlPreview(data.pdfUrl);
+      if (data.parsed) {
+        const p = data.parsed;
+        if (p.invoiceNo) setInvoiceNo(String(p.invoiceNo));
+        if (p.issueDate) setIssueDate(String(p.issueDate));
+        if (p.dueDate) setDueDate(String(p.dueDate));
+        if (p.periodStart) setPeriodStart(String(p.periodStart));
+        if (p.periodEnd) setPeriodEnd(String(p.periodEnd));
+        if (p.tripCount != null) setTripCount(String(p.tripCount));
+        if (p.unitPrice != null) setUnitPrice(String(p.unitPrice));
+        if (p.kdvRate != null) setKdvRate(String(p.kdvRate));
+        if (p.tevkifatRate != null) setTevkifatRate(String(p.tevkifatRate));
+        // Müşteri adından firma eşleştir
+        if (p.clientName && !clientId) {
+          const lower = String(p.clientName).toLowerCase();
+          const match = clients.find(c =>
+            c.name.toLowerCase().includes(lower.slice(0, 8)) ||
+            lower.includes(c.name.toLowerCase().slice(0, 8))
+          );
+          if (match) setClientId(match.id);
+        }
+        toast.success("PDF okundu, bilgiler dolduruldu");
+      }
+    } catch {
+      toast("PDF okunamadı, bilgileri elle girebilirsiniz");
+    } finally {
+      setParsing(false);
     }
   }
 
@@ -459,19 +500,8 @@ function PdfUploadModal({ clients, routes, onClose, onSaved }: {
     if (!clientId) { toast.error("Firma seçiniz"); return; }
     if (!invoiceNo.trim()) { toast.error("Fatura no zorunlu"); return; }
     setSaving(true);
-    let pdfUrl: string | null = null;
-    if (file) {
-      try {
-        const fd = new FormData();
-        fd.append("file", file);
-        const upRes = await fetch("/api/invoices/parse-pdf", { method: "POST", body: fd });
-        const upData = await upRes.json();
-        if (upData.pdfUrl) pdfUrl = upData.pdfUrl;
-        else toast("PDF yüklenemedi, devam ediliyor");
-      } catch {
-        toast("PDF yüklenemedi, devam ediliyor");
-      }
-    }
+    // PDF zaten dosya seçilince yüklendi, pdfUrlPreview'ı kullan
+    const pdfUrl = pdfUrlPreview;
     try {
       const res = await fetch("/api/invoices", {
         method: "POST",
@@ -515,27 +545,35 @@ function PdfUploadModal({ clients, routes, onClose, onSaved }: {
           <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100"><X className="w-5 h-5" /></button>
         </div>
         <div className="p-6 space-y-4">
-          {/* PDF dosyası — isteğe bağlı */}
+          {/* PDF dosyası */}
           <div className="border-2 border-dashed border-slate-200 rounded-xl p-4">
             {file ? (
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2 text-sm text-slate-700 min-w-0">
                   <FileText className="w-5 h-5 text-blue-500 flex-shrink-0" />
                   <span className="truncate font-medium">{file.name}</span>
+                  {parsing && <span className="text-xs text-blue-500 animate-pulse">Okunuyor...</span>}
                 </div>
-                <label className="cursor-pointer text-xs text-slate-400 hover:text-slate-600 flex-shrink-0">
-                  Değiştir
-                  <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={e => setFile(e.target.files?.[0] ?? null)} />
-                </label>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {pdfUrlPreview && (
+                    <a href={pdfUrlPreview} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-500 hover:underline flex items-center gap-1">
+                      <ExternalLink className="w-3 h-3" /> Görüntüle
+                    </a>
+                  )}
+                  <label className="cursor-pointer text-xs text-slate-400 hover:text-slate-600">
+                    Değiştir
+                    <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) onFileChange(f); }} />
+                  </label>
+                </div>
               </div>
             ) : (
               <label className="cursor-pointer flex items-center gap-3">
                 <Upload className="w-6 h-6 text-slate-300 flex-shrink-0" />
                 <div>
-                  <p className="text-sm text-slate-500 font-medium">PDF ekle (isteğe bağlı)</p>
-                  <p className="text-xs text-slate-400">PDF, JPG veya PNG</p>
+                  <p className="text-sm text-slate-500 font-medium">PDF seç — bilgiler otomatik dolar</p>
+                  <p className="text-xs text-slate-400">e-Fatura / e-Arşiv PDF desteklenir</p>
                 </div>
-                <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={e => setFile(e.target.files?.[0] ?? null)} />
+                <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) onFileChange(f); }} />
               </label>
             )}
           </div>
