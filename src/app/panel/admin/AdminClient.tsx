@@ -552,7 +552,7 @@ export default function AdminClient() {
                           placeholder="PIN"
                         />
                       ) : (
-                        <span className="font-mono text-orange-300">{u.mobilePin ?? "—"}</span>
+                        <span className="font-mono text-orange-300">{u.mobilePin ? "••••" : "—"}</span>
                       )}
                     </td>
                     <td className="py-3 pr-4">
