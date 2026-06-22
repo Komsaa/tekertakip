@@ -19,12 +19,14 @@ export default async function PanelLayout({
 
   // Firma kullanıcısı ise demo durumunu kontrol et
   let demoBanner: { daysLeft: number; expired: boolean } | null = null;
+  let companyType = (session.user as any)?.companyType ?? "firma";
   const companyId = (session.user as any)?.companyId;
   if (companyId) {
     const company = await prisma.company.findUnique({
       where: { id: companyId },
-      select: { isDemo: true, demoExpiresAt: true },
+      select: { isDemo: true, demoExpiresAt: true, type: true },
     });
+    if (company?.type) companyType = company.type;
     if (company?.isDemo && company.demoExpiresAt) {
       const daysLeft = Math.ceil(
         (company.demoExpiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24)
@@ -35,7 +37,7 @@ export default async function PanelLayout({
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-100">
-      <Sidebar userName={session.user?.name || "Admin"} role={(session.user as any)?.role} />
+      <Sidebar userName={session.user?.name || "Admin"} role={(session.user as any)?.role} companyType={companyType} />
 
       {/* Ana içerik */}
       <main className="flex-1 overflow-y-auto flex flex-col pt-14 lg:pt-0">

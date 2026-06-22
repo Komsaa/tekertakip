@@ -13,6 +13,7 @@ model Company {
   name         String                        // "Mert Tur"
   code         String   @unique             // giriş kodu: "MT2024" - şöförler bunu kullanır
   driverLimit  Int      @default(10)        // max kaç şöför ekleyebilir
+  type          String    @default("firma")  // firma, okul
   active        Boolean   @default(true)
   isDemo        Boolean   @default(false)
   demoExpiresAt DateTime?

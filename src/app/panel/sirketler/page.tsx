@@ -3,12 +3,13 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
-import { Plus, X, Building2, Users, Key, ToggleLeft, ToggleRight, Trash2, Edit2, UserPlus, Clock, Crown, AlertTriangle } from "lucide-react";
+import { Plus, X, Building2, Users, Key, ToggleLeft, ToggleRight, Trash2, Edit2, UserPlus, Clock, Crown, AlertTriangle, School } from "lucide-react";
 
 type Company = {
   id: string;
   name: string;
   code: string;
+  type: string;
   driverLimit: number;
   active: boolean;
   isDemo: boolean;
@@ -31,7 +32,7 @@ export default function SirketlerPage() {
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editTarget, setEditTarget] = useState<Company | null>(null);
-  const [form, setForm] = useState({ name: "", code: "", driverLimit: "10", notes: "", isDemo: false });
+  const [form, setForm] = useState({ name: "", code: "", type: "firma", driverLimit: "10", notes: "", isDemo: false });
   const [unassignedCount, setUnassignedCount] = useState<number | null>(null);
   const [assigning, setAssigning] = useState<string | null>(null);
   const [extending, setExtending] = useState<string | null>(null);
@@ -98,13 +99,13 @@ export default function SirketlerPage() {
 
   function openAdd() {
     setEditTarget(null);
-    setForm({ name: "", code: "", driverLimit: "10", notes: "", isDemo: false });
+    setForm({ name: "", code: "", type: "firma", driverLimit: "10", notes: "", isDemo: false });
     setShowModal(true);
   }
 
   function openEdit(c: Company) {
     setEditTarget(c);
-    setForm({ name: c.name, code: c.code, driverLimit: String(c.driverLimit), notes: c.notes ?? "", isDemo: c.isDemo });
+    setForm({ name: c.name, code: c.code, type: c.type ?? "firma", driverLimit: String(c.driverLimit), notes: c.notes ?? "", isDemo: c.isDemo });
     setShowModal(true);
   }
 
@@ -216,10 +217,15 @@ export default function SirketlerPage() {
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center">
-                      <Building2 className="w-5 h-5 text-slate-500" />
+                      {c.type === "okul" ? <School className="w-5 h-5 text-indigo-500" /> : <Building2 className="w-5 h-5 text-slate-500" />}
                     </div>
                     <div>
-                      <div className="font-bold text-slate-800">{c.name}</div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-slate-800">{c.name}</span>
+                        {c.type === "okul" && (
+                          <span className="text-xs px-1.5 py-0.5 bg-indigo-100 text-indigo-700 rounded-md font-medium">Okul</span>
+                        )}
+                      </div>
                       <div className="flex items-center gap-1 mt-0.5">
                         <Key className="w-3 h-3 text-slate-400" />
                         <span className="text-xs font-mono font-bold text-[#DC2626]">{c.code}</span>
@@ -336,6 +342,38 @@ export default function SirketlerPage() {
                   placeholder="Ata Tur"
                   required
                 />
+              </div>
+              <div>
+                <label>Üyelik Tipi</label>
+                <div className="flex gap-2 mt-1">
+                  <button
+                    type="button"
+                    onClick={() => setForm((f) => ({ ...f, type: "firma" }))}
+                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border text-sm font-medium transition-all ${
+                      form.type === "firma"
+                        ? "bg-slate-800 text-white border-slate-800"
+                        : "border-slate-200 text-slate-600 hover:bg-slate-50"
+                    }`}
+                  >
+                    <Building2 className="w-4 h-4" />
+                    Servis Firması
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setForm((f) => ({ ...f, type: "okul" }))}
+                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border text-sm font-medium transition-all ${
+                      form.type === "okul"
+                        ? "bg-indigo-600 text-white border-indigo-600"
+                        : "border-slate-200 text-slate-600 hover:bg-slate-50"
+                    }`}
+                  >
+                    <School className="w-4 h-4" />
+                    Okul
+                  </button>
+                </div>
+                {form.type === "okul" && (
+                  <p className="text-xs text-indigo-600 mt-1">Okul paneli: sadece güzergah, şöför ve veli takibi görünür.</p>
+                )}
               </div>
               {!editTarget && (
                 <div>

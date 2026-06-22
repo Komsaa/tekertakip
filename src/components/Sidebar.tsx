@@ -96,13 +96,26 @@ const navGroups: NavGroup[] = [
   },
 ];
 
+const okulAllowed = new Set([
+  "/panel",
+  "/panel/soforler",
+  "/panel/konum",
+  "/panel/araclar",
+  "/panel/guzergahlar",
+  "/panel/servis-odemeler",
+  "/panel/arizalar",
+  "/panel/ayarlar",
+]);
+
 interface SidebarProps {
   userName: string;
   role?: string;
+  companyType?: string;
 }
 
-export default function Sidebar({ userName, role }: SidebarProps) {
+export default function Sidebar({ userName, role, companyType }: SidebarProps) {
   const isAdmin = !role || role === "admin";
+  const isOkul = !isAdmin && companyType === "okul";
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -129,9 +142,10 @@ export default function Sidebar({ userName, role }: SidebarProps) {
       {/* Nav */}
       <nav className="flex-1 py-3 px-3 overflow-y-auto sidebar-scroll space-y-4">
         {navGroups.filter((group) => {
-        if (!isAdmin && group.label === "Sistem") return false;
-        return true;
-      }).map((group) => (
+          if (!isAdmin && group.label === "Sistem") return false;
+          if (isOkul && (group.label === "Operasyon" || group.label === "Finans")) return false;
+          return true;
+        }).map((group) => (
           <div key={group.label}>
             <div className="px-4 py-1 text-xs font-semibold text-slate-500 uppercase tracking-wider">
               {group.label}
@@ -139,6 +153,7 @@ export default function Sidebar({ userName, role }: SidebarProps) {
             <div className="space-y-0.5 mt-1">
               {group.items.filter((item) => {
                 if (!isAdmin && item.href === "/panel/sirketler") return false;
+                if (isOkul && !okulAllowed.has(item.href)) return false;
                 return true;
               }).map((item) => (
                 <Link
@@ -165,7 +180,7 @@ export default function Sidebar({ userName, role }: SidebarProps) {
       <div className="p-4 border-t border-white/10 space-y-2">
         <div className="px-4 py-2 rounded-xl bg-white/5">
           <div className="text-white text-sm font-medium truncate">{userName}</div>
-          <div className="text-slate-400 text-xs capitalize">{role === "admin" ? "Süper Admin" : role === "firma" ? "Firma Yöneticisi" : role ?? "Kullanıcı"}</div>
+          <div className="text-slate-400 text-xs capitalize">{role === "admin" ? "Süper Admin" : companyType === "okul" ? "Okul Yöneticisi" : role === "firma" ? "Firma Yöneticisi" : role ?? "Kullanıcı"}</div>
         </div>
         <button
           onClick={() => signOut({ callbackUrl: "/login" })}

@@ -25,6 +25,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       where: { id: params.id },
       data: {
         name: b.name || undefined,
+        type: b.type ? (b.type === "okul" ? "okul" : "firma") : undefined,
         driverLimit: b.driverLimit ? parseInt(b.driverLimit) : undefined,
         active: b.active !== undefined ? b.active : undefined,
         notes: b.notes ?? undefined,

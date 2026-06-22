@@ -40,6 +40,7 @@ export async function POST(req: NextRequest) {
       data: {
         name: b.name,
         code: b.code.toUpperCase(),
+        type: b.type === "okul" ? "okul" : "firma",
         driverLimit: b.driverLimit ? parseInt(b.driverLimit) : 10,
         notes: b.notes || null,
         isDemo: b.isDemo ?? false,

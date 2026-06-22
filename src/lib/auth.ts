@@ -39,12 +39,12 @@ export const authOptions: NextAuthOptions = {
         // DB'deki panel kullanıcılarını kontrol et
         const panelUser = await prisma.panelUser.findUnique({
           where: { username: credentials.username },
-          select: { id: true, name: true, passwordHash: true, active: true, role: true, companyId: true },
+          select: { id: true, name: true, passwordHash: true, active: true, role: true, companyId: true, company: { select: { type: true } } },
         });
         if (panelUser && panelUser.active) {
           const valid = await bcrypt.compare(credentials.password, panelUser.passwordHash);
           if (valid) {
-            return { id: panelUser.id, name: panelUser.name, email: `${credentials.username}@tekertakip.com`, role: panelUser.role, companyId: panelUser.companyId };
+            return { id: panelUser.id, name: panelUser.name, email: `${credentials.username}@tekertakip.com`, role: panelUser.role, companyId: panelUser.companyId, companyType: panelUser.company?.type ?? "firma" };
           }
         }
 
@@ -58,6 +58,7 @@ export const authOptions: NextAuthOptions = {
         token.role = (user as any).role;
         token.id = user.id;
         token.companyId = (user as any).companyId ?? null;
+        token.companyType = (user as any).companyType ?? "firma";
       }
       return token;
     },
@@ -66,6 +67,7 @@ export const authOptions: NextAuthOptions = {
         (session.user as any).id = token.id;
         (session.user as any).role = token.role;
         (session.user as any).companyId = token.companyId ?? null;
+        (session.user as any).companyType = token.companyType ?? "firma";
       }
       return session;
     },
