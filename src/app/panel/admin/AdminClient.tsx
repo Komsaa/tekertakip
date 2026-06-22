@@ -38,6 +38,7 @@ type Company = {
   id: string;
   name: string;
   code: string;
+  type: string;
   active: boolean;
 };
 
@@ -63,7 +64,7 @@ export default function AdminClient() {
 
   // Companies
   const [companies, setCompanies] = useState<Company[]>([]);
-  const [newCompanyForm, setNewCompanyForm] = useState({ name: "", code: "" });
+  const [newCompanyForm, setNewCompanyForm] = useState({ name: "", code: "", type: "firma" });
   const [newCompanyError, setNewCompanyError] = useState("");
   const [newCompanySaving, setNewCompanySaving] = useState(false);
   const [fixTenantCompanyId, setFixTenantCompanyId] = useState("");
@@ -173,7 +174,7 @@ export default function AdminClient() {
     const data = await res.json();
     setNewCompanySaving(false);
     if (!res.ok) { setNewCompanyError(data.error); return; }
-    setNewCompanyForm({ name: "", code: "" });
+    setNewCompanyForm({ name: "", code: "", type: "firma" });
     fetchCompanies();
   }
 
@@ -689,6 +690,14 @@ export default function AdminClient() {
                 value={newCompanyForm.code}
                 onChange={(e) => setNewCompanyForm((f) => ({ ...f, code: e.target.value }))}
               />
+              <select
+                className="bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm"
+                value={newCompanyForm.type}
+                onChange={(e) => setNewCompanyForm((f) => ({ ...f, type: e.target.value }))}
+              >
+                <option value="firma">Servis Firması</option>
+                <option value="okul">Okul</option>
+              </select>
             </div>
             {newCompanyError && <p className="text-red-400 text-xs mt-2">{newCompanyError}</p>}
             <button
@@ -737,6 +746,7 @@ export default function AdminClient() {
                   <th className="pb-2 pr-4">ID</th>
                   <th className="pb-2 pr-4">Şirket Adı</th>
                   <th className="pb-2 pr-4">Kod</th>
+                  <th className="pb-2 pr-4">Tip</th>
                   <th className="pb-2 pr-4">Durum</th>
                 </tr>
               </thead>
@@ -746,6 +756,11 @@ export default function AdminClient() {
                     <td className="py-3 pr-4 font-mono text-xs text-gray-500">{c.id}</td>
                     <td className="py-3 pr-4 font-medium">{c.name}</td>
                     <td className="py-3 pr-4 font-mono text-yellow-300">{c.code}</td>
+                    <td className="py-3 pr-4">
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${c.type === "okul" ? "bg-indigo-900 text-indigo-300" : "bg-gray-700 text-gray-400"}`}>
+                        {c.type === "okul" ? "Okul" : "Firma"}
+                      </span>
+                    </td>
                     <td className="py-3 pr-4">
                       <span className={`text-xs px-2 py-0.5 rounded-full ${c.active ? "bg-green-900 text-green-300" : "bg-gray-700 text-gray-400"}`}>
                         {c.active ? "Aktif" : "Pasif"}

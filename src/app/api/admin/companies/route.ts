@@ -22,6 +22,7 @@ export async function POST(req: NextRequest) {
       data: {
         name: body.name,
         code: body.code,
+        type: body.type === "okul" ? "okul" : "firma",
         driverLimit: body.driverLimit ? parseInt(body.driverLimit) : 10,
         active: body.active !== false,
         notes: body.notes || null,
