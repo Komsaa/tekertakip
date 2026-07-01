@@ -207,6 +207,35 @@ function driverMatch(dbName: string, excelName: string) {
   return a === b || a.includes(b.split(" ")[0]) || b.includes(a.split(" ")[0]);
 }
 
+// ─── 0. ŞÖFÖR ve ARAÇ TANIMLARI ──────────────────────────────────────────────
+const driverDefs = [
+  { name: "İbrahim UZUN",    status: "active"   },
+  { name: "Adem ÇALIŞKAN",   status: "active"   },
+  { name: "İsmail ŞAHAN",    status: "active"   },
+  { name: "Hüsnü ARACI",     status: "active"   },
+  { name: "Muhammet ÇOKTU",  status: "active"   },
+  { name: "Mustafa DURAN",   status: "active"   },
+  { name: "Ertan BUĞDAYCI",  status: "active"   },
+  { name: "Ahmet OKUR",      status: "active"   },
+  { name: "Cihan ÖZ",        status: "inactive" }, // işten ayrıldı
+];
+
+const vehicleDefs = [
+  { plate: "45 MT 9413" },
+  { plate: "45 MT 9420" },
+  { plate: "45 MT 9424" },
+  { plate: "45 MT 9432" },
+  { plate: "45 MT 9438" },
+  { plate: "45 MT 9442" },
+  { plate: "45 MT 9443" },
+  { plate: "45 MT 9445" },
+  { plate: "45 MT 9452" },
+  { plate: "45 MT 9454" },
+  { plate: "45 MT 9455" },
+  { plate: "45 MT 9458" },
+  { plate: "45 MT 9461" },
+];
+
 // ─── MAIN ─────────────────────────────────────────────────────────────────────
 async function main() {
   // Tüm şirketleri listele
@@ -235,19 +264,56 @@ async function main() {
 
   const cId = merttur.id;
 
-  // Şöförler — companyId null veya cId ile bağlı olanlar
-  const dbDrivers = await prisma.driver.findMany({
-    where: { OR: [{ companyId: cId }, { companyId: null }] },
-    select: { id: true, name: true, companyId: true },
-  });
-  console.log(`👥 DB şöförler (${dbDrivers.length}): ${dbDrivers.map(d => `${d.name}(${d.companyId ?? "null"})`).join(", ")}`);
+  // ── 0a. ŞÖFÖR OLUŞTUR (yoksa) ──────────────────────────────────────────────
+  console.log("\n👥 Şöförler kontrol ediliyor...");
+  for (const def of driverDefs) {
+    const existing = await prisma.driver.findFirst({
+      where: { name: def.name, companyId: cId },
+    });
+    if (!existing) {
+      await prisma.driver.create({
+        data: { name: def.name, status: def.status, companyId: cId },
+      });
+      console.log(`  🆕 Şöför oluşturuldu: ${def.name}`);
+    } else {
+      console.log(`  ✓  Mevcut: ${def.name}`);
+    }
+  }
 
-  // Araçlar — companyId null veya cId ile bağlı olanlar
-  const dbVehicles = await prisma.vehicle.findMany({
-    where: { OR: [{ companyId: cId }, { companyId: null }] },
-    select: { id: true, plate: true, companyId: true },
+  // ── 0b. ARAÇ OLUŞTUR (yoksa) ────────────────────────────────────────────────
+  console.log("\n🚌 Araçlar kontrol ediliyor...");
+  for (const def of vehicleDefs) {
+    const existing = await prisma.vehicle.findFirst({
+      where: { plate: def.plate },
+    });
+    if (!existing) {
+      await prisma.vehicle.create({
+        data: { plate: def.plate, status: "active", companyId: cId },
+      });
+      console.log(`  🆕 Araç oluşturuldu: ${def.plate}`);
+    } else {
+      // companyId yoksa ata
+      if (!existing.companyId) {
+        await prisma.vehicle.update({ where: { id: existing.id }, data: { companyId: cId } });
+        console.log(`  🔗 Merttur'a bağlandı: ${def.plate}`);
+      } else {
+        console.log(`  ✓  Mevcut: ${def.plate}`);
+      }
+    }
+  }
+
+  // Şöförleri ve araçları çek
+  const dbDrivers = await prisma.driver.findMany({
+    where: { companyId: cId },
+    select: { id: true, name: true },
   });
-  console.log(`🚌 DB araçlar (${dbVehicles.length}): ${dbVehicles.map(v => `${v.plate}(${v.companyId ?? "null"})`).join(", ")}`);
+  console.log(`\n✅ Toplam ${dbDrivers.length} şöför`);
+
+  const dbVehicles = await prisma.vehicle.findMany({
+    where: { companyId: cId },
+    select: { id: true, plate: true },
+  });
+  console.log(`✅ Toplam ${dbVehicles.length} araç`);
 
   // ── 1. MAAŞLAR ──────────────────────────────────────────────────────────────
   console.log("\n📋 Maaş kayıtları işleniyor...");
