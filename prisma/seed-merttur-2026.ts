@@ -235,19 +235,19 @@ async function main() {
 
   const cId = merttur.id;
 
-  // Şöförler
+  // Şöförler — companyId null veya cId ile bağlı olanlar
   const dbDrivers = await prisma.driver.findMany({
-    where: { companyId: cId },
-    select: { id: true, name: true },
+    where: { OR: [{ companyId: cId }, { companyId: null }] },
+    select: { id: true, name: true, companyId: true },
   });
-  console.log(`👥 DB şöförler: ${dbDrivers.map(d => d.name).join(", ")}`);
+  console.log(`👥 DB şöförler (${dbDrivers.length}): ${dbDrivers.map(d => `${d.name}(${d.companyId ?? "null"})`).join(", ")}`);
 
-  // Araçlar
+  // Araçlar — companyId null veya cId ile bağlı olanlar
   const dbVehicles = await prisma.vehicle.findMany({
-    where: { companyId: cId },
-    select: { id: true, plate: true },
+    where: { OR: [{ companyId: cId }, { companyId: null }] },
+    select: { id: true, plate: true, companyId: true },
   });
-  console.log(`🚌 DB araçlar: ${dbVehicles.map(v => v.plate).join(", ")}`);
+  console.log(`🚌 DB araçlar (${dbVehicles.length}): ${dbVehicles.map(v => `${v.plate}(${v.companyId ?? "null"})`).join(", ")}`);
 
   // ── 1. MAAŞLAR ──────────────────────────────────────────────────────────────
   console.log("\n📋 Maaş kayıtları işleniyor...");
