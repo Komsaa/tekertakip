@@ -221,19 +221,19 @@ const driverDefs = [
 ];
 
 const vehicleDefs = [
-  { plate: "45 MT 9413" },
-  { plate: "45 MT 9420" },
-  { plate: "45 MT 9424" },
-  { plate: "45 MT 9432" },
-  { plate: "45 MT 9438" },
-  { plate: "45 MT 9442" },
-  { plate: "45 MT 9443" },
-  { plate: "45 MT 9445" },
-  { plate: "45 MT 9452" },
-  { plate: "45 MT 9454" },
-  { plate: "45 MT 9455" },
-  { plate: "45 MT 9458" },
-  { plate: "45 MT 9461" },
+  { plate: "45 J 9413" },
+  { plate: "45 J 9420" },
+  { plate: "45 J 9424" },
+  { plate: "45 J 9432" },
+  { plate: "45 J 9438" },
+  { plate: "45 J 9442" },
+  { plate: "45 J 9443" },
+  { plate: "45 J 9445" },
+  { plate: "45 J 9452" },
+  { plate: "45 J 9454" },
+  { plate: "45 J 9455" },
+  { plate: "45 J 9458" },
+  { plate: "45 J 9461" },
 ];
 
 // ─── MAIN ─────────────────────────────────────────────────────────────────────
