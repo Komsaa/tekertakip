@@ -209,13 +209,30 @@ function driverMatch(dbName: string, excelName: string) {
 
 // ─── MAIN ─────────────────────────────────────────────────────────────────────
 async function main() {
-  // Merttur şirketi
-  const companies = await prisma.company.findMany({ select: { id: true, name: true } });
+  // Tüm şirketleri listele
+  const companies = await prisma.company.findMany({
+    select: { id: true, name: true, code: true },
+    orderBy: { name: "asc" },
+  });
+
+  console.log("\n📋 Sistemdeki şirketler:");
+  companies.forEach((c, i) => console.log(`  [${i}] ${c.name} (kod: ${c.code}) — ID: ${c.id}`));
+
+  // Mert Tur'u bul: hem "mert" hem "tur" içermeli
   const merttur = companies.find(c =>
-    normalize(c.name).includes("mert") || normalize(c.name).includes("tur")
+    normalize(c.name).includes("mert") && normalize(c.name).includes("tur")
   );
-  if (!merttur) throw new Error("Merttur şirketi bulunamadı!");
-  console.log(`✅ Şirket: ${merttur.name} (${merttur.id})`);
+
+  if (!merttur) {
+    console.log('\n❌ "Mert Tur" bulunamadı. Şirket adını kontrol edin.');
+    console.log('   Farklı bir şirkete aktarmak için scripti düzenleyin.');
+    process.exit(1);
+  }
+
+  console.log(`\n✅ Hedef şirket: "${merttur.name}" (${merttur.id})`);
+  console.log("   5 saniye içinde başlıyor... Durdurmak için Ctrl+C\n");
+  await new Promise(r => setTimeout(r, 5000));
+
   const cId = merttur.id;
 
   // Şöförler
