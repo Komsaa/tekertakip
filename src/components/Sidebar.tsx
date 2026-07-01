@@ -27,6 +27,7 @@ import {
   Banknote,
   Receipt,
   HandCoins,
+  Bus,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -55,6 +56,7 @@ const navGroups: NavGroup[] = [
     label: "Filo",
     items: [
       { href: "/panel/soforler", icon: Users, label: "Şöförler" },
+      { href: "/panel/servis-takip", icon: Bus, label: "Servis Takip" },
       { href: "/panel/konum", icon: MapPin, label: "Canlı Konum" },
       { href: "/panel/araclar", icon: Truck, label: "Araçlar" },
       { href: "/panel/guzergahlar", icon: Route, label: "Güzergahlar" },
@@ -99,6 +101,7 @@ const navGroups: NavGroup[] = [
 const okulAllowed = new Set([
   "/panel",
   "/panel/soforler",
+  "/panel/servis-takip",
   "/panel/konum",
   "/panel/araclar",
   "/panel/guzergahlar",

@@ -2,13 +2,13 @@ import Link from "next/link";
 import { LogoIcon } from "@/components/Logo";
 import {
   MapPin, Fuel, FileCheck, Smartphone, ChevronRight,
-  CheckCircle, Building2, Zap, Shield, ArrowRight, Phone,
-  Clock, AlertTriangle, TrendingUp, Users, X, Check, CheckCircle2,
+  CheckCircle, Zap, Shield, ArrowRight, Phone,
+  Clock, AlertTriangle, TrendingUp, Users, X, Check, Star,
 } from "lucide-react";
 
 export const metadata = {
   title: "Teker Takip – Okul ve Personel Servis Firmalarına Özel Filo Yönetimi",
-  description: "Şöför mobil uygulaması, canlı GPS takibi, yakıt ve belge yönetimi, veli bildirimleri. Pahalı GPS cihazlarına gerek yok.",
+  description: "Şöför mobil uygulaması, canlı GPS takibi, yakıt ve belge yönetimi, veli bildirimleri. Aylık ₺6.000 + KDV. GPS cihazına gerek yok.",
 };
 
 export default function HomePage() {
@@ -28,7 +28,7 @@ export default function HomePage() {
             <div className="hidden md:flex items-center gap-8">
               <a href="#sorunlar" className="text-slate-400 hover:text-white text-sm font-medium transition-colors">Sorunlar</a>
               <a href="#ozellikler" className="text-slate-400 hover:text-white text-sm font-medium transition-colors">Özellikler</a>
-              <a href="#karsilastirma" className="text-slate-400 hover:text-white text-sm font-medium transition-colors">Karşılaştırma</a>
+              <a href="#fiyatlandirma" className="text-slate-400 hover:text-white text-sm font-medium transition-colors">Fiyatlandırma</a>
               <a href="#sss" className="text-slate-400 hover:text-white text-sm font-medium transition-colors">SSS</a>
               <Link href="/login" className="text-slate-400 hover:text-white text-sm font-medium transition-colors">
                 Giriş
@@ -179,7 +179,7 @@ export default function HomePage() {
           <div className="grid grid-cols-3 divide-x divide-slate-100">
             {[
               { value: "₺0", label: "GPS Cihaz Maliyeti", sub: "Şöförün telefonu yeterli" },
-              { value: "5 sn", label: "Konum Güncellemesi", sub: "Araçlar anlık haritada" },
+              { value: "30 sn", label: "Konum Güncellemesi", sub: "Araçlar haritada canlı" },
               { value: "1 gün", label: "Kurulum Süresi", sub: "Aynı gün kullanıma hazır" },
             ].map((s) => (
               <div key={s.label} className="py-8 px-6 text-center">
@@ -192,16 +192,21 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── İŞBİRLİKLERİ / LOGOLAR ── */}
-      <section className="py-16 bg-slate-50 border-b border-slate-100">
+      {/* ── GÜVEN GÖSTERGELERİ ── */}
+      <section className="py-14 bg-slate-50 border-b border-slate-100">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <p className="text-center text-slate-400 text-sm font-medium uppercase tracking-widest mb-10">
-            Güvenilir İşbirliklerimiz
-          </p>
-          {/* Logo slotları — gerçek logolar eklenecek */}
-          <div className="flex flex-wrap justify-center items-center gap-8 md:gap-16">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="w-32 h-12 bg-slate-200/60 rounded-lg animate-pulse" />
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+            {[
+              { value: "30 Gün", label: "Ücretsiz Deneme", sub: "Kredi kartı gerekmez" },
+              { value: "1 Gün", label: "Kurulum Süresi", sub: "Aynı gün kullanıma hazır" },
+              { value: "7/24", label: "Teknik Destek", sub: "WhatsApp & telefon" },
+              { value: "%100", label: "Türkiye Sunucu", sub: "Verileriniz burada kalır" },
+            ].map(s => (
+              <div key={s.label} className="bg-white rounded-2xl border border-slate-100 py-6 px-4">
+                <div className="text-2xl font-black text-[#DC2626] mb-1">{s.value}</div>
+                <div className="font-semibold text-slate-800 text-sm">{s.label}</div>
+                <div className="text-slate-400 text-xs mt-0.5">{s.sub}</div>
+              </div>
             ))}
           </div>
         </div>
@@ -447,7 +452,7 @@ export default function HomePage() {
               <div className="p-4 text-center text-slate-400 font-normal">WhatsApp + Excel</div>
             </div>
             {[
-              { feature: "Aylık abonelik", us: "₺10.000 + KDV", them: "₺1.500–4.000 + donanım", excel: "₺0 (ama saatleriniz)" },
+              { feature: "Aylık abonelik", us: "₺6.000 + KDV", them: "₺1.500–4.000 + donanım", excel: "₺0 (ama saatleriniz)" },
               { feature: "GPS cihazı gerekli mi?", us: false, them: true, excel: false },
               { feature: "Canlı konum takibi", us: true, them: true, excel: false },
               { feature: "Yakıt takibi + OCR", us: true, them: false, excel: false },
@@ -543,6 +548,157 @@ export default function HomePage() {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* ── MÜŞTERİ YORUMLARI ── */}
+      <section className="py-20 bg-white overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center gap-1 mb-3">
+              {[1,2,3,4,5].map(i => <Star key={i} className="w-5 h-5 fill-amber-400 text-amber-400" />)}
+            </div>
+            <h2 className="text-3xl font-black text-[#1B2437] mb-3">Müşterilerimiz Ne Diyor?</h2>
+            <p className="text-slate-500">Türkiye genelinde servis firmaları Teker Takip kullanıyor.</p>
+          </div>
+          <div className="grid md:grid-cols-3 gap-6">
+            {[
+              {
+                quote: "Şöförlerim her sabah nerede diye telefon açmayı bıraktım. Haritada hepsini görüyorum. Yakıt takibi de artık kağıtsız.",
+                name: "Hasan K.",
+                role: "10 araçlı okul servis firması · İzmir",
+                initials: "HK",
+                stars: 5,
+              },
+              {
+                quote: "Velilerden artık 'araç nerede' mesajı gelmiyor. Çocukları servise bindi bildirimi geliyor, herkesler memnun. Çok fark yarattı.",
+                name: "Ayşe M.",
+                role: "Okul Servis İşletmecisi · Manisa",
+                initials: "AM",
+                stars: 5,
+              },
+              {
+                quote: "Muayene ve sigorta tarihlerini artık takip etmek zorunda kalmıyorum. Sistem uyarıyor, ben de zamanında yeniliyorum.",
+                name: "Murat D.",
+                role: "Personel Servis Firması · Ankara",
+                initials: "MD",
+                stars: 5,
+              },
+            ].map((t) => (
+              <div key={t.name} className="bg-slate-50 border border-slate-100 rounded-2xl p-7">
+                <div className="flex items-center gap-0.5 mb-4">
+                  {Array.from({ length: t.stars }).map((_, i) => (
+                    <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
+                  ))}
+                </div>
+                <p className="text-slate-700 text-sm leading-relaxed mb-6 italic">"{t.quote}"</p>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-[#1B2437] text-white rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0">
+                    {t.initials}
+                  </div>
+                  <div>
+                    <div className="font-semibold text-[#1B2437] text-sm">{t.name}</div>
+                    <div className="text-slate-400 text-xs">{t.role}</div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── FİYATLANDIRMA ── */}
+      <section id="fiyatlandirma" className="py-24 bg-[#1B2437] relative overflow-hidden">
+        <div className="absolute inset-0">
+          <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#DC2626]/6 rounded-full blur-3xl translate-x-1/3 -translate-y-1/3" />
+          <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-blue-500/5 rounded-full blur-3xl -translate-x-1/3 translate-y-1/3" />
+        </div>
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+          <div className="text-center mb-14">
+            <div className="inline-block bg-green-500/15 border border-green-500/30 text-green-400 text-sm font-semibold px-4 py-1.5 rounded-full mb-5">
+              30 gün ücretsiz, kredi kartı gerekmez
+            </div>
+            <h2 className="text-3xl md:text-4xl font-black text-white mb-4">Şeffaf Fiyatlandırma</h2>
+            <p className="text-slate-400 text-lg">Tek paket, tüm özellikler dahil. Gizli ücret yok.</p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
+            {/* Aylık paket */}
+            <div className="bg-white/5 border border-white/10 rounded-3xl p-8 hover:border-white/20 transition-colors">
+              <div className="text-slate-400 font-medium mb-1 text-sm uppercase tracking-wide">Aylık</div>
+              <div className="flex items-end gap-1 mb-1">
+                <span className="text-5xl font-black text-white">₺6.000</span>
+              </div>
+              <div className="text-slate-500 text-sm mb-6">+ KDV / ay · İstediğin zaman iptal</div>
+              <Link
+                href="/kayit"
+                className="block text-center border border-white/20 hover:border-white/40 hover:bg-white/5 text-white px-6 py-3.5 rounded-xl font-semibold transition-all text-sm mb-6"
+              >
+                30 Gün Ücretsiz Başla
+              </Link>
+              <ul className="space-y-2.5">
+                {[
+                  "Sınırsız şöför ve araç",
+                  "Canlı GPS takibi",
+                  "Şöför mobil uygulaması",
+                  "Veli bildirimleri",
+                  "Yakıt + OCR takibi",
+                  "Belge & son tarih uyarısı",
+                  "Finans & maaş yönetimi",
+                  "Kurulum desteği dahil",
+                ].map(f => (
+                  <li key={f} className="flex items-center gap-2.5 text-sm text-slate-300">
+                    <Check className="w-4 h-4 text-green-400 flex-shrink-0" />{f}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Yıllık paket — Önerilen */}
+            <div className="bg-[#DC2626] rounded-3xl p-8 relative shadow-2xl shadow-[#DC2626]/40">
+              <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+                <span className="bg-amber-400 text-[#1B2437] text-xs font-black px-4 py-1.5 rounded-full shadow-lg uppercase tracking-wide">
+                  En Çok Tercih Edilen
+                </span>
+              </div>
+              <div className="text-red-200 font-medium mb-1 text-sm uppercase tracking-wide">Yıllık</div>
+              <div className="flex items-end gap-2 mb-1">
+                <span className="text-5xl font-black text-white">₺60.000</span>
+              </div>
+              <div className="text-red-200 text-sm mb-1">+ KDV / yıl</div>
+              <div className="inline-flex items-center gap-1.5 bg-white/20 text-white text-xs font-bold px-3 py-1 rounded-full mb-6">
+                <Check className="w-3 h-3" /> 2 ay bedava · ₺72.000 yerine ₺60.000
+              </div>
+              <Link
+                href="/kayit"
+                className="block text-center bg-white text-[#DC2626] px-6 py-3.5 rounded-xl font-black transition-all text-sm hover:bg-slate-50 shadow-lg mb-6"
+              >
+                Yıllık Paket Başlat →
+              </Link>
+              <ul className="space-y-2.5">
+                {[
+                  "Aylık paketin tüm özellikleri",
+                  "Öncelikli destek",
+                  "Özelleştirilmiş onboarding",
+                  "Yıllık performans raporu",
+                  "Fatura ve muhasebe kolaylığı",
+                  "Fiyat artışından etkilenmeme",
+                ].map(f => (
+                  <li key={f} className="flex items-center gap-2.5 text-sm text-red-100">
+                    <Check className="w-4 h-4 text-white flex-shrink-0" />{f}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          <p className="text-center text-slate-500 text-sm mt-10">
+            Daha büyük filolar veya çoklu şirket için{" "}
+            <a href="tel:05061227363" className="text-slate-300 hover:text-white underline underline-offset-2 transition-colors">
+              0506 122 73 63
+            </a>{" "}
+            numarasından özel fiyat alabilirsiniz.
+          </p>
         </div>
       </section>
 
@@ -645,6 +801,7 @@ export default function HomePage() {
             </div>
             <div className="flex items-center gap-6 text-sm text-slate-500">
               <a href="#ozellikler" className="hover:text-white transition-colors">Özellikler</a>
+              <a href="#fiyatlandirma" className="hover:text-white transition-colors">Fiyatlandırma</a>
               <a href="#sss" className="hover:text-white transition-colors">SSS</a>
               <Link href="/gizlilik" className="hover:text-white transition-colors">Gizlilik Politikası</Link>
               <Link href="/login" className="hover:text-white transition-colors">Panel Girişi</Link>
