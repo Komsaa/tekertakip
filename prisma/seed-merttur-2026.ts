@@ -111,6 +111,19 @@ const salaryData: {
   },
 ];
 
+// Temmuz 2026 — son ödenen (Haziran) baz alınarak eklendi, henüz ödenmedi
+const temmuzData: typeof salaryData = [
+  { name: "İbrahim UZUN",   records: [{ month: 7, year: 2026, base: 25000, advance: 0 }] },
+  { name: "Adem ÇALIŞKAN",  records: [{ month: 7, year: 2026, base: 22000, advance: 0 }] },
+  { name: "İsmail ŞAHAN",   records: [{ month: 7, year: 2026, base: 30000, advance: 0 }] }, // 5000 avans çekti — panelden güncelle
+  { name: "Hüsnü ARACI",    records: [{ month: 7, year: 2026, base: 30000, advance: 0 }] },
+  { name: "Muhammet ÇOKTU", records: [{ month: 7, year: 2026, base: 22000, advance: 0 }] },
+  { name: "Mustafa DURAN",  records: [{ month: 7, year: 2026, base: 22000, advance: 0 }] },
+  { name: "Ertan BUĞDAYCI", records: [{ month: 7, year: 2026, base: 23000, advance: 0 }] },
+  { name: "Ahmet OKUR",     records: [{ month: 7, year: 2026, base: 22000, advance: 0 }] },
+  // Cihan ÖZ işten ayrıldı — Temmuz yok
+];
+
 // ─── 2. ARAÇ BELGE TARİHLERİ ─────────────────────────────────────────────────
 // Plaka sonu: içeriği "45 MT XXXX" formatında. Tarihin yorumu:
 //   2026 muayene/sigorta → Araç o tarihte muayene/sigorta yapıldı.
@@ -319,7 +332,7 @@ async function main() {
   console.log("\n📋 Maaş kayıtları işleniyor...");
   let salaryCreated = 0, salarySkipped = 0;
 
-  for (const person of salaryData) {
+  for (const person of [...salaryData, ...temmuzData]) {
     const driver = dbDrivers.find(d => driverMatch(d.name, person.name));
     if (!driver) {
       console.log(`  ⚠️  Şöför bulunamadı: "${person.name}" — atlandı`);
