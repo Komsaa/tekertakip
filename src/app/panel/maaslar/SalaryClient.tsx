@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
-import { Plus, X, Save, Trash2, CheckCircle, Clock, ChevronLeft, ChevronRight, Banknote } from "lucide-react";
+import { Plus, X, Pencil, Trash2, CheckCircle, Clock, ChevronLeft, ChevronRight, Banknote } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 
 type Driver = { id: string; name: string; phone: string | null };
@@ -287,7 +287,7 @@ export default function SalaryClient({ drivers, salaries: initialSalaries }: Pro
                   </button>
 
                   <button onClick={() => openEdit(s)} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg">
-                    <Save className="w-4 h-4" />
+                    <Pencil className="w-4 h-4" />
                   </button>
                   <button onClick={() => handleDelete(s.id)} className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg">
                     <Trash2 className="w-4 h-4" />
