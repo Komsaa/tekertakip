@@ -10,7 +10,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     const b = await req.json();
     const base = b.baseAmount !== undefined ? parseFloat(b.baseAmount) : undefined;
     const bonus = b.bonusAmount !== undefined ? parseFloat(b.bonusAmount) : undefined;
-    // Sadece biri güncellense bile toplamı yeniden hesapla
+    const advance = b.advanceAmount !== undefined ? parseFloat(b.advanceAmount) : undefined;
     let totalAmount: number | undefined;
     if (base !== undefined || bonus !== undefined) {
       const current = await prisma.salary.findUnique({ where: { id: params.id }, select: { baseAmount: true, bonusAmount: true } });
@@ -21,6 +21,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       data: {
         ...(base !== undefined && { baseAmount: base }),
         ...(bonus !== undefined && { bonusAmount: bonus }),
+        ...(advance !== undefined && { advanceAmount: advance }),
         ...(totalAmount !== undefined && { totalAmount }),
         ...(b.paid !== undefined && { paid: b.paid, paidAt: b.paid ? new Date() : null }),
         ...(b.notes !== undefined && { notes: b.notes || null }),

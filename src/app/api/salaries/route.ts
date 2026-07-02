@@ -51,6 +51,7 @@ export async function POST(req: NextRequest) {
       update: {
         baseAmount: parseFloat(b.baseAmount) || 0,
         bonusAmount: parseFloat(b.bonusAmount) || 0,
+        advanceAmount: parseFloat(b.advanceAmount) || 0,
         totalAmount: (parseFloat(b.baseAmount) || 0) + (parseFloat(b.bonusAmount) || 0),
         paid: b.paid ?? false,
         notes: b.notes || null,
@@ -61,6 +62,7 @@ export async function POST(req: NextRequest) {
         year: parseInt(b.year),
         baseAmount: parseFloat(b.baseAmount) || 0,
         bonusAmount: parseFloat(b.bonusAmount) || 0,
+        advanceAmount: parseFloat(b.advanceAmount) || 0,
         totalAmount: (parseFloat(b.baseAmount) || 0) + (parseFloat(b.bonusAmount) || 0),
         paid: b.paid ?? false,
         notes: b.notes || null,

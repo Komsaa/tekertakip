@@ -15,6 +15,7 @@ type Salary = {
   baseAmount: number;
   bonusAmount: number;
   totalAmount: number;
+  advanceAmount: number;
   paid: boolean;
   paidAt: Date | null;
   notes: string | null;
@@ -42,6 +43,7 @@ export default function SalaryClient({ drivers, salaries: initialSalaries }: Pro
     driverId: "",
     baseAmount: "",
     bonusAmount: "0",
+    advanceAmount: "0",
     notes: "",
   });
   const [copying, setCopying] = useState(false);
@@ -73,7 +75,7 @@ export default function SalaryClient({ drivers, salaries: initialSalaries }: Pro
 
   function openAdd(driverId?: string) {
     setEditSalary(null);
-    setForm({ driverId: driverId ?? "", baseAmount: "", bonusAmount: "0", notes: "" });
+    setForm({ driverId: driverId ?? "", baseAmount: "", bonusAmount: "0", advanceAmount: "0", notes: "" });
     setShowModal(true);
   }
 
@@ -83,6 +85,7 @@ export default function SalaryClient({ drivers, salaries: initialSalaries }: Pro
       driverId: s.driverId,
       baseAmount: s.baseAmount.toString(),
       bonusAmount: s.bonusAmount.toString(),
+      advanceAmount: s.advanceAmount.toString(),
       notes: s.notes ?? "",
     });
     setShowModal(true);
@@ -97,7 +100,7 @@ export default function SalaryClient({ drivers, salaries: initialSalaries }: Pro
         const res = await fetch(`/api/salaries/${editSalary.id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ baseAmount: form.baseAmount, bonusAmount: form.bonusAmount, notes: form.notes }),
+          body: JSON.stringify({ baseAmount: form.baseAmount, bonusAmount: form.bonusAmount, advanceAmount: form.advanceAmount, notes: form.notes }),
         });
         if (!res.ok) throw new Error();
         toast.success("Güncellendi!");
@@ -164,6 +167,8 @@ export default function SalaryClient({ drivers, salaries: initialSalaries }: Pro
   }
 
   const total = parseFloat(form.baseAmount || "0") + parseFloat(form.bonusAmount || "0");
+  const advance = parseFloat(form.advanceAmount || "0");
+  const remaining = total - advance;
 
   return (
     <div className="p-6 lg:p-8 space-y-6 animate-fade-in">
@@ -256,6 +261,9 @@ export default function SalaryClient({ drivers, salaries: initialSalaries }: Pro
                     <div className="text-xs text-slate-400">
                       Sabit: {formatCurrency(s.baseAmount)}
                       {s.bonusAmount > 0 && ` + Prim: ${formatCurrency(s.bonusAmount)}`}
+                      {s.advanceAmount > 0 && (
+                        <span className="text-amber-600"> · Avans: {formatCurrency(s.advanceAmount)} · Kalan: {formatCurrency(s.totalAmount - s.advanceAmount)}</span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -342,7 +350,7 @@ export default function SalaryClient({ drivers, salaries: initialSalaries }: Pro
                     type="number"
                     value={form.baseAmount}
                     onChange={(e) => set("baseAmount", e.target.value)}
-                    placeholder="15000"
+                    placeholder="22000"
                     step="0.01"
                     required
                   />
@@ -358,10 +366,34 @@ export default function SalaryClient({ drivers, salaries: initialSalaries }: Pro
                   />
                 </div>
               </div>
+              <div>
+                <label>Avans Ödendi (₺)</label>
+                <input
+                  type="number"
+                  value={form.advanceAmount}
+                  onChange={(e) => set("advanceAmount", e.target.value)}
+                  placeholder="0"
+                  step="0.01"
+                />
+              </div>
               {total > 0 && (
-                <div className="bg-slate-50 rounded-xl p-3 text-center">
-                  <span className="text-sm text-slate-500">Toplam: </span>
-                  <span className="text-lg font-black text-slate-800">{formatCurrency(total)}</span>
+                <div className="bg-slate-50 rounded-xl p-3 space-y-1">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-slate-500">Toplam maaş</span>
+                    <span className="font-bold text-slate-800">{formatCurrency(total)}</span>
+                  </div>
+                  {advance > 0 && (
+                    <>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-amber-600">Verilen avans</span>
+                        <span className="font-semibold text-amber-600">− {formatCurrency(advance)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm border-t border-slate-200 pt-1">
+                        <span className="text-slate-700 font-semibold">Kalan ödenecek</span>
+                        <span className="font-black text-[#DC2626]">{formatCurrency(remaining)}</span>
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
               <div>

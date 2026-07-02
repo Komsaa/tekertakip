@@ -348,9 +348,10 @@ model Salary {
   month Int // 1-12
   year  Int
 
-  baseAmount  Float // sabit kısım
-  bonusAmount Float @default(0) // prim/ek
-  totalAmount Float // toplam
+  baseAmount    Float          // sabit kısım
+  bonusAmount   Float @default(0) // prim/ek
+  totalAmount   Float          // toplam
+  advanceAmount Float @default(0) // ay içinde verilen avans
 
   jobCount Int @default(0) // o ay kaç iş yaptı
 
