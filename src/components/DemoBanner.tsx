@@ -11,7 +11,9 @@ export default function DemoBanner({ daysLeft, expired }: { daysLeft: number; ex
           Demo süreniz doldu. Hesabınız salt okunur modda. Devam etmek için bizimle iletişime geçin.
         </div>
         <a
-          href="tel:+90"
+          href="https://wa.me/905061227363?text=Merhaba%2C%20TekerTakip%20demo%20sürem%20doldu%2C%20devam%20etmek%20istiyorum."
+          target="_blank"
+          rel="noopener noreferrer"
           className="flex items-center gap-1.5 bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all"
         >
           <Phone className="w-3.5 h-3.5" />
@@ -29,7 +31,9 @@ export default function DemoBanner({ daysLeft, expired }: { daysLeft: number; ex
           Demo hesabınızın süresi <strong>{daysLeft} gün</strong> sonra doluyor.
         </div>
         <a
-          href="tel:+90"
+          href="https://wa.me/905061227363?text=Merhaba%2C%20TekerTakip%20demo%20sürem%20bitiyor%2C%20abonelik%20hakkında%20bilgi%20almak%20istiyorum."
+          target="_blank"
+          rel="noopener noreferrer"
           className="flex items-center gap-1.5 bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all"
         >
           <Phone className="w-3.5 h-3.5" />

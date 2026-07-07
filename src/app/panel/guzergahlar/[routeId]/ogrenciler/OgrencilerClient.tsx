@@ -236,7 +236,7 @@ export default function OgrencilerClient({ route }: { route: Route }) {
   function openWhatsApp(phone: string, passengerName: string, veliUsername: string, veliPassword: string) {
     const formatted = phone.replace(/\D/g, "").replace(/^0/, "90");
     const text =
-      `Merhaba, ${passengerName} öğrencisi için TékerTakip servis takip uygulaması hesabınız oluşturuldu.\n\n` +
+      `Merhaba, ${passengerName} öğrencisi için TekerTakip servis takip uygulaması hesabınız oluşturuldu.\n\n` +
       `Kullanıcı Adı: ${veliUsername}\n` +
       `Şifre: ${veliPassword}\n\n` +
       `iOS: https://apps.apple.com/tr/app/id6770069894\n\n` +
@@ -730,7 +730,7 @@ export default function OgrencilerClient({ route }: { route: Route }) {
                 onClick={() => {
                   const phone = credModal.parentPhone!.replace(/\D/g, "").replace(/^0/, "90");
                   const text =
-                    `Merhaba, ${credModal.name} öğrencisi için TékerTakip servis takip uygulaması hesabınız oluşturuldu.\n\n` +
+                    `Merhaba, ${credModal.name} öğrencisi için TekerTakip servis takip uygulaması hesabınız oluşturuldu.\n\n` +
                     `Kullanıcı Adı: ${credModal.veliUsername}\n` +
                     `Şifre: ${credModal.veliPassword}\n\n` +
                     `iOS: https://apps.apple.com/tr/app/id6770069894\n\n` +
@@ -744,7 +744,7 @@ export default function OgrencilerClient({ route }: { route: Route }) {
             ) : (
               <button
                 onClick={() => {
-                  const text = `TékerTakip Giriş Bilgisi\nKullanıcı: ${credModal.veliUsername}\nŞifre: ${credModal.veliPassword}\niOS: https://apps.apple.com/tr/app/id6770069894`;
+                  const text = `TekerTakip Giriş Bilgisi\nKullanıcı: ${credModal.veliUsername}\nŞifre: ${credModal.veliPassword}\niOS: https://apps.apple.com/tr/app/id6770069894`;
                   navigator.clipboard.writeText(text);
                   toast.success("Mesaj kopyalandı");
                 }}

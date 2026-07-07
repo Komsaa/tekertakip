@@ -1,4 +1,4 @@
-export const metadata = { title: "Gizlilik Politikası | TékerTakip" };
+export const metadata = { title: "Gizlilik Politikası | TekerTakip" };
 
 export default function PrivacyPage() {
   return (
@@ -8,7 +8,7 @@ export default function PrivacyPage() {
 
       <section style={{ marginBottom: 28 }}>
         <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>1. Toplanan Veriler</h2>
-        <p>TékerTakip uygulaması aşağıdaki verileri toplar:</p>
+        <p>TekerTakip uygulaması aşağıdaki verileri toplar:</p>
         <ul style={{ paddingLeft: 20, lineHeight: 2 }}>
           <li>Konum bilgisi (sefer sırasında şöförlerden, yalnızca uygulama açıkken veya arka planda)</li>
           <li>Kullanıcı adı ve PIN (kimlik doğrulama için)</li>

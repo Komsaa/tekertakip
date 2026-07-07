@@ -766,7 +766,7 @@ export default function GuzergahlarClient({
               <button
                 onClick={() => {
                   const phone = credModal.parentPhone!.replace(/\D/g, "").replace(/^0/, "90");
-                  const text = `Merhaba, ${credModal.name} öğrencisi için TékerTakip servis takip uygulaması hesabınız oluşturuldu.\n\nKullanıcı Adı: ${credModal.veliUsername}\nŞifre: ${credModal.veliPassword}\n\niOS: https://apps.apple.com/tr/app/id6770069894\n\nUygulamayı indirip bu bilgilerle giriş yapabilirsiniz.`;
+                  const text = `Merhaba, ${credModal.name} öğrencisi için TekerTakip servis takip uygulaması hesabınız oluşturuldu.\n\nKullanıcı Adı: ${credModal.veliUsername}\nŞifre: ${credModal.veliPassword}\n\niOS: https://apps.apple.com/tr/app/id6770069894\n\nUygulamayı indirip bu bilgilerle giriş yapabilirsiniz.`;
                   window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`, "_blank");
                 }}
                 className="w-full bg-green-600 hover:bg-green-700 text-white rounded-xl py-2.5 text-sm font-semibold"
@@ -776,7 +776,7 @@ export default function GuzergahlarClient({
             ) : (
               <button
                 onClick={() => {
-                  const text = `Merhaba, ${credModal.name} öğrencisi için TékerTakip servis takip uygulaması hesabınız oluşturuldu.\n\nKullanıcı Adı: ${credModal.veliUsername}\nŞifre: ${credModal.veliPassword}\n\niOS: https://apps.apple.com/tr/app/id6770069894\n\nUygulamayı indirip bu bilgilerle giriş yapabilirsiniz.`;
+                  const text = `Merhaba, ${credModal.name} öğrencisi için TekerTakip servis takip uygulaması hesabınız oluşturuldu.\n\nKullanıcı Adı: ${credModal.veliUsername}\nŞifre: ${credModal.veliPassword}\n\niOS: https://apps.apple.com/tr/app/id6770069894\n\nUygulamayı indirip bu bilgilerle giriş yapabilirsiniz.`;
                   navigator.clipboard.writeText(text);
                   toast.success("Mesaj kopyalandı");
                 }}

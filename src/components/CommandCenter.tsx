@@ -6,6 +6,7 @@ import CommandCenterMap from "./CommandCenterMap";
 import {
   CheckCircle2, XCircle, Clock, CreditCard, FileText,
   AlertTriangle, StickyNote, Banknote, Truck, Users, Route,
+  Plus, Fuel, CalendarDays,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -141,6 +142,22 @@ export default function CommandCenter({
             </div>
             <Link href="/panel/konum" className="lg:hidden flex-shrink-0 bg-white/10 hover:bg-white/20 rounded-xl px-3 py-1.5 text-xs font-semibold text-[#DC2626]">
               🗺 Harita
+            </Link>
+          </div>
+
+          {/* Hızlı Erişim */}
+          <div className="px-3 py-2 border-b border-white/10 flex gap-2">
+            <Link href="/panel/isler" className="flex-1 flex items-center justify-center gap-1.5 bg-[#DC2626] hover:bg-[#B91C1C] text-white rounded-xl py-2 text-xs font-semibold transition-all">
+              <Plus className="w-3.5 h-3.5" /> Sefer
+            </Link>
+            <Link href="/panel/yakit" className="flex-1 flex items-center justify-center gap-1.5 bg-white/10 hover:bg-white/20 text-slate-300 rounded-xl py-2 text-xs font-semibold transition-all">
+              <Fuel className="w-3.5 h-3.5" /> Yakıt
+            </Link>
+            <Link href="/panel/faturalar" className="flex-1 flex items-center justify-center gap-1.5 bg-white/10 hover:bg-white/20 text-slate-300 rounded-xl py-2 text-xs font-semibold transition-all">
+              <FileText className="w-3.5 h-3.5" /> Fatura
+            </Link>
+            <Link href="/panel/takvim" className="flex-1 flex items-center justify-center gap-1.5 bg-white/10 hover:bg-white/20 text-slate-300 rounded-xl py-2 text-xs font-semibold transition-all">
+              <CalendarDays className="w-3.5 h-3.5" /> Takvim
             </Link>
           </div>
 

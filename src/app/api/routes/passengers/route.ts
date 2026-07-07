@@ -108,7 +108,7 @@ export async function POST(req: NextRequest) {
       `*Güzergah:* ${routeName}\n` +
       `*Kullanıcı adı:* ${veliUsername}\n` +
       `*Şifre:* ${veliPassword}\n\n` +
-      `TékerTakip uygulamasına giriş yaparak servisin anlık konumunu takip edebilirsiniz.`;
+      `TekerTakip uygulamasına giriş yaparak servisin anlık konumunu takip edebilirsiniz.`;
 
     await prisma.whatsAppQueue.create({
       data: { phone: formattedPhone, message },

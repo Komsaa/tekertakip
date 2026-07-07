@@ -28,6 +28,7 @@ import {
   Receipt,
   HandCoins,
   Bus,
+  CreditCard,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -79,12 +80,14 @@ const navGroups: NavGroup[] = [
       { href: "/panel/faturalar", icon: Receipt, label: "Faturalar" },
       { href: "/panel/odeme", icon: HandCoins, label: "Alacak / Borç / Çek" },
       { href: "/panel/maaslar", icon: Banknote, label: "Maaşlar" },
+      { href: "/panel/kredikartlari", icon: CreditCard, label: "Kredi Kartları" },
     ],
   },
   {
     label: "Diğer",
     items: [
       { href: "/panel/belgeler", icon: FileText, label: "Belge Arşivi" },
+      { href: "/panel/evrak-rehberi", icon: ShieldCheck, label: "Evrak Rehberi" },
       { href: "/panel/gorevler", icon: CheckSquare, label: "Görevlerim" },
       { href: "/panel/ayarlar", icon: Settings, label: "Ayarlar" },
     ],
@@ -107,6 +110,9 @@ const okulAllowed = new Set([
   "/panel/guzergahlar",
   "/panel/servis-odemeler",
   "/panel/arizalar",
+  "/panel/belgeler",
+  "/panel/evrak-rehberi",
+  "/panel/gorevler",
   "/panel/ayarlar",
 ]);
 
