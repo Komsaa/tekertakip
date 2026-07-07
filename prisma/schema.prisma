@@ -206,11 +206,12 @@ model Vehicle {
   company     Company? @relation(fields: [companyId], references: [id])
 
   // İlişkiler
-  assignedDrivers DriverVehicle[]
-  jobs           Job[]
-  fuelEntries    FuelEntry[]
-  routes         Route[]
-  vehicleReports VehicleReport[]
+  assignedDrivers    DriverVehicle[]
+  jobs               Job[]
+  fuelEntries        FuelEntry[]
+  routes             Route[]
+  vehicleReports     VehicleReport[]
+  maintenanceRecords VehicleMaintenance[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -609,6 +610,25 @@ model VehicleReport {
   status      String    @default("open") // open, resolved
   resolvedAt  DateTime?
   createdAt   DateTime  @default(now())
+}
+
+// ============ ARAÇ BAKIM GEÇMİŞİ ============
+model VehicleMaintenance {
+  id          String   @id @default(cuid())
+  vehicleId   String
+  vehicle     Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  companyId   String?
+  date        DateTime
+  type        String   // yag_degisimi, lastik, fren, genel_bakim, elektrik, karoseri, diger
+  description String   @db.Text
+  cost        Float?
+  odometer    Int?     // bakım anındaki km
+  nextDate    DateTime? // bir sonraki bakım tarihi
+  nextKm      Int?      // bir sonraki bakım km
+  createdAt   DateTime @default(now())
+
+  @@index([vehicleId])
+  @@index([companyId])
 }
 
 // ============ AKTİVİTE GÜNLÜĞÜ ============

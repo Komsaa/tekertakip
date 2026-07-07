@@ -8,6 +8,7 @@ import DocRow from "@/components/DocRow";
 import ExtraDocuments from "@/components/ExtraDocuments";
 import VehiclePhoto from "./VehiclePhoto";
 import DeleteButton from "@/components/DeleteButton";
+import VehicleMaintenanceSection from "@/components/VehicleMaintenanceSection";
 
 interface Props { params: { id: string } }
 
@@ -19,6 +20,7 @@ async function getVehicle(id: string) {
         assignedDrivers: { include: { driver: { select: { id: true, name: true, phone: true } } } },
         jobs: { take: 10, orderBy: { date: "desc" }, include: { driver: true } },
         fuelEntries: { take: 10, orderBy: { date: "desc" }, include: { driver: true } },
+        maintenanceRecords: { orderBy: { date: "desc" } },
       },
     });
   } catch (e) {
@@ -26,7 +28,7 @@ async function getVehicle(id: string) {
     try {
       const v = await prisma.vehicle.findUnique({ where: { id } });
       if (!v) return null;
-      return { ...v, assignedDrivers: [] as any[], jobs: [] as any[], fuelEntries: [] as any[] };
+      return { ...v, assignedDrivers: [] as any[], jobs: [] as any[], fuelEntries: [] as any[], maintenanceRecords: [] as any[] };
     } catch {
       return null;
     }
@@ -47,6 +49,7 @@ export default async function VehicleDetailPage({ params }: Props) {
 
   const totalFuel = vehicle.fuelEntries.reduce((s, e) => s + e.totalAmount, 0);
   const totalLiters = vehicle.fuelEntries.reduce((s, e) => s + e.liters, 0);
+  const totalMaintenance = (vehicle.maintenanceRecords ?? []).reduce((s: number, r: any) => s + (r.cost ?? 0), 0);
 
   return (
     <div className="p-6 lg:p-8 space-y-6 animate-fade-in">
@@ -140,6 +143,16 @@ export default async function VehicleDetailPage({ params }: Props) {
 
           <ExtraDocuments entityType="vehicle" entityId={vehicle.id} initialDocs={extraDocs} />
 
+          {/* Bakım Geçmişi */}
+          <VehicleMaintenanceSection
+            vehicleId={vehicle.id}
+            initialRecords={(vehicle.maintenanceRecords ?? []).map((r: any) => ({
+              ...r,
+              date: r.date.toISOString(),
+              nextDate: r.nextDate?.toISOString() ?? null,
+            }))}
+          />
+
           {/* Yakıt Geçmişi */}
           <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
             <h2 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
@@ -186,6 +199,9 @@ export default async function VehicleDetailPage({ params }: Props) {
               <div className="flex justify-between"><span className="text-slate-400">Toplam Sefer</span><span className="font-bold">{vehicle.jobs.length}</span></div>
               <div className="flex justify-between"><span className="text-slate-400">Toplam Yakıt</span><span className="font-bold">{formatCurrency(totalFuel)}</span></div>
               <div className="flex justify-between"><span className="text-slate-400">Toplam Litre</span><span className="font-bold">{totalLiters.toFixed(0)} lt</span></div>
+              {totalMaintenance > 0 && (
+                <div className="flex justify-between border-t border-white/10 pt-3 mt-1"><span className="text-slate-400">Bakım Maliyeti</span><span className="font-bold text-amber-400">{formatCurrency(totalMaintenance)}</span></div>
+              )}
             </div>
           </div>
 
