@@ -67,10 +67,31 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    // Telefon varsa WhatsApp'a hoş geldin mesajı gönder
+    if (telefon?.trim()) {
+      const digits = telefon.trim().replace(/\D/g, "");
+      const formattedPhone = digits.startsWith("90") ? digits : digits.startsWith("0") ? "90" + digits.slice(1) : digits.length === 10 ? "90" + digits : digits;
+      const username = kullaniciAdi.trim().toLowerCase();
+      const message =
+        `Merhaba ${adSoyad.trim()}! 👋\n\n` +
+        `*TekerTakip* hesabınız oluşturuldu. 30 günlük ücretsiz denemeniz başladı.\n\n` +
+        `🔐 *Giriş bilgileriniz:*\n` +
+        `• Kullanıcı adı: *${username}*\n` +
+        `• Şifre: *${sifre}*\n` +
+        `• Panel: tekertakip.com/login\n\n` +
+        `📱 *Hızlı başlangıç:*\n` +
+        `1. tekertakip.com/login adresine giriş yapın\n` +
+        `2. Şöförlerinizi ekleyin (Şöförler menüsü)\n` +
+        `3. Şöförlere mobil uygulamayı indirtin (TekerTakip)\n` +
+        `4. Şöfor, sefer başlatınca siz haritada görürsünüz\n\n` +
+        `Sorularınız için bu numaraya yazabilirsiniz. Kolay gelsin!`;
+      await prisma.whatsAppQueue.create({ data: { phone: formattedPhone, message } }).catch(() => {});
+    }
+
     return NextResponse.json({
       success: true,
       username: kullaniciAdi.trim().toLowerCase(),
-      companyCode: company.code,
+      phoneProvided: !!telefon?.trim(),
       demoExpiresAt,
     });
   } catch (e) {

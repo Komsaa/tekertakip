@@ -9,7 +9,7 @@ import {
 
 export const metadata = {
   title: "Teker Takip – Okul ve Personel Servis Firmalarına Özel Filo Yönetimi",
-  description: "Şöför mobil uygulaması, canlı GPS takibi, yakıt ve belge yönetimi, veli bildirimleri. Aylık ₺5.000 + KDV. GPS cihazına gerek yok.",
+  description: "Şöför mobil uygulaması, 5 sn'de bir canlı GPS takibi, yakıt ve belge yönetimi, veli bildirimleri. Aylık ₺5.000 + KDV. GPS cihazına gerek yok.",
 };
 
 export default function HomePage() {
@@ -180,7 +180,7 @@ export default function HomePage() {
           <div className="grid grid-cols-3 divide-x divide-slate-100">
             {[
               { value: "0", label: "GPS Cihaz Maliyeti", sub: "Soforun telefonu yeterli" },
-              { value: "30 sn", label: "Konum Guncellemesi", sub: "Araclar haritada canli" },
+              { value: "5 sn", label: "Konum Guncellemesi", sub: "Araclar haritada canli" },
               { value: "1 gun", label: "Kurulum Suresi", sub: "Ayni gun kullanima hazir" },
             ].map((s) => (
               <div key={s.label} className="py-8 px-6 text-center">
@@ -209,6 +209,65 @@ export default function HomePage() {
                 <div className="text-slate-400 text-xs mt-0.5">{s.sub}</div>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── VELİ ÖZEL BANNER ── */}
+      <section className="py-16 bg-gradient-to-r from-blue-900 via-[#1B2437] to-blue-900 text-white">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col md:flex-row items-center gap-10">
+            <div className="flex-1">
+              <div className="inline-flex items-center gap-2 bg-blue-500/20 border border-blue-400/30 text-blue-300 rounded-full px-4 py-1.5 text-sm font-semibold mb-5">
+                Okul Servisi Isleten Firmalar Icin
+              </div>
+              <h2 className="text-2xl md:text-4xl font-black mb-4 leading-tight">
+                Veliler artik sizi<br />
+                <span className="text-blue-300">aramak zorunda degil.</span>
+              </h2>
+              <p className="text-slate-300 text-lg leading-relaxed mb-6 max-w-lg">
+                Cocugun servise binmesi, binmemesi, aracin duraga yaklasip yaklasmadigini —
+                hepsi velinin telefonuna <strong className="text-white">otomatik bildirim</strong> olarak gidiyor.
+                Ne arama, ne WhatsApp, ne merak.
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { emoji: "🔔", text: "Arac 3 dk uzakta — otomatik uyari" },
+                  { emoji: "✅", text: "Cocuk bindi — anlık onay bildirimi" },
+                  { emoji: "🚨", text: "Durak gecildi — aninda uyari" },
+                  { emoji: "📍", text: "Veli uygulamasiyla canli takip" },
+                ].map(f => (
+                  <div key={f.text} className="flex items-start gap-2.5 bg-white/8 border border-white/10 rounded-xl px-3 py-3">
+                    <span className="text-lg leading-none mt-0.5">{f.emoji}</span>
+                    <span className="text-sm text-slate-300 leading-snug">{f.text}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            {/* Bildirim ornekleri */}
+            <div className="w-full md:w-72 flex-shrink-0">
+              <div className="bg-[#0f172a] rounded-2xl p-4 border border-white/10 space-y-2.5">
+                <div className="text-xs text-slate-500 font-medium mb-3 px-1">Veli telefonunda gorunenler</div>
+                {[
+                  { color: "bg-blue-600", emoji: "🚌", title: "Servis yaklasıyor", body: "Duraga 3 dakika kaldi! Yusuf hazir olsun.", time: "07:42" },
+                  { color: "bg-green-600", emoji: "✅", title: "Yusuf bindi", body: "Guvenle yolculuk ediyor.", time: "07:45" },
+                  { color: "bg-red-600", emoji: "🚨", title: "Uyari: Durak gecildi", body: "Zeynep servise binmedi — kontrol edin.", time: "Dun" },
+                ].map(n => (
+                  <div key={n.title} className="bg-white rounded-xl p-3">
+                    <div className="flex items-start gap-2.5">
+                      <div className={`w-8 h-8 ${n.color} rounded-lg flex items-center justify-center flex-shrink-0 text-sm`}>{n.emoji}</div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-1">
+                          <span className="text-slate-800 text-xs font-bold">{n.title}</span>
+                          <span className="text-slate-400 text-[10px] flex-shrink-0">{n.time}</span>
+                        </div>
+                        <p className="text-slate-600 text-xs mt-0.5 leading-relaxed">{n.body}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -311,11 +370,11 @@ export default function HomePage() {
                 Cihaz yok.<br />Abonelik yok.<br />Soforun telefonu yeterli.
               </h3>
               <p className="text-slate-400 leading-relaxed mb-6">
-                Sofor sabah "Basla" der, telefon arka planda her 30 saniyede bir konum gonderir.
+                Sofor sabah "Basla" der, telefon arka planda her 5 saniyede bir konum gonderir.
                 Siz haritada tum araclari anlik gorursunuz. Arac basina ayrica GPS cihazi almaniza gerek yok.
               </p>
               <div className="flex flex-col gap-2">
-                {["30 saniyede bir otomatik guncelleme", "Guzergah gecmisi ve analizi", "Sofor yokken takip durur — batarya tasarrufu"].map((f) => (
+                {["5 saniyede bir otomatik guncelleme", "Guzergah gecmisi ve analizi", "Sofor yokken takip durur — batarya tasarrufu"].map((f) => (
                   <div key={f} className="flex items-center gap-2 text-slate-300 text-sm">
                     <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0" />{f}
                   </div>
@@ -483,52 +542,97 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── KARSILASTIRMA ── */}
+      {/* ── NEDEN TEKER TAKIP ── */}
       <section id="karsilastirma" className="py-24 bg-white">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-14">
             <h2 className="text-3xl md:text-4xl font-black text-[#1B2437] mb-4">Neden Teker Takip?</h2>
-            <p className="text-slate-500">Rakiplerinizle ve mevcut yontemlerinizle karsilastirin.</p>
+            <p className="text-slate-500 max-w-xl mx-auto">GPS cihazi alip aylik abonelik odemeye son. Tum filoyu tek yerden yonetin.</p>
           </div>
-          <div className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm">
-            <div className="grid grid-cols-4 bg-[#1B2437] text-white text-sm font-semibold">
-              <div className="p-4 text-slate-400">Ozellik</div>
-              <div className="p-4 text-center">
-                <div className="text-[#DC2626] font-black">Teker Takip</div>
+
+          {/* Maliyet karsilastirma */}
+          <div className="grid md:grid-cols-2 gap-6 mb-8">
+            {/* Rakip: GPS Sistemleri */}
+            <div className="rounded-3xl border-2 border-red-100 bg-red-50/50 p-7">
+              <div className="flex items-center gap-3 mb-5">
+                <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center">
+                  <X className="w-5 h-5 text-red-500" />
+                </div>
+                <div>
+                  <div className="font-bold text-slate-700">Kurumsal GPS Sistemleri</div>
+                  <div className="text-xs text-slate-400">Mevcut alternatifiniz</div>
+                </div>
               </div>
-              <div className="p-4 text-center text-slate-400 font-normal">Kurumsal GPS Sistemleri</div>
-              <div className="p-4 text-center text-slate-400 font-normal">WhatsApp + Excel</div>
+              <div className="space-y-3">
+                {[
+                  { label: "Arac basi GPS aboneligi", val: "700 – 1.000 TL/ay" },
+                  { label: "10 arac icin aylik maliyet", val: "7.000 – 10.000 TL" },
+                  { label: "Donanim kurulum ucreti", val: "Arac basi 1.000-2.000 TL" },
+                  { label: "Kurulum suresi", val: "1 – 4 hafta" },
+                ].map(item => (
+                  <div key={item.label} className="flex items-center justify-between bg-white rounded-xl px-4 py-3 border border-red-100">
+                    <span className="text-sm text-slate-600">{item.label}</span>
+                    <span className="text-sm font-bold text-red-500">{item.val}</span>
+                  </div>
+                ))}
+                <div className="bg-red-100 rounded-xl px-4 py-3 mt-2">
+                  <div className="text-xs text-red-600 font-semibold mb-1">Ne eksik?</div>
+                  <div className="grid grid-cols-2 gap-1">
+                    {["Veli bildirimi yok", "Yakit takibi yok", "Belge uyarisi yok", "Finans modulu yok"].map(item => (
+                      <div key={item} className="flex items-center gap-1.5 text-xs text-red-700">
+                        <X className="w-3 h-3 flex-shrink-0" />{item}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
-            {[
-              { feature: "Aylik abonelik", us: "5.000 TL + KDV", them: "1.500-4.000 TL + donanim", excel: "0 TL (ama saatleriniz)" },
-              { feature: "GPS cihazi gerekli mi?", us: false, them: true, excel: false },
-              { feature: "Canli konum takibi", us: true, them: true, excel: false },
-              { feature: "Yakit takibi + OCR", us: true, them: false, excel: false },
-              { feature: "Belge & son tarih uyarisi", us: true, them: false, excel: false },
-              { feature: "Veli bildirimi", us: true, them: false, excel: false },
-              { feature: "Finans & maas yonetimi", us: true, them: false, excel: "Kismen" },
-              { feature: "Sofor mobil uygulamasi", us: true, them: true, excel: false },
-              { feature: "Kurulum suresi", us: "1 gun", them: "1-4 hafta", excel: "Anlik" },
-            ].map((row, i) => (
-              <div key={row.feature} className={`grid grid-cols-4 border-t border-slate-100 text-sm ${i % 2 === 0 ? "bg-white" : "bg-slate-50/50"}`}>
-                <div className="p-4 text-slate-600 font-medium">{row.feature}</div>
-                <div className="p-4 flex justify-center items-center">
-                  {row.us === true ? <Check className="w-5 h-5 text-green-500" /> :
-                   row.us === false ? <X className="w-5 h-5 text-red-300" /> :
-                   <span className="font-bold text-[#DC2626] text-xs text-center">{row.us}</span>}
+
+            {/* Teker Takip */}
+            <div className="rounded-3xl border-2 border-[#DC2626]/30 bg-[#1B2437] p-7 relative">
+              <div className="absolute -top-3 right-6">
+                <span className="bg-[#DC2626] text-white text-xs font-black px-3 py-1 rounded-full shadow-lg">ONERILIR</span>
+              </div>
+              <div className="flex items-center gap-3 mb-5">
+                <div className="w-10 h-10 bg-[#DC2626]/20 rounded-xl flex items-center justify-center">
+                  <Check className="w-5 h-5 text-[#DC2626]" />
                 </div>
-                <div className="p-4 flex justify-center items-center">
-                  {row.them === true ? <Check className="w-5 h-5 text-slate-300" /> :
-                   row.them === false ? <X className="w-5 h-5 text-red-200" /> :
-                   <span className="text-slate-400 text-xs text-center">{row.them}</span>}
-                </div>
-                <div className="p-4 flex justify-center items-center">
-                  {row.excel === true ? <Check className="w-5 h-5 text-slate-300" /> :
-                   row.excel === false ? <X className="w-5 h-5 text-red-200" /> :
-                   <span className="text-slate-400 text-xs text-center">{row.excel}</span>}
+                <div>
+                  <div className="font-bold text-white">Teker Takip</div>
+                  <div className="text-xs text-slate-400">Her sey dahil, tek fiyat</div>
                 </div>
               </div>
-            ))}
+              <div className="space-y-3">
+                {[
+                  { label: "Aylik abonelik (tum ozellikler)", val: "5.000 TL + KDV" },
+                  { label: "10 arac icin aylik maliyet", val: "5.000 TL (sabit)" },
+                  { label: "Donanim, kurulum ucreti", val: "SIFIR" },
+                  { label: "Aktif kullanima baslamak", val: "Ayni gun" },
+                ].map(item => (
+                  <div key={item.label} className="flex items-center justify-between bg-white/10 rounded-xl px-4 py-3 border border-white/10">
+                    <span className="text-sm text-slate-300">{item.label}</span>
+                    <span className="text-sm font-bold text-green-400">{item.val}</span>
+                  </div>
+                ))}
+                <div className="bg-white/10 border border-white/10 rounded-xl px-4 py-3 mt-2">
+                  <div className="text-xs text-green-400 font-semibold mb-1">Fazladan ne geliyor?</div>
+                  <div className="grid grid-cols-2 gap-1">
+                    {["Veli bildirimi", "Yakit + OCR takibi", "Belge uyari sistemi", "Finans & maas", "Sofor mobil app", "7/24 destek"].map(item => (
+                      <div key={item} className="flex items-center gap-1.5 text-xs text-slate-300">
+                        <Check className="w-3 h-3 text-green-400 flex-shrink-0" />{item}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Alt vurucu stat */}
+          <div className="bg-slate-50 border border-slate-100 rounded-3xl p-6 text-center">
+            <p className="text-slate-500 text-sm mb-1">10 aracli bir firma GPS sistemine gecmek yerine Teker Takip kullanirsa</p>
+            <p className="text-2xl md:text-3xl font-black text-[#DC2626]">yillik 24.000 – 60.000 TL tasarruf eder</p>
+            <p className="text-slate-400 text-sm mt-1">Ustelik veli bildirimi, yakit takibi ve finans yonetimi de yaninda gelir.</p>
           </div>
         </div>
       </section>
@@ -545,13 +649,13 @@ export default function HomePage() {
               {
                 emoji: "🎒",
                 title: "Okul Servis Firmalari",
-                sub: "J plakali arac zorunlulugu olanlar icin",
+                sub: "Ogrenci tasimaciligi yapan isletmeler icin",
                 items: [
                   "Durak durak yoklama — sofor telefondan isaretler",
                   "Veli uygulamasi ile anlik arac takibi",
                   "Cocuk binmezse veliye otomatik uyari",
-                  "SRC, psikoteknik, saglik raporu takibi",
-                  "J plaka uygunluk belgesi son tarihi",
+                  "SRC, psikoteknik, saglik raporu ve sigorta takibi",
+                  "Muayene ve uygunluk belgesi son tarihi uyarisi",
                 ],
               },
               {
