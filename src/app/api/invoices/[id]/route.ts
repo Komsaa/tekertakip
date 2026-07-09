@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getCompanyId, tenantWhere } from "@/lib/tenant";
+import { getCompanyId, tenantWhere, tenantData } from "@/lib/tenant";
 
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
@@ -20,6 +20,27 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       },
       include: { client: { select: { id: true, name: true } } },
     });
+
+    // Fatura ödendi olarak işaretlenince otomatik finans kaydı oluştur
+    if (body.status === "odendi") {
+      const alreadyExists = await prisma.financeEntry.findFirst({
+        where: { ...tenantWhere(companyId), invoiceNo: inv.invoiceNo },
+      });
+      if (!alreadyExists) {
+        await prisma.financeEntry.create({
+          data: {
+            type: "income",
+            category: "fatura_tahsilat",
+            amount: inv.paidAmount > 0 ? inv.paidAmount : inv.payableAmount,
+            date: body.paidAt ? new Date(body.paidAt) : new Date(),
+            description: `Fatura tahsilatı — ${inv.invoiceNo} (${inv.client.name})`,
+            invoiceNo: inv.invoiceNo,
+            ...tenantData(companyId),
+          },
+        });
+      }
+    }
+
     return NextResponse.json(inv);
   } catch (e) {
     console.error(e);

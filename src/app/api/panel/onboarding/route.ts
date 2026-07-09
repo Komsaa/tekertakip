@@ -10,12 +10,12 @@ export async function GET() {
   const companyId = (session.user as any)?.companyId;
   if (!companyId) return NextResponse.json({ error: "Şirket bulunamadı" }, { status: 400 });
 
-  const [vehicles, drivers, routes, jobs, fuelEntries, vehicleIds, driverIds] = await Promise.all([
+  const [vehicles, drivers, jobs, fuelEntries, clients, vehicleIds, driverIds] = await Promise.all([
     prisma.vehicle.count({ where: { companyId } }),
     prisma.driver.count({ where: { companyId, status: "active" } }),
-    prisma.route.count({ where: { companyId } }),
     prisma.job.count({ where: { companyId } }),
     prisma.fuelEntry.count({ where: { companyId } }),
+    prisma.client.count({ where: { companyId } }),
     prisma.vehicle.findMany({ where: { companyId }, select: { id: true } }),
     prisma.driver.findMany({ where: { companyId }, select: { id: true } }),
   ]);
@@ -29,5 +29,19 @@ export async function GET() {
     ? await prisma.document.count({ where: { entityId: { in: allEntityIds } } })
     : 0;
 
-  return NextResponse.json({ vehicles, drivers, routes, jobs, fuelEntries, documents });
+  // Araçlarda en az bir belge tarihi girilmiş mi?
+  const vehicleWithDocs = vehicleIds.length > 0
+    ? await prisma.vehicle.count({
+        where: {
+          companyId,
+          OR: [
+            { inspectionExpiry: { not: null } },
+            { insuranceExpiry: { not: null } },
+            { routePermitExpiry: { not: null } },
+          ],
+        },
+      })
+    : 0;
+
+  return NextResponse.json({ vehicles, drivers, jobs, fuelEntries, clients, documents: documents + vehicleWithDocs });
 }

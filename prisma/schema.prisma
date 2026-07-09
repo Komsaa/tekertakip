@@ -685,7 +685,7 @@ model Client {
 // ============ FATURALAR ============
 model Invoice {
   id             String   @id @default(cuid())
-  invoiceNo      String   @unique              // KOM2026000000005
+  invoiceNo      String                         // KOM2026000000005
   clientId       String
   client         Client   @relation(fields: [clientId], references: [id])
   issueDate      DateTime @default(now())
@@ -712,6 +712,8 @@ model Invoice {
   company        Company? @relation(fields: [companyId], references: [id])
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+
+  @@unique([invoiceNo, companyId])
 }
 
 // ============ AYARLAR ============

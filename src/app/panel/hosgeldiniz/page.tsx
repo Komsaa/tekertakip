@@ -4,13 +4,13 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   CheckCircle2,
-  Circle,
   Truck,
   Users,
-  Route,
+  Building2,
   ClipboardList,
   Fuel,
   FileText,
+  Receipt,
   ArrowRight,
   Sparkles,
 } from "lucide-react";
@@ -18,9 +18,9 @@ import {
 type Stats = {
   vehicles: number;
   drivers: number;
-  routes: number;
   jobs: number;
   fuelEntries: number;
+  clients: number;
   documents: number;
 };
 
@@ -39,9 +39,9 @@ const STEPS: Step[] = [
   {
     id: "vehicles",
     icon: Truck,
-    title: "İlk aracını ekle",
-    description: "Filonuzdaki araçları sisteme tanıtın. Plaka, model, ruhsat bilgileri.",
-    tip: "Tüm araçları bir seferde eklemenize gerek yok. Bir taneyle başlayın.",
+    title: "Araçlarını ekle",
+    description: "Filodaki araçları plaka, model ve kapasite bilgileriyle kaydet.",
+    tip: "Hepsini bir anda eklemeye gerek yok — bir araçla başla, gerisini ekleyerek devam et.",
     href: "/panel/araclar",
     done: (s) => s.vehicles > 0,
     color: "blue",
@@ -49,39 +49,39 @@ const STEPS: Step[] = [
   {
     id: "drivers",
     icon: Users,
-    title: "Şoförlerini ekle",
-    description: "Şoförlerin profil, iletişim ve belge bilgilerini kaydedin.",
-    tip: "Şoför eklediğinizde mobil uygulamaya giriş yapabilecekler.",
+    title: "Şöförleri ekle",
+    description: "Şöför profillerini oluştur. Mobil uygulama erişimi için PIN belirle.",
+    tip: "Şöför ekleyince mobil uygulamaya giriş yapabilir, yakıt ve arıza bildirebilir.",
     href: "/panel/soforler",
     done: (s) => s.drivers > 0,
     color: "purple",
   },
   {
-    id: "routes",
-    icon: Route,
-    title: "Güzergah oluştur",
-    description: "Düzenli seferler için güzergah tanımlayın. Duraklar, saatler, atanan araç.",
-    tip: "Okul servisi veya personel taşıması gibi sabit güzergahlar için idealdir.",
-    href: "/panel/guzergahlar",
-    done: (s) => s.routes > 0,
-    color: "green",
-  },
-  {
     id: "jobs",
     icon: ClipboardList,
     title: "İlk seferi kaydet",
-    description: "Tamamlanan veya planlanan işleri/seferleri kayıt altına alın.",
-    tip: "Seferler sayesinde gelir takibi ve raporlama otomatik oluşur.",
+    description: "Tamamlanan veya planlanan işleri kayıt altına al. Şoför, araç, müşteri ata.",
+    tip: "Seferler gelir takibinin temelidir — ne kadar erken başlarsan o kadar iyi.",
     href: "/panel/isler",
     done: (s) => s.jobs > 0,
     color: "orange",
   },
   {
+    id: "clients",
+    icon: Building2,
+    title: "Müşteri firma ekle",
+    description: "Fatura kestiğin firmaları tanımla. VKN, vade gün sayısı, birim fiyat, KDV/tevkifat oranı.",
+    tip: "Firma ekleyince PDF faturalarını yükleyip takip edebilirsin.",
+    href: "/panel/faturalar",
+    done: (s) => s.clients > 0,
+    color: "green",
+  },
+  {
     id: "fuel",
     icon: Fuel,
     title: "Yakıt takibine başla",
-    description: "Her yakıt alımını kaydedin. Araç başına tüketim raporları otomatik hesaplanır.",
-    tip: "En çok gözden kaçan maliyet kalemi yakıttır. Erken başlamak fark yaratır.",
+    description: "Her yakıt alımını kaydet. Araç başı tüketim ve maliyet otomatik hesaplanır.",
+    tip: "Yakıt, filonun en büyük gider kalemi. Takip erken başladıkça anlamlı olur.",
     href: "/panel/yakit",
     done: (s) => s.fuelEntries > 0,
     color: "red",
@@ -89,12 +89,22 @@ const STEPS: Step[] = [
   {
     id: "documents",
     icon: FileText,
-    title: "Evrakları yükle",
-    description: "Araç ve şoför evraklarını (ruhsat, sigorta, ehliyet) sisteme yükleyin. Sona erme tarihlerini girin, otomatik hatırlatma alın.",
-    tip: "Önce en yakın sona erecek evraktan başlayın. Hepsini bir anda yüklemeniz gerekmez.",
+    title: "Belge tarihlerini gir",
+    description: "Araçların muayene, sigorta, güzergah izni tarihlerini ekle. Sona ermeye yaklaşınca dashboard'da uyarı alırsın.",
+    tip: "Önce en yakın sona erecek belgeden başla — hepsini aynı anda girmen gerekmez.",
     href: "/panel/araclar",
     done: (s) => s.documents > 0,
     color: "teal",
+  },
+  {
+    id: "invoice",
+    icon: Receipt,
+    title: "İlk faturanı yükle",
+    description: "Muhasebecinin kestiği e-faturaları PDF olarak sisteme yükle. Bilgiler otomatik okunur.",
+    tip: "Toplu PDF yükleme özelliğiyle ay başı faturaları tek seferde aktarabilirsin.",
+    href: "/panel/faturalar",
+    done: (s) => s.clients > 0 && s.jobs > 0,
+    color: "slate",
   },
 ];
 
@@ -103,8 +113,9 @@ const colorMap: Record<string, { bg: string; icon: string; badge: string; btn: s
   purple: { bg: "bg-purple-50", icon: "text-purple-600", badge: "bg-purple-100 text-purple-700", btn: "bg-purple-600 hover:bg-purple-700" },
   green:  { bg: "bg-green-50",  icon: "text-green-600",  badge: "bg-green-100 text-green-700",  btn: "bg-green-600 hover:bg-green-700" },
   orange: { bg: "bg-orange-50", icon: "text-orange-600", badge: "bg-orange-100 text-orange-700", btn: "bg-orange-600 hover:bg-orange-700" },
-  red:    { bg: "bg-red-50",    icon: "text-red-600",    badge: "bg-red-100 text-red-700",    btn: "bg-red-600 hover:bg-red-700" },
+  red:    { bg: "bg-red-50",    icon: "text-red-600",    badge: "bg-red-100 text-red-700",      btn: "bg-red-600 hover:bg-red-700" },
   teal:   { bg: "bg-teal-50",   icon: "text-teal-600",   badge: "bg-teal-100 text-teal-700",   btn: "bg-teal-600 hover:bg-teal-700" },
+  slate:  { bg: "bg-slate-50",  icon: "text-slate-600",  badge: "bg-slate-100 text-slate-700",  btn: "bg-slate-700 hover:bg-slate-800" },
 };
 
 export default function HosgeldinizPage() {
@@ -225,13 +236,19 @@ export default function HosgeldinizPage() {
       </div>
 
       {/* Alt not */}
-      <div className="bg-slate-50 rounded-2xl border border-slate-100 p-5 text-sm text-slate-500">
-        <p className="font-semibold text-slate-700 mb-1">Nereden başlamalıyım?</p>
-        <p>
-          En mantıklı sıra: <strong>Araçlar → Şoförler → Güzergahlar → İşler</strong>.
-          Evrakları sistem oturduğunda yükleyebilirsiniz.
-          Yakıt takibini ise ilk yakıt alımından itibaren tutun.
-        </p>
+      <div className="bg-slate-50 rounded-2xl border border-slate-100 p-5 text-sm text-slate-500 space-y-3">
+        <div>
+          <p className="font-semibold text-slate-700 mb-1">Önerilen başlangıç sırası</p>
+          <p><strong>Araçlar → Şöförler → Müşteri Firmalar → İşler</strong>. Bu dört adım tamamlandığında sistem operasyonel olur.</p>
+        </div>
+        <div>
+          <p className="font-semibold text-slate-700 mb-1">Faturalar</p>
+          <p>Muhasebecinden gelen PDF faturaları Faturalar sayfasındaki <strong>Toplu PDF Yükle</strong> butonuyla tek seferde sisteme aktarabilirsin.</p>
+        </div>
+        <div>
+          <p className="font-semibold text-slate-700 mb-1">Belgeler</p>
+          <p>Araç muayene, sigorta ve güzergah izni tarihlerini araç detay sayfasından girebilirsin. Sona ermeye 30 gün kala dashboard&apos;da uyarı çıkar.</p>
+        </div>
       </div>
     </div>
   );

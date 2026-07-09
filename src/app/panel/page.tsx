@@ -181,7 +181,7 @@ export default async function DashboardPage() {
             activeVehicles: activeVehicleCount,
             activeRoutes: activeRouteCount,
             plannedToday: todayJobs.length,
-            completedToday: todayJobs.filter(j => j.status === "completed" || j.status === "active").length,
+            completedToday: todayJobs.filter(j => j.status === "completed").length,
             cancelledToday: todayJobs.filter(j => j.status === "cancelled").length,
             monthJobs: monthJobCount,
           }}

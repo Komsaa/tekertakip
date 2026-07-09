@@ -33,7 +33,7 @@ type FuelEntry = {
 
 type MonthData = { month: string; income: number; expense: number; fuel: number };
 
-const INCOME_CATS = { sozlesme: "Sözleşme Geliri", sefer: "Sefer Geliri", diger_gelir: "Diğer Gelir" };
+const INCOME_CATS = { sozlesme: "Sözleşme Geliri", sefer: "Sefer Geliri", fatura_tahsilat: "Fatura Tahsilatı", servis_tahsilat: "Nakit Servis Tahsilatı", diger_gelir: "Diğer Gelir" };
 const EXPENSE_CATS = { bakim: "Bakım / Tamir", sigorta: "Sigorta", harc: "Harç / Belge", vergi: "Vergi", maas: "Maaş", diger_gider: "Diğer Gider" };
 
 interface Props {

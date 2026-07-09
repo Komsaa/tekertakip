@@ -1,10 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import { Wrench, CheckCircle, Clock, AlertTriangle } from "lucide-react";
+import { Wrench, CheckCircle, Clock, AlertTriangle, X, HardHat } from "lucide-react";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+
+const MAINTENANCE_TYPES: Record<string, string> = {
+  diger: "Diğer / Genel",
+  yag_degisimi: "Yağ Değişimi",
+  lastik: "Lastik",
+  fren: "Fren",
+  genel_bakim: "Genel Bakım",
+  elektrik: "Elektrik",
+  karoseri: "Karoseri",
+};
 
 interface Report {
   id: string;
@@ -22,6 +32,11 @@ export default function ArizalarClient({ reports: initial }: { reports: Report[]
   const [reports, setReports] = useState(initial);
   const [filter, setFilter] = useState<"all" | "open" | "resolved">("open");
   const [resolving, setResolving] = useState<string | null>(null);
+  const [bakimModal, setBakimModal] = useState<Report | null>(null);
+  const [bakimType, setBakimType] = useState("diger");
+  const [bakimDesc, setBakimDesc] = useState("");
+  const [bakimDate, setBakimDate] = useState(new Date().toISOString().split("T")[0]);
+  const [bakimSaving, setBakimSaving] = useState(false);
 
   const filtered = reports.filter((r) =>
     filter === "all" ? true : r.status === filter
@@ -44,6 +59,45 @@ export default function ArizalarClient({ reports: initial }: { reports: Report[]
       toast.success("Çözüldü olarak işaretlendi");
     } finally {
       setResolving(null);
+    }
+  }
+
+  function openBakimModal(r: Report) {
+    setBakimModal(r);
+    setBakimType("diger");
+    setBakimDesc(r.description);
+    setBakimDate(new Date().toISOString().split("T")[0]);
+  }
+
+  async function saveBakim() {
+    if (!bakimModal?.vehicle) { toast.error("Bu arıza bir araçla ilişkili değil"); return; }
+    setBakimSaving(true);
+    try {
+      const [mRes, rRes] = await Promise.all([
+        fetch("/api/vehicles/maintenance", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            vehicleId: bakimModal.vehicle.id,
+            date: bakimDate,
+            type: bakimType,
+            description: bakimDesc,
+          }),
+        }),
+        fetch("/api/panel/arizalar", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: bakimModal.id }),
+        }),
+      ]);
+      if (!mRes.ok || !rRes.ok) { toast.error("Hata oluştu"); return; }
+      setReports((prev) =>
+        prev.map((r) => r.id === bakimModal.id ? { ...r, status: "resolved", resolvedAt: new Date().toISOString() } : r)
+      );
+      toast.success("Bakım kaydı oluşturuldu");
+      setBakimModal(null);
+    } finally {
+      setBakimSaving(false);
     }
   }
 
@@ -154,14 +208,24 @@ export default function ArizalarClient({ reports: initial }: { reports: Report[]
                   </div>
 
                   {r.status === "open" && (
-                    <button
-                      onClick={() => resolve(r.id)}
-                      disabled={resolving === r.id}
-                      className="flex items-center gap-1.5 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-xl text-xs font-semibold transition-colors disabled:opacity-40 flex-shrink-0"
-                    >
-                      <CheckCircle className="w-3.5 h-3.5" />
-                      {resolving === r.id ? "İşleniyor..." : "Çözüldü"}
-                    </button>
+                    <div className="flex gap-2 flex-shrink-0">
+                      {r.vehicle && (
+                        <button
+                          onClick={() => openBakimModal(r)}
+                          className="flex items-center gap-1.5 px-3 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-xs font-semibold transition-colors"
+                        >
+                          <HardHat className="w-3.5 h-3.5" /> Bakıma Çevir
+                        </button>
+                      )}
+                      <button
+                        onClick={() => resolve(r.id)}
+                        disabled={resolving === r.id}
+                        className="flex items-center gap-1.5 px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-xl text-xs font-semibold transition-colors disabled:opacity-40"
+                      >
+                        <CheckCircle className="w-3.5 h-3.5" />
+                        {resolving === r.id ? "..." : "Çözüldü"}
+                      </button>
+                    </div>
                   )}
                   {r.status === "resolved" && r.resolvedAt && (
                     <span className="text-xs text-green-600 font-medium flex-shrink-0">
@@ -182,6 +246,68 @@ export default function ArizalarClient({ reports: initial }: { reports: Report[]
               </div>
             </div>
           ))}
+        </div>
+      )}
+      {/* Bakıma Çevir Modalı */}
+      {bakimModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setBakimModal(null)} />
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md relative z-10">
+            <div className="flex items-center justify-between p-5 border-b border-slate-100">
+              <div>
+                <h2 className="text-base font-bold text-slate-800">Bakım Kaydı Oluştur</h2>
+                <p className="text-xs text-slate-500 mt-0.5">{bakimModal.vehicle?.plate} · Arıza bakıma dönüştürülecek</p>
+              </div>
+              <button onClick={() => setBakimModal(null)} className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="p-5 space-y-3">
+              <div>
+                <label className="text-xs font-semibold text-slate-500">Bakım Türü</label>
+                <select
+                  value={bakimType}
+                  onChange={e => setBakimType(e.target.value)}
+                  className="mt-1 w-full border border-slate-200 rounded-xl px-3 py-2 text-sm"
+                >
+                  {Object.entries(MAINTENANCE_TYPES).map(([k, v]) => (
+                    <option key={k} value={k}>{v}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-slate-500">Açıklama</label>
+                <textarea
+                  value={bakimDesc}
+                  onChange={e => setBakimDesc(e.target.value)}
+                  rows={3}
+                  className="mt-1 w-full border border-slate-200 rounded-xl px-3 py-2 text-sm resize-none"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-slate-500">Tarih</label>
+                <input
+                  type="date"
+                  value={bakimDate}
+                  onChange={e => setBakimDate(e.target.value)}
+                  className="mt-1 w-full border border-slate-200 rounded-xl px-3 py-2 text-sm"
+                />
+              </div>
+            </div>
+            <div className="flex gap-3 p-5 border-t border-slate-100">
+              <button onClick={() => setBakimModal(null)} className="flex-1 py-2 border border-slate-200 text-slate-600 rounded-xl text-sm font-medium hover:bg-slate-50">
+                İptal
+              </button>
+              <button
+                onClick={saveBakim}
+                disabled={bakimSaving || !bakimDesc.trim()}
+                className="flex-1 flex items-center justify-center gap-2 py-2 bg-orange-500 hover:bg-orange-600 disabled:opacity-60 text-white rounded-xl text-sm font-semibold"
+              >
+                <HardHat className="w-4 h-4" />
+                {bakimSaving ? "Kaydediliyor..." : "Bakım Kaydı Oluştur"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

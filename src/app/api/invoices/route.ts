@@ -31,6 +31,12 @@ export async function GET(req: NextRequest) {
     };
   }
 
+  // Vadesi geçmiş "bekliyor" faturaları otomatik gecikti yap
+  await prisma.invoice.updateMany({
+    where: { ...tenantWhere(companyId), status: "bekliyor", dueDate: { lt: new Date() } },
+    data: { status: "gecikti" },
+  });
+
   const invoices = await prisma.invoice.findMany({
     where: { ...tenantWhere(companyId), ...(status ? { status } : {}), ...dateFilter },
     include: {

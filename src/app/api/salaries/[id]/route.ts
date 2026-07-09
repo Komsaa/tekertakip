@@ -11,9 +11,15 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     const base = b.baseAmount !== undefined ? parseFloat(b.baseAmount) : undefined;
     const bonus = b.bonusAmount !== undefined ? parseFloat(b.bonusAmount) : undefined;
     const advance = b.advanceAmount !== undefined ? parseFloat(b.advanceAmount) : undefined;
+
+    const current = await prisma.salary.findUnique({
+      where: { id: params.id },
+      select: { baseAmount: true, bonusAmount: true, paid: true, totalAmount: true, advanceAmount: true, month: true, year: true },
+    });
+    const wasAlreadyPaid = current?.paid ?? false;
+
     let totalAmount: number | undefined;
     if (base !== undefined || bonus !== undefined) {
-      const current = await prisma.salary.findUnique({ where: { id: params.id }, select: { baseAmount: true, bonusAmount: true } });
       if (current) totalAmount = (base ?? current.baseAmount) + (bonus ?? current.bonusAmount);
     }
     const salary = await prisma.salary.update({
@@ -26,8 +32,24 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
         ...(b.paid !== undefined && { paid: b.paid, paidAt: b.paid ? new Date() : null }),
         ...(b.notes !== undefined && { notes: b.notes || null }),
       },
-      include: { driver: { select: { id: true, name: true } } },
+      include: { driver: { select: { id: true, name: true, companyId: true } } },
     });
+
+    // Maaş ödendi olarak işaretlenince finans kaydı oluştur
+    if (b.paid === true && !wasAlreadyPaid && salary.driver.companyId) {
+      const net = salary.totalAmount - salary.advanceAmount;
+      await prisma.financeEntry.create({
+        data: {
+          type: "expense",
+          category: "maas",
+          amount: net > 0 ? net : salary.totalAmount,
+          date: new Date(),
+          description: `Maaş — ${salary.driver.name} (${current!.month}/${current!.year})`,
+          companyId: salary.driver.companyId,
+        },
+      });
+    }
+
     return NextResponse.json(salary);
   } catch (e) {
     console.error(e);
