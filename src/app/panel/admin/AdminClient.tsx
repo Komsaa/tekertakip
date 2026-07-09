@@ -40,6 +40,7 @@ type Company = {
   code: string;
   type: string;
   active: boolean;
+  demoExpiresAt?: string | null;
 };
 
 const ACTION_COLORS: Record<string, string> = {
@@ -70,6 +71,8 @@ export default function AdminClient() {
   const [fixTenantCompanyId, setFixTenantCompanyId] = useState("");
   const [fixTenantLoading, setFixTenantLoading] = useState(false);
   const [fixTenantResult, setFixTenantResult] = useState<string | null>(null);
+  const [trialEdit, setTrialEdit] = useState<{ id: string; date: string } | null>(null);
+  const [trialSaving, setTrialSaving] = useState(false);
 
   // Mobile users
   const [mobileUsers, setMobileUsers] = useState<MobileUser[]>([]);
@@ -160,6 +163,42 @@ export default function AdminClient() {
     } else {
       setFixTenantResult("Hata: " + data.error);
     }
+  }
+
+  async function saveTrialDate(id: string, date: string | null) {
+    setTrialSaving(true);
+    const res = await fetch(`/api/admin/companies/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ demoExpiresAt: date }),
+    });
+    if (res.ok) {
+      const updated = await res.json();
+      setCompanies(prev => prev.map(c => c.id === id ? { ...c, demoExpiresAt: updated.demoExpiresAt } : c));
+      setTrialEdit(null);
+    }
+    setTrialSaving(false);
+  }
+
+  async function toggleActive(id: string, active: boolean) {
+    const res = await fetch(`/api/admin/companies/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ active }),
+    });
+    if (res.ok) {
+      setCompanies(prev => prev.map(c => c.id === id ? { ...c, active } : c));
+    }
+  }
+
+  function addDays(days: number | null) {
+    if (!trialEdit) return;
+    if (days === null) { saveTrialDate(trialEdit.id, null); return; }
+    const base = trialEdit.date ? new Date(trialEdit.date) : new Date();
+    if (base < new Date()) base.setTime(new Date().getTime());
+    base.setDate(base.getDate() + days);
+    const newDate = base.toISOString().split("T")[0];
+    setTrialEdit({ ...trialEdit, date: newDate });
   }
 
   // Companies
@@ -743,17 +782,21 @@ export default function AdminClient() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-gray-400 border-b border-gray-700">
-                  <th className="pb-2 pr-4">ID</th>
                   <th className="pb-2 pr-4">Şirket Adı</th>
                   <th className="pb-2 pr-4">Kod</th>
                   <th className="pb-2 pr-4">Tip</th>
                   <th className="pb-2 pr-4">Durum</th>
+                  <th className="pb-2 pr-4">Süre Sonu</th>
+                  <th className="pb-2"></th>
                 </tr>
               </thead>
               <tbody>
-                {companies.map((c) => (
+                {companies.map((c) => {
+                  const exp = c.demoExpiresAt ? new Date(c.demoExpiresAt) : null;
+                  const expired = exp ? exp < new Date() : false;
+                  const isEditing = trialEdit?.id === c.id;
+                  return (
                   <tr key={c.id} className="border-b border-gray-800 hover:bg-gray-800/30">
-                    <td className="py-3 pr-4 font-mono text-xs text-gray-500">{c.id}</td>
                     <td className="py-3 pr-4 font-medium">{c.name}</td>
                     <td className="py-3 pr-4 font-mono text-yellow-300">{c.code}</td>
                     <td className="py-3 pr-4">
@@ -762,12 +805,53 @@ export default function AdminClient() {
                       </span>
                     </td>
                     <td className="py-3 pr-4">
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${c.active ? "bg-green-900 text-green-300" : "bg-gray-700 text-gray-400"}`}>
+                      <button
+                        onClick={() => toggleActive(c.id, !c.active)}
+                        className={`text-xs px-2 py-0.5 rounded-full transition-colors ${c.active ? "bg-green-900 text-green-300 hover:bg-green-800" : "bg-gray-700 text-gray-400 hover:bg-gray-600"}`}
+                      >
                         {c.active ? "Aktif" : "Pasif"}
-                      </span>
+                      </button>
                     </td>
+                    <td className="py-3 pr-4 min-w-[220px]">
+                      {isEditing ? (
+                        <div className="space-y-1.5">
+                          <div className="flex gap-1 flex-wrap">
+                            <button onClick={() => addDays(14)} className="text-xs px-2 py-0.5 bg-blue-800 hover:bg-blue-700 text-blue-200 rounded">+14g</button>
+                            <button onClick={() => addDays(30)} className="text-xs px-2 py-0.5 bg-blue-800 hover:bg-blue-700 text-blue-200 rounded">+30g</button>
+                            <button onClick={() => addDays(90)} className="text-xs px-2 py-0.5 bg-blue-800 hover:bg-blue-700 text-blue-200 rounded">+90g</button>
+                            <button onClick={() => addDays(365)} className="text-xs px-2 py-0.5 bg-blue-800 hover:bg-blue-700 text-blue-200 rounded">+1yıl</button>
+                            <button onClick={() => addDays(null)} className="text-xs px-2 py-0.5 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded">Sınırsız</button>
+                          </div>
+                          <div className="flex gap-1 items-center">
+                            <input
+                              type="date"
+                              value={trialEdit.date}
+                              onChange={e => setTrialEdit({ ...trialEdit, date: e.target.value })}
+                              className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs"
+                            />
+                            <button
+                              onClick={() => saveTrialDate(c.id, trialEdit.date || null)}
+                              disabled={trialSaving}
+                              className="text-xs px-2 py-1 bg-green-700 hover:bg-green-600 disabled:opacity-40 text-white rounded"
+                            >
+                              {trialSaving ? "..." : "Kaydet"}
+                            </button>
+                            <button onClick={() => setTrialEdit(null)} className="text-xs px-2 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded">İptal</button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => setTrialEdit({ id: c.id, date: exp ? exp.toISOString().split("T")[0] : "" })}
+                          className={`text-xs font-mono hover:underline ${exp === null ? "text-gray-500" : expired ? "text-red-400" : "text-green-300"}`}
+                        >
+                          {exp === null ? "Sınırsız" : expired ? `Süresi doldu (${exp.toLocaleDateString("tr-TR")})` : exp.toLocaleDateString("tr-TR")}
+                        </button>
+                      )}
+                    </td>
+                    <td className="py-3"></td>
                   </tr>
-                ))}
+                  );
+                })}
                 {companies.length === 0 && (
                   <tr>
                     <td colSpan={4} className="py-8 text-center text-gray-500">Henüz şirket yok. Yukarıdan ekleyebilirsiniz.</td>
