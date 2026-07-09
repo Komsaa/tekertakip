@@ -88,7 +88,7 @@ export default function HomePage() {
                 className="group relative inline-flex items-center justify-center gap-3 w-full sm:w-auto bg-[#DC2626] hover:bg-[#B91C1C] text-white px-8 py-5 rounded-2xl font-black text-lg transition-all shadow-2xl shadow-[#DC2626]/40 hover:shadow-[#DC2626]/60 hover:scale-[1.03] mb-3"
               >
                 <span className="absolute -top-3 -right-3 bg-green-500 text-white text-[11px] font-bold px-2.5 py-1 rounded-full shadow-lg animate-bounce">
-                  30 GUN UCRETSIZ
+                  14 GUN UCRETSIZ
                 </span>
                 Hemen Ucretsiz Basla
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
@@ -212,7 +212,7 @@ export default function HomePage() {
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
             {[
-              { value: "30 Gun", label: "Ucretsiz Deneme", sub: "Kredi karti gerekmez" },
+              { value: "14 Gun", label: "Ucretsiz Deneme", sub: "Kredi karti gerekmez" },
               { value: "1 Gun", label: "Kurulum Suresi", sub: "Ayni gun kullanima hazir" },
               { value: "7/24", label: "Teknik Destek", sub: "WhatsApp & telefon" },
               { value: "%100", label: "Turkiye Sunucu", sub: "Verileriniz burada kalir" },
@@ -358,7 +358,7 @@ export default function HomePage() {
           </div>
           <div className="mt-12 text-center">
             <Link href="/kayit" className="inline-flex items-center gap-2 bg-[#DC2626] hover:bg-[#B91C1C] text-white px-8 py-4 rounded-xl font-bold transition-all shadow-lg shadow-[#DC2626]/30 hover:scale-[1.02]">
-              Simdi Basla — 30 Gun Ucretsiz
+              Simdi Basla — 14 Gun Ucretsiz
               <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
@@ -782,7 +782,7 @@ export default function HomePage() {
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative">
           <div className="text-center mb-14">
             <div className="inline-block bg-green-500/15 border border-green-500/30 text-green-400 text-sm font-semibold px-4 py-1.5 rounded-full mb-5">
-              30 gun ucretsiz, kredi karti gerekmez
+              14 gun ucretsiz, kredi karti gerekmez
             </div>
             <h2 className="text-3xl md:text-4xl font-black text-white mb-4">Seffaf Fiyatlandirma</h2>
             <p className="text-slate-400 text-lg">Tek paket, tum ozellikler dahil. Gizli ucret yok.</p>
@@ -801,7 +801,7 @@ export default function HomePage() {
                 href="/kayit"
                 className="block text-center border border-white/20 hover:border-white/40 hover:bg-white/5 text-white px-6 py-3.5 rounded-xl font-semibold transition-all text-sm mb-6"
               >
-                30 Gun Ucretsiz Basla
+                14 Gun Ucretsiz Basla
               </Link>
               <ul className="space-y-2.5">
                 {[
@@ -863,7 +863,7 @@ export default function HomePage() {
           {/* Odeme guvencesi */}
           <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-4 max-w-3xl mx-auto">
             {[
-              { icon: BadgeCheck, text: "30 gun icerisinde memnun kalmazsaniz ucret almiyoruz" },
+              { icon: BadgeCheck, text: "14 gun icerisinde memnun kalmazsaniz ucret almiyoruz" },
               { icon: CreditCard, text: "Kredi karti, banka havalesi veya EFT ile odeme" },
               { icon: HeadphonesIcon, text: "Kurulum surecinde WhatsApp destek" },
             ].map((item) => (
@@ -898,8 +898,8 @@ export default function HomePage() {
                 a: "Evet. Android veya iOS fark etmez. Uygulamamiz 2 dakikada kurulur, sofor kullanici adi ve sifresiyle giris yapar. Ekstra cihaz, kablo veya montaj gerektirmez.",
               },
               {
-                q: "30 gunluk deneme nasil isliyor? Kredi karti lazim mi?",
-                a: "Hayir, kredi karti istemiyoruz. Hesabinizi acin, 30 gun boyunca tum ozellikleri ucretsiz kullanin. Sure sonunda devam etmek isterseniz odeme bilgilerinizi girin. Devam etmek istemezseniz hesabiniz otomatik kapanir.",
+                q: "14 gunluk deneme nasil isliyor? Kredi karti lazim mi?",
+                a: "Hayir, kredi karti istemiyoruz. Hesabinizi acin, 14 gun boyunca tum ozellikleri ucretsiz kullanin. Sure sonunda devam etmek isterseniz odeme bilgilerinizi girin. Devam etmek istemezseniz hesabiniz otomatik kapanir.",
               },
               {
                 q: "Odeme nasil yapilir? Fatura kesiyor musunuz?",
@@ -972,7 +972,7 @@ export default function HomePage() {
           </div>
           <h2 className="text-3xl md:text-5xl font-black text-white mb-5">
             Bugün baslayın.<br />
-            <span className="text-[#DC2626]">30 gün tamamen ücretsiz.</span>
+            <span className="text-[#DC2626]">14 gün tamamen ücretsiz.</span>
           </h2>
           <p className="text-slate-400 text-lg mb-10 max-w-xl mx-auto">
             Kredi karti istemiyoruz. Dakikalar icinde hesabinizi acin, soforleriniz ayni gun uygulamayi indirsin.
