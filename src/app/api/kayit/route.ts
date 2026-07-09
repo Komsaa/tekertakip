@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
       attempts++;
     } while (attempts < 10);
 
-    const demoExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // +30 gün
+    const demoExpiresAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000); // +14 gün
 
     const company = await prisma.company.create({
       data: {

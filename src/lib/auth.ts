@@ -38,7 +38,7 @@ export const authOptions: NextAuthOptions = {
 
         // DB'deki panel kullanıcılarını kontrol et
         const panelUser = await prisma.panelUser.findUnique({
-          where: { username: credentials.username },
+          where: { username: credentials.username.trim().toLowerCase() },
           select: { id: true, name: true, passwordHash: true, active: true, role: true, companyId: true, company: { select: { type: true } } },
         });
         if (panelUser && panelUser.active) {
