@@ -31,16 +31,21 @@ export default function HomePage() {
               <a href="#ozellikler" className="text-slate-400 hover:text-white text-sm font-medium transition-colors">Özellikler</a>
               <a href="#fiyatlandirma" className="text-slate-400 hover:text-white text-sm font-medium transition-colors">Fiyatlandırma</a>
               <a href="#sss" className="text-slate-400 hover:text-white text-sm font-medium transition-colors">SSS</a>
-              <Link href="/login" className="text-slate-400 hover:text-white text-sm font-medium transition-colors">
-                Giriş
+              <Link href="/login" className="border border-white/25 hover:border-white/50 hover:bg-white/10 text-white px-5 py-2.5 rounded-lg text-sm font-semibold transition-all">
+                Giriş Yap
               </Link>
               <Link href="/kayit" className="bg-[#DC2626] hover:bg-[#B91C1C] text-white px-5 py-2.5 rounded-lg text-sm font-bold transition-all flex items-center gap-2 shadow-lg shadow-[#DC2626]/30">
                 Ücretsiz Başla <ChevronRight className="w-4 h-4" />
               </Link>
             </div>
-            <Link href="/kayit" className="md:hidden bg-[#DC2626] text-white px-3 py-2 rounded-lg text-sm font-semibold">
-              Ücretsiz Başla
-            </Link>
+            <div className="md:hidden flex items-center gap-2">
+              <Link href="/login" className="border border-white/25 hover:border-white/50 text-white px-3 py-2 rounded-lg text-sm font-semibold transition-all">
+                Giriş
+              </Link>
+              <Link href="/kayit" className="bg-[#DC2626] text-white px-3 py-2 rounded-lg text-sm font-semibold">
+                Ücretsiz Başla
+              </Link>
+            </div>
           </div>
         </div>
       </nav>
