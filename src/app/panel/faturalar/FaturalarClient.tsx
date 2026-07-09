@@ -468,14 +468,45 @@ type BulkPdfItem = {
   unitPrice?: number;
   kdvRate?: number;
   tevkifatRate?: number;
+  subtotal?: number;
+  kdvAmount?: number;
+  tevkifatAmount?: number;
+  totalAmount?: number;
   payableAmount?: number;
   error?: string;
 };
 
-function parseFilenameInvoiceNo(filename: string): string {
-  // KOM2026000000035_... veya KOM2026000000035 ...
-  const m = filename.match(/^(KOM\d+)/i);
-  return m ? m[1].toUpperCase() : "";
+function parseFilename(filename: string): { invoiceNo: string; vkn: string; nameHint: string } {
+  const base = filename.replace(/\.pdf$/i, "");
+  // Format: KOM2026000000035_0920057944_ATA TUR TEKSTİL
+  const m1 = base.match(/^(KOM\d+)[_\s]+(\d{10,11})[_\s]+(.+)$/i);
+  if (m1) return { invoiceNo: m1[1].toUpperCase(), vkn: m1[2], nameHint: m1[3].trim() };
+  // Format: KOM2026000000038 BUDAK ZEY...
+  const m2 = base.match(/^(KOM\d+)\s+(.+)$/i);
+  if (m2) return { invoiceNo: m2[1].toUpperCase(), vkn: "", nameHint: m2[2].trim() };
+  // Sadece numara
+  const m3 = base.match(/^(KOM\d+)/i);
+  return { invoiceNo: m3 ? m3[1].toUpperCase() : "", vkn: "", nameHint: "" };
+}
+
+function matchClient(clients: Client[], vkn: string, pdfName: string, nameHint: string): string {
+  // 1. VKN ile eşleştir (en güvenilir)
+  if (vkn) {
+    const m = clients.find(c => c.vkn && c.vkn.replace(/\s/g, "") === vkn.replace(/\s/g, ""));
+    if (m) return m.id;
+  }
+  // 2. PDF'den gelen firma adı ile esnek eşleştirme
+  for (const raw of [pdfName, nameHint].filter(Boolean)) {
+    const lower = raw.toLowerCase().replace(/\s+/g, " ").trim();
+    const found = clients.find(c => {
+      const cn = c.name.toLowerCase().replace(/\s+/g, " ").trim();
+      // 6+ karakter önek eşleşmesi
+      const minLen = Math.min(6, lower.length, cn.length);
+      return cn.includes(lower.slice(0, minLen)) || lower.includes(cn.slice(0, minLen));
+    });
+    if (found) return found.id;
+  }
+  return "";
 }
 
 function BulkPdfModal({ clients, onClose, onSaved }: {
@@ -488,14 +519,15 @@ function BulkPdfModal({ clients, onClose, onSaved }: {
 
   async function onFilesChange(files: FileList) {
     const arr = Array.from(files).filter(f => f.name.toLowerCase().endsWith(".pdf"));
-    const initial: BulkPdfItem[] = arr.map(f => ({
-      file: f,
-      status: "parsing",
-      invoiceNo: parseFilenameInvoiceNo(f.name),
-    }));
+    const today = new Date().toISOString().split("T")[0];
+    const initial: BulkPdfItem[] = arr.map(f => {
+      const fn = parseFilename(f.name);
+      return { file: f, status: "parsing", invoiceNo: fn.invoiceNo };
+    });
     setItems(initial);
 
     await Promise.all(arr.map(async (file, i) => {
+      const fn = parseFilename(file.name);
       try {
         const fd = new FormData();
         fd.append("file", file);
@@ -503,35 +535,38 @@ function BulkPdfModal({ clients, onClose, onSaved }: {
         const data = await res.json();
         const p = data.parsed ?? {};
 
-        let clientId = "";
-        if (p.clientName) {
-          const lower = String(p.clientName).toLowerCase();
-          const match = clients.find(c =>
-            c.name.toLowerCase().includes(lower.slice(0, 8)) ||
-            lower.includes(c.name.toLowerCase().slice(0, 8))
-          );
-          if (match) clientId = match.id;
-        }
+        const clientId = matchClient(clients, fn.vkn, p.clientName ?? "", fn.nameHint);
+
+        // issueDate yoksa bugünü kullan; periodStart/End yoksa issueDateʼten türet
+        const issueDate = p.issueDate ?? today;
+        const [y, mo] = issueDate.split("-").map(Number);
+        const periodStart = p.periodStart ?? `${y}-${String(mo).padStart(2, "0")}-01`;
+        const lastDay = new Date(y, mo, 0).getDate();
+        const periodEnd = p.periodEnd ?? `${y}-${String(mo).padStart(2, "0")}-${lastDay}`;
 
         setItems(prev => prev.map((x, j) => j !== i ? x : {
           ...x,
           status: "ready",
           pdfUrl: data.pdfUrl,
-          invoiceNo: p.invoiceNo ?? x.invoiceNo ?? "",
+          invoiceNo: p.invoiceNo ?? fn.invoiceNo ?? "",
           clientId,
-          clientNameRaw: p.clientName ?? "",
-          issueDate: p.issueDate ?? "",
-          dueDate: p.dueDate ?? p.issueDate ?? "",
-          periodStart: p.periodStart ?? "",
-          periodEnd: p.periodEnd ?? "",
+          clientNameRaw: p.clientName ?? fn.nameHint ?? "",
+          issueDate,
+          dueDate: p.dueDate ?? issueDate,
+          periodStart,
+          periodEnd,
           tripCount: p.tripCount,
           unitPrice: p.unitPrice,
           kdvRate: p.kdvRate,
           tevkifatRate: p.tevkifatRate,
+          subtotal: p.subtotal,
+          kdvAmount: p.kdvAmount,
+          tevkifatAmount: p.tevkifatAmount,
+          totalAmount: p.totalAmount,
           payableAmount: p.payableAmount,
         }));
       } catch {
-        setItems(prev => prev.map((x, j) => j !== i ? x : { ...x, status: "error", error: "Okunamadı" }));
+        setItems(prev => prev.map((x, j) => j !== i ? x : { ...x, status: "error", error: "Okunamadı", invoiceNo: fn.invoiceNo }));
       }
     }));
   }
@@ -562,6 +597,12 @@ function BulkPdfModal({ clients, onClose, onSaved }: {
             kdvRate: item.kdvRate ?? 20,
             tevkifatRate: item.tevkifatRate ?? 50,
             pdfUrl: item.pdfUrl ?? null,
+            // PDF'den okunan gerçek tutarları geç (hesaplamayı override et)
+            ...(item.subtotal != null && { _subtotal: item.subtotal }),
+            ...(item.kdvAmount != null && { _kdvAmount: item.kdvAmount }),
+            ...(item.tevkifatAmount != null && { _tevkifatAmount: item.tevkifatAmount }),
+            ...(item.totalAmount != null && { _totalAmount: item.totalAmount }),
+            ...(item.payableAmount != null && { _payableAmount: item.payableAmount }),
           }),
         });
         if (res.ok) ok++; else fail++;
@@ -600,8 +641,8 @@ function BulkPdfModal({ clients, onClose, onSaved }: {
                     <th className="px-3 py-2">Fatura No</th>
                     <th className="px-3 py-2">Firma</th>
                     <th className="px-3 py-2">Fatura Tarihi</th>
-                    <th className="px-3 py-2">Son Ödeme</th>
-                    <th className="px-3 py-2">Ödenecek</th>
+                    <th className="px-3 py-2">Vade Tarihi</th>
+                    <th className="px-3 py-2">Alınacak</th>
                     <th className="px-3 py-2">Durum</th>
                   </tr>
                 </thead>
@@ -613,14 +654,21 @@ function BulkPdfModal({ clients, onClose, onSaved }: {
                       </td>
                       <td className="px-3 py-2">
                         {item.status === "ready" && (
-                          <select
-                            value={item.clientId ?? ""}
-                            onChange={e => updateItem(i, { clientId: e.target.value })}
-                            className={`text-sm border rounded-lg px-2 py-1 max-w-[200px] ${!item.clientId ? "border-red-300 bg-red-50" : "border-slate-200"}`}
-                          >
-                            <option value="">— Firma seç —</option>
-                            {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                          </select>
+                          <div>
+                            <select
+                              value={item.clientId ?? ""}
+                              onChange={e => updateItem(i, { clientId: e.target.value })}
+                              className={`text-sm border rounded-lg px-2 py-1 w-full max-w-[200px] ${!item.clientId ? "border-red-300 bg-red-50" : "border-slate-200"}`}
+                            >
+                              <option value="">— Firma seç —</option>
+                              {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                            </select>
+                            {!item.clientId && item.clientNameRaw && (
+                              <p className="text-xs text-slate-400 mt-0.5 truncate max-w-[200px]" title={item.clientNameRaw}>
+                                PDF: {item.clientNameRaw}
+                              </p>
+                            )}
+                          </div>
                         )}
                         {item.status === "parsing" && <span className="text-slate-300 text-xs">Okunuyor...</span>}
                       </td>
