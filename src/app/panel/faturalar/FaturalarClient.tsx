@@ -460,6 +460,7 @@ type BulkPdfItem = {
   invoiceNo?: string;
   clientId?: string;
   clientNameRaw?: string;
+  vkn?: string;
   issueDate?: string;
   dueDate?: string;
   periodStart?: string;
@@ -516,6 +517,28 @@ function BulkPdfModal({ clients, onClose, onSaved }: {
 }) {
   const [items, setItems] = useState<BulkPdfItem[]>([]);
   const [saving, setSaving] = useState(false);
+  const [localClients, setLocalClients] = useState<Client[]>(clients);
+  const [quickAdd, setQuickAdd] = useState<{ rowIndex: number; name: string; vkn: string } | null>(null);
+  const [quickAddLoading, setQuickAddLoading] = useState(false);
+
+  async function quickAddClient() {
+    if (!quickAdd || !quickAdd.name.trim()) return;
+    setQuickAddLoading(true);
+    try {
+      const res = await fetch("/api/clients", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: quickAdd.name.trim(), vkn: quickAdd.vkn }),
+      });
+      if (!res.ok) { toast.error("Firma eklenemedi"); return; }
+      const newClient: Client = await res.json();
+      setLocalClients(prev => [...prev, newClient]);
+      updateItem(quickAdd.rowIndex, { clientId: newClient.id });
+      setQuickAdd(null);
+      toast.success("Firma eklendi");
+    } catch { toast.error("Hata"); }
+    finally { setQuickAddLoading(false); }
+  }
 
   async function onFilesChange(files: FileList) {
     const arr = Array.from(files).filter(f => f.name.toLowerCase().endsWith(".pdf"));
@@ -535,7 +558,7 @@ function BulkPdfModal({ clients, onClose, onSaved }: {
         const data = await res.json();
         const p = data.parsed ?? {};
 
-        const clientId = matchClient(clients, fn.vkn, p.clientName ?? "", fn.nameHint);
+        const clientId = matchClient(localClients, fn.vkn, p.clientName ?? "", fn.nameHint);
 
         // issueDate yoksa bugünü kullan; periodStart/End yoksa issueDateʼten türet
         const issueDate = p.issueDate ?? today;
@@ -551,6 +574,7 @@ function BulkPdfModal({ clients, onClose, onSaved }: {
           invoiceNo: p.invoiceNo ?? fn.invoiceNo ?? "",
           clientId,
           clientNameRaw: p.clientName ?? fn.nameHint ?? "",
+          vkn: fn.vkn,
           issueDate,
           dueDate: p.dueDate ?? issueDate,
           periodStart,
@@ -661,12 +685,43 @@ function BulkPdfModal({ clients, onClose, onSaved }: {
                               className={`text-sm border rounded-lg px-2 py-1 w-full max-w-[200px] ${!item.clientId ? "border-red-300 bg-red-50" : "border-slate-200"}`}
                             >
                               <option value="">— Firma seç —</option>
-                              {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                              {localClients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                             </select>
-                            {!item.clientId && item.clientNameRaw && (
+                            {!item.clientId && item.clientNameRaw && quickAdd?.rowIndex !== i && (
                               <p className="text-xs text-slate-400 mt-0.5 truncate max-w-[200px]" title={item.clientNameRaw}>
                                 PDF: {item.clientNameRaw}
                               </p>
+                            )}
+                            {!item.clientId && (
+                              quickAdd?.rowIndex === i ? (
+                                <div className="mt-1 flex gap-1 items-center">
+                                  <input
+                                    autoFocus
+                                    className="border border-slate-200 rounded-lg px-2 py-1 text-xs flex-1 min-w-0"
+                                    value={quickAdd.name}
+                                    onChange={e => setQuickAdd(q => q ? { ...q, name: e.target.value } : q)}
+                                    placeholder="Firma adı"
+                                    onKeyDown={e => e.key === "Enter" && quickAddClient()}
+                                  />
+                                  <button
+                                    onClick={quickAddClient}
+                                    disabled={quickAddLoading || !quickAdd.name.trim()}
+                                    className="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold disabled:opacity-60"
+                                  >
+                                    {quickAddLoading ? "..." : "Ekle"}
+                                  </button>
+                                  <button onClick={() => setQuickAdd(null)} className="p-1 text-slate-400 hover:text-slate-600">
+                                    <X className="w-3 h-3" />
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={() => setQuickAdd({ rowIndex: i, name: item.clientNameRaw ?? "", vkn: item.vkn ?? "" })}
+                                  className="mt-0.5 text-xs text-blue-600 hover:underline flex items-center gap-0.5"
+                                >
+                                  <Plus className="w-3 h-3" /> Firma ekle
+                                </button>
+                              )
                             )}
                           </div>
                         )}
