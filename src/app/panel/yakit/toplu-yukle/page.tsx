@@ -21,6 +21,7 @@ type PhotoRow = {
   pricePerLiter?: number;
   station?: string;
   date?: string;
+  odometer?: number;
   vehicleId: string;
   paymentType: string;
   // Gösterge çifti
@@ -73,7 +74,7 @@ export default function TopluYuklePage() {
     );
   }
 
-  // Otomatik çiftleme: her gösterge, kendisinden önceki fişle çiftlenir
+  // Otomatik çiftleme: her gösterge, kendisinden önceki fişle çiftlenir + KM'yi fişe taşır
   function autoPair() {
     setRows((prev) => {
       const next = [...prev];
@@ -83,6 +84,10 @@ export default function TopluYuklePage() {
           lastFisIdx = i;
         } else if (next[i].type === "gosterge" && lastFisIdx >= 0) {
           next[i] = { ...next[i], pairedWith: next[lastFisIdx].id };
+          // Göstergeden okunan KM varsa fişe aktar
+          if (next[i].odometer && !next[lastFisIdx].odometer) {
+            next[lastFisIdx] = { ...next[lastFisIdx], odometer: next[i].odometer };
+          }
         }
       }
       return next;
@@ -109,16 +114,16 @@ export default function TopluYuklePage() {
         continue;
       }
 
-      if (row.type === "fis") {
-        // Gemini ile parse et
-        updateRow(row.id, { status: "okunuyor" });
-        try {
-          const res = await fetch("/api/fuel/parse-receipt", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ fileUrl: photoUrl }),
-          });
-          const { parsed } = await res.json();
+      // Hem fiş hem gösterge için AI oku
+      updateRow(row.id, { status: "okunuyor" });
+      try {
+        const res = await fetch("/api/fuel/parse-receipt", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ fileUrl: photoUrl }),
+        });
+        const { parsed } = await res.json();
+        if (row.type === "fis") {
           updateRow(row.id, {
             status: "hazir",
             liters: parsed?.liters ?? undefined,
@@ -126,15 +131,19 @@ export default function TopluYuklePage() {
             pricePerLiter: parsed?.pricePerLiter ?? undefined,
             station: parsed?.station ?? undefined,
             date: parsed?.date || row.date,
+            odometer: parsed?.odometer ?? undefined,
           });
-        } catch {
-          updateRow(row.id, { status: "hazir" });
+        } else {
+          // Gösterge — sadece KM oku
+          updateRow(row.id, {
+            status: "hazir",
+            odometer: parsed?.odometer ?? undefined,
+          });
         }
-        await new Promise((r) => setTimeout(r, 4000)); // rate limit
-      } else {
-        // Gösterge — sadece yükle
+      } catch {
         updateRow(row.id, { status: "hazir" });
       }
+      await new Promise((r) => setTimeout(r, 3000)); // rate limit
     }
 
     setProcessing(false);
@@ -152,10 +161,12 @@ export default function TopluYuklePage() {
 
     setSaving(true);
     try {
-      // Gösterge fotoğraflarını fişle eşleştir
-      const gostergeMap: Record<string, string> = {};
-      rows.filter((r) => r.type === "gosterge" && r.photoUrl && r.pairedWith).forEach((r) => {
-        gostergeMap[r.pairedWith!] = r.photoUrl!;
+      // Gösterge fotoğraflarını fişle eşleştir (fotoğraf URL + KM)
+      const gostergePhotoMap: Record<string, string> = {};
+      const gostergeKmMap: Record<string, number> = {};
+      rows.filter((r) => r.type === "gosterge" && r.pairedWith).forEach((r) => {
+        if (r.photoUrl) gostergePhotoMap[r.pairedWith!] = r.photoUrl;
+        if (r.odometer) gostergeKmMap[r.pairedWith!] = r.odometer;
       });
 
       const res = await fetch("/api/fuel/bulk", {
@@ -171,7 +182,8 @@ export default function TopluYuklePage() {
             station: r.station,
             paymentType: r.paymentType,
             receiptPhoto: r.photoUrl,
-            odometerPhoto: gostergeMap[r.id] || undefined,
+            odometerPhoto: gostergePhotoMap[r.id] || undefined,
+            odometer: r.odometer || gostergeKmMap[r.id] || undefined,
           })),
         }),
       });
@@ -301,7 +313,7 @@ export default function TopluYuklePage() {
 
                 {/* Alanlar - sadece fiş için */}
                 {row.type === "fis" ? (
-                  <div className="flex-1 grid grid-cols-2 md:grid-cols-5 gap-2">
+                  <div className="flex-1 grid grid-cols-2 md:grid-cols-6 gap-2">
                     <select value={row.vehicleId} onChange={(e) => updateRow(row.id, { vehicleId: e.target.value })} className="text-xs py-1">
                       <option value="">Araç *</option>
                       {vehicles.map((v) => <option key={v.id} value={v.id}>{v.plate}</option>)}
@@ -309,6 +321,7 @@ export default function TopluYuklePage() {
                     <input type="date" value={row.date || ""} onChange={(e) => updateRow(row.id, { date: e.target.value })} className="text-xs py-1" />
                     <input type="number" step="0.01" value={row.liters ?? ""} onChange={(e) => updateRow(row.id, { liters: parseFloat(e.target.value) || undefined })} placeholder="Litre *" className="text-xs py-1" />
                     <input type="number" step="0.01" value={row.totalAmount ?? ""} onChange={(e) => updateRow(row.id, { totalAmount: parseFloat(e.target.value) || undefined })} placeholder="Tutar ₺ *" className="text-xs py-1 font-bold" />
+                    <input type="number" value={row.odometer ?? ""} onChange={(e) => updateRow(row.id, { odometer: parseInt(e.target.value) || undefined })} placeholder="KM" className={`text-xs py-1 ${row.odometer ? "text-green-700 font-semibold" : ""}`} />
                     <select value={row.paymentType} onChange={(e) => updateRow(row.id, { paymentType: e.target.value })} className="text-xs py-1">
                       <option value="nakit">Nakit</option>
                       <option value="veresiye">Veresiye</option>
@@ -316,10 +329,13 @@ export default function TopluYuklePage() {
                     </select>
                   </div>
                 ) : (
-                  <div className="flex-1 text-xs text-slate-400">
+                  <div className="flex-1 flex items-center gap-3 text-xs text-slate-400">
                     {row.pairedWith
                       ? <span className="text-blue-600 font-medium">✓ Fiş ile çiftlendi</span>
                       : "Otomatik Çiftleştir butonuna bas"}
+                    {row.odometer && (
+                      <span className="text-green-600 font-semibold">{row.odometer.toLocaleString()} km okundu</span>
+                    )}
                   </div>
                 )}
 

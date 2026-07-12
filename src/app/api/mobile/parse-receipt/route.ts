@@ -44,17 +44,21 @@ export async function POST(req: NextRequest) {
 
     const result = await model.generateContent([
       { inlineData: { data: base64, mimeType } },
-      `Bu bir akaryakıt (mazot/benzin) pompası fişi. Fişten bilgileri çıkar ve SADECE JSON döndür, başka hiçbir şey yazma:
+      `Bu fotoğraf bir akaryakıt fişi veya araç gösterge paneli (kilometre sayacı) içerebilir. İkisi aynı fotoğrafta da olabilir.
+Gördüklerinden bilgileri çıkar ve SADECE JSON döndür, başka hiçbir şey yazma:
 {
   "liters": number veya null,
   "totalAmount": number veya null,
   "pricePerLiter": number veya null,
   "station": string veya null,
-  "date": "YYYY-MM-DD" veya null
+  "date": "YYYY-MM-DD" veya null,
+  "odometer": number veya null
 }
-Türk lirası (₺, TL, TRY) toplam tutarı totalAmount. Litre miktarı L/lt/LT olabilir.
-Nokta binlik ayraç, virgül ondalık ayraçtır (örn: 3.400,38 → 3400.38, 43,07 → 43.07).
-Emin olmadığına null yaz.`,
+- Türk lirası (₺, TL, TRY) toplam tutarı → totalAmount
+- Litre miktarı L/lt/LT/litre → liters
+- Araç kilometresi (göstergedeki toplam km, örn: 463.958 veya 462026) → odometer (tam sayı, nokta/boşluk ayracı kaldır)
+- Nokta binlik ayraç, virgül ondalık ayraçtır (örn: 3.400,38 → 3400.38, 43,07 → 43.07)
+- Emin olmadığına null yaz.`,
     ]);
 
     const text = result.response.text().trim();
