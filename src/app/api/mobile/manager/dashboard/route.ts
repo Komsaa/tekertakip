@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyManagerToken } from "@/lib/manager-token";
+import { verifyManagerTokenFull } from "@/lib/manager-token";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -7,11 +7,14 @@ export const dynamic = "force-dynamic";
 function getManager(req: NextRequest) {
   const auth = req.headers.get("Authorization");
   if (!auth?.startsWith("Bearer ")) return null;
-  return verifyManagerToken(auth.slice(7));
+  return verifyManagerTokenFull(auth.slice(7));
 }
 
 export async function GET(req: NextRequest) {
-  if (!getManager(req)) return NextResponse.json({ error: "Yetkisiz" }, { status: 401 });
+  const manager = getManager(req);
+  if (!manager) return NextResponse.json({ error: "Yetkisiz" }, { status: 401 });
+
+  const companyFilter = manager.companyId ? { companyId: manager.companyId } : {};
 
   const now = new Date();
   const todayStart = new Date(now); todayStart.setHours(0, 0, 0, 0);
@@ -20,17 +23,17 @@ export async function GET(req: NextRequest) {
 
   const [todayJobs, monthFuel, activeDrivers, openReports, recentFuel] = await Promise.all([
     prisma.job.findMany({
-      where: { date: { gte: todayStart, lte: todayEnd }, status: { not: "cancelled" } },
+      where: { ...companyFilter, date: { gte: todayStart, lte: todayEnd }, status: { not: "cancelled" } },
       include: { driver: { select: { name: true } }, vehicle: { select: { plate: true } } },
       orderBy: { startTime: "asc" },
     }),
     prisma.fuelEntry.aggregate({
       _sum: { totalAmount: true, liters: true },
-      where: { date: { gte: monthStart } },
+      where: { ...companyFilter, date: { gte: monthStart } },
     }),
-    prisma.driver.count({ where: { status: "active", isTracking: true } }),
+    prisma.driver.count({ where: { ...companyFilter, status: "active", isTracking: true } }),
     prisma.vehicleReport.findMany({
-      where: { status: "open" },
+      where: { ...companyFilter, status: "open" },
       include: {
         driver: { select: { name: true } },
         vehicle: { select: { plate: true } },
@@ -39,6 +42,7 @@ export async function GET(req: NextRequest) {
     }).catch(() => []),
     prisma.fuelEntry.findMany({
       take: 10,
+      where: { ...companyFilter },
       orderBy: { createdAt: "desc" },
       include: {
         driver: { select: { name: true } },

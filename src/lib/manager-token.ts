@@ -8,22 +8,30 @@ function getSecret() {
   return s;
 }
 
-export function createManagerToken(username: string): string {
+export function createManagerToken(username: string, opts?: { companyId?: string | null; role?: string }): string {
   const period = Math.floor(Date.now() / PERIOD_MS);
-  const payload = Buffer.from(JSON.stringify({ username, period })).toString("base64url");
+  const payload = Buffer.from(JSON.stringify({
+    username, period,
+    companyId: opts?.companyId ?? null,
+    role: opts?.role ?? "admin",
+  })).toString("base64url");
   const hash = createHmac("sha256", getSecret()).update(`${username}:${period}`).digest("hex");
   return `${payload}.${hash}`;
 }
 
 export function verifyManagerToken(token: string): string | null {
+  return verifyManagerTokenFull(token)?.username ?? null;
+}
+
+export function verifyManagerTokenFull(token: string): { username: string; companyId: string | null; role: string } | null {
   try {
     const [payloadB64, hash] = token.split(".");
-    const { username, period } = JSON.parse(Buffer.from(payloadB64, "base64url").toString());
+    const { username, period, companyId, role } = JSON.parse(Buffer.from(payloadB64, "base64url").toString());
     const currentPeriod = Math.floor(Date.now() / PERIOD_MS);
-    if (Math.abs(period - currentPeriod) > 1) return null; // en fazla 1 period tolerans
+    if (Math.abs(period - currentPeriod) > 1) return null;
     const expected = createHmac("sha256", getSecret()).update(`${username}:${period}`).digest("hex");
     if (hash !== expected) return null;
-    return username as string;
+    return { username: username as string, companyId: companyId ?? null, role: role ?? "admin" };
   } catch {
     return null;
   }

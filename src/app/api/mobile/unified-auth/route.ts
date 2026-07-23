@@ -118,13 +118,29 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // ── 3. Yönetici ──────────────────────────────────────────────────────────
+    // ── 3. Yönetici (env) ────────────────────────────────────────────────────
     for (let i = 1; i <= 5; i++) {
       const envUser = process.env[`ADMIN${i}_USERNAME`] ?? "";
       const envPass = process.env[`ADMIN${i}_PASSWORD`] ?? "";
       if (envUser && safeCompare(envUser, u) && safeCompare(envPass, p)) {
         const token = createManagerToken(u);
         return NextResponse.json({ role: "manager", token, username: u });
+      }
+    }
+
+    // ── 4. Panel kullanıcısı (firma yöneticisi) ───────────────────────────
+    const panelUser = await prisma.panelUser.findFirst({
+      where: { username: { equals: u.toLowerCase() }, active: true },
+      select: { username: true, name: true, passwordHash: true, role: true, companyId: true },
+    });
+    if (panelUser) {
+      const valid = await bcrypt.compare(p, panelUser.passwordHash);
+      if (valid) {
+        const token = createManagerToken(panelUser.username, {
+          companyId: panelUser.companyId,
+          role: panelUser.role,
+        });
+        return NextResponse.json({ role: "manager", token, username: panelUser.name });
       }
     }
 
