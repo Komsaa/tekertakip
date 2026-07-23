@@ -117,7 +117,7 @@ export default function Sidebar({ userName, role, companyType }: SidebarProps) {
   useEffect(() => {
     for (const g of navGroups) {
       if (g.items.some((item) => (item.exact ? pathname === item.href : pathname.startsWith(item.href)))) {
-        setOpenGroups((prev) => new Set([...prev, g.label]));
+        setOpenGroups((prev) => new Set([...Array.from(prev), g.label]));
       }
     }
   }, [pathname]);
