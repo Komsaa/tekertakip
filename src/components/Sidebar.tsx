@@ -5,10 +5,10 @@ import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { LogoIcon } from "@/components/Logo";
 import {
-  LayoutDashboard, Users, Truck, ClipboardList, Fuel, CheckSquare,
-  Settings, LogOut, Menu, X, Route, CalendarDays, Wallet, MapPin,
-  FileText, ShieldCheck, Sparkles, FlaskConical, Wrench, Banknote,
-  Receipt, HandCoins, Bus, CreditCard, ChevronDown,
+  LayoutDashboard, Users, Truck, ClipboardList, Fuel,
+  LogOut, Menu, X, Route, CalendarDays, Wallet, MapPin,
+  ShieldCheck, Sparkles, FlaskConical, Wrench, Banknote,
+  Receipt, HandCoins, Bus, CreditCard, ChevronDown, BarChart3, AlertTriangle,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
@@ -43,7 +43,8 @@ const navGroups: NavGroup[] = [
     items: [
       { href: "/panel/isler",    icon: ClipboardList, label: "İşler / Seferler" },
       { href: "/panel/yakit",   icon: Fuel,           label: "Yakıt Takibi" },
-      { href: "/panel/arizalar",icon: Wrench,          label: "Arıza Bildirimleri" },
+      { href: "/panel/bakim",   icon: Wrench,            label: "Bakım Takibi" },
+      { href: "/panel/arizalar",icon: AlertTriangle,    label: "Arıza Bildirimleri" },
       { href: "/panel/taseronlar", icon: Truck,        label: "Taşeronlar" },
     ],
   },
@@ -56,15 +57,7 @@ const navGroups: NavGroup[] = [
       { href: "/panel/odeme",        icon: HandCoins,    label: "Alacak / Borç / Çek" },
       { href: "/panel/maaslar",      icon: Banknote,     label: "Maaşlar" },
       { href: "/panel/kredikartlari",icon: CreditCard,   label: "Kredi Kartları" },
-    ],
-  },
-  {
-    label: "Diğer",
-    icon: FileText,
-    items: [
-      { href: "/panel/belgeler", icon: FileText,    label: "Belge Arşivi" },
-      { href: "/panel/gorevler", icon: CheckSquare, label: "Görevlerim" },
-      { href: "/panel/ayarlar",  icon: Settings,    label: "Ayarlar" },
+      { href: "/panel/raporlar",     icon: BarChart3,    label: "Raporlar" },
     ],
   },
   {

@@ -1,48 +1,108 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
+import { motion, useInView, useMotionValue, useSpring } from "framer-motion";
 import { LogoIcon } from "@/components/Logo";
-import { Check, ChevronRight, Menu, X, MessageCircle } from "lucide-react";
+import {
+  MapPin, Bell, ClipboardList, Fuel, FileText, Banknote,
+  Check, ChevronRight, Menu, X, MessageCircle, Truck,
+  Shield, Zap, BarChart3, Smartphone, Star,
+} from "lucide-react";
+
+/* ─────────────────── CONSTANTS ─────────────────── */
+
+const WA_LINK = "https://wa.me/905551234567";
+const KAYIT_LINK = "/kayit";
+
+const STATS = [
+  { value: 50, suffix: "+", label: "Aktif Firma" },
+  { value: 10000, suffix: "+", label: "Aylık Sefer" },
+  { value: 99, suffix: "%", label: "Müşteri Memnuniyeti" },
+  { value: 5, suffix: "dk", label: "Kurulum Süresi" },
+];
 
 const FEATURES = [
   {
-    icon: "📍", bg: "#FEE2E2",
-    title: "Canlı Konum Takibi",
-    desc: "Araçlarınızın konumunu haritada anlık izleyin. Veliler de öğrencilerini takip edebilir.",
+    icon: MapPin, color: "text-red-500", bg: "bg-red-50",
+    title: "Canlı GPS Takibi",
+    desc: "Araçlarınızı haritada anlık izleyin. 30 saniyede bir konum güncellemesi.",
+    size: "lg",
   },
   {
-    icon: "👨‍👩‍👧", bg: "#E7EAF3",
-    title: "Veli Bildirim Sistemi",
-    desc: "Öğrenci bindiğinde, indiğinde veya araç yaklaştığında veliye anında push bildirim gönderilir.",
+    icon: Bell, color: "text-blue-500", bg: "bg-blue-50",
+    title: "Veli Bildirimleri",
+    desc: "Öğrenci binince, ininc ve araç durağa yaklaşınca anında push bildirim.",
+    size: "sm",
   },
   {
-    icon: "📋", bg: "#FEE2E2",
+    icon: Fuel, color: "text-orange-500", bg: "bg-orange-50",
+    title: "Yakıt Takibi",
+    desc: "Fişi fotoğraflayın, AI otomatik okusun.",
+    size: "sm",
+  },
+  {
+    icon: FileText, color: "text-purple-500", bg: "bg-purple-50",
+    title: "Belge Yönetimi",
+    desc: "SRC, muayene, sigorta — son kullanma tarihi yaklaşınca uyarı.",
+    size: "sm",
+  },
+  {
+    icon: Banknote, color: "text-green-500", bg: "bg-green-50",
+    title: "Finans & Fatura",
+    desc: "KDV, tevkifat hesaplamalı fatura. Maaş ve alacak takibi.",
+    size: "sm",
+  },
+  {
+    icon: ClipboardList, color: "text-amber-500", bg: "bg-amber-50",
     title: "Güzergah & Yoklama",
-    desc: "Durakları, öğrencileri ve seferleri dijital ortamda yönetin. Şöförler mobil uygulamadan yoklama alır.",
+    desc: "Şöförler mobil uygulamadan yoklama alır. Siz panelden görürsünüz.",
+    size: "sm",
   },
   {
-    icon: "⛽", bg: "#E7EAF3",
-    title: "Yakıt & Masraf Takibi",
-    desc: "Yakıt girişlerini AI ile fişten otomatik okuyun. Masraflarınızı kategorize edin, raporlayın.",
-  },
-  {
-    icon: "📄", bg: "#FEE2E2",
-    title: "Belge & Sertifika Yönetimi",
-    desc: "SRC belgesi, muayene, sigorta – tüm belgelerin son kullanma tarihlerini takip edin, uyarı alın.",
-  },
-  {
-    icon: "💰", bg: "#E7EAF3",
-    title: "Servis Ücreti Takibi",
-    desc: "Veli ödemelerini aylık takip edin. Borç/alacak durumunu tek ekrandan görün.",
+    icon: BarChart3, color: "text-indigo-500", bg: "bg-indigo-50",
+    title: "Aylık Raporlama",
+    desc: "Gelir, yakıt gideri, maaş — net kâr tahmini tek ekranda.",
+    size: "sm",
   },
 ];
 
+const TESTIMONIALS = [
+  {
+    name: "Kadir Yılmaz",
+    role: "Filo Sahibi · İzmir · 14 Araç",
+    text: "Eskiden her sabah 10 telefon ediyordum. Şimdi ekrandan bakıyorum, kimin nerede olduğunu görüyorum. Belge takibi de hayat kurtardı.",
+    rating: 5,
+  },
+  {
+    name: "Hüseyin Acar",
+    role: "Okul Servisi Sahibi · Bursa · 8 Araç",
+    text: "Veliler artık beni aramıyor, uygulamadan takip ediyorlar. Şikayetler sıfıra indi. Maaş ve yakıt takibi de çok kolay.",
+    rating: 5,
+  },
+  {
+    name: "Sevinç Kaya",
+    role: "Personel Servisi · Ankara · 22 Araç",
+    text: "Fatura kesmek artık 2 dakika sürüyor. Muhasebecim de memnun, her şey kayıt altında.",
+    rating: 5,
+  },
+];
+
+const PLAN_FEATURES = [
+  "Sınırsız şöför ve araç",
+  "Mobil uygulama (iOS + Android)",
+  "Canlı GPS takibi",
+  "Belge & sigorta uyarıları",
+  "Fatura & maaş yönetimi",
+  "7/24 WhatsApp destek",
+  "Ücretsiz kurulum desteği",
+];
+
 const NOTIF_MESSAGES = [
-  { icon: "🚌", sub: "Servis 3 dakika sonra durakta olacak" },
-  { icon: "📍", sub: "Araç durakta" },
-  { icon: "✅", sub: "Efe Yıldırım servise güvenle bindi" },
-  { icon: "🏠", sub: "Efe Yıldırım evine güvenle indi" },
+  { icon: "🚌", text: "Servis 3 dakika sonra durakta" },
+  { icon: "✅", text: "Efe Yıldırım servise bindi" },
+  { icon: "📍", text: "Araç durağa ulaştı" },
+  { icon: "🏠", text: "Efe Yıldırım evine indi" },
 ];
 
 const MOCK_STUDENTS = [
@@ -52,470 +112,725 @@ const MOCK_STUDENTS = [
   { name: "Can T.", initials: "CT", color: "#F59E0B", boarded: false },
 ];
 
-const APP_BULLETS = [
-  "iOS ve Android'de kullanılabilir",
-  "Sefer başlatma ve yoklama alma",
-  "Canlı konum paylaşımı",
-  "Yakıt ve arıza bildirimi",
-  "Veli bildirimlerini otomatik tetikler",
-];
+/* ─────────────────── HOOKS ─────────────────── */
 
-const PLAN_FEATURES = ["Sınırsız kullanıcı", "Tüm özellikler dahil", "7/24 destek", "Ücretsiz kurulum"];
-
-const FOOTER_COLS = [
-  { title: "Ürün", links: ["Özellikler", "Fiyatlandırma", "Demo"] },
-  { title: "Şirket", links: ["Hakkımızda", "İletişim", "Gizlilik Politikası"] },
-  { title: "Destek", links: ["SSS", "Belgeler"] },
-];
-
-const WA_LINK = "https://wa.me/905551234567";
-
-function useReveal() {
-  const [revealed, setRevealed] = useState<Record<string, boolean>>({});
+function useAnimatedCounter(target: number, inView: boolean) {
+  const [count, setCount] = useState(0);
   useEffect(() => {
-    const obs = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((e) => {
-          if (e.isIntersecting) {
-            const id = e.target.getAttribute("data-reveal")!;
-            setRevealed((prev) => ({ ...prev, [id]: true }));
-            obs.unobserve(e.target);
-          }
-        });
-      },
-      { threshold: 0.1 }
-    );
-    document.querySelectorAll("[data-reveal]").forEach((el) => obs.observe(el));
-    return () => obs.disconnect();
-  }, []);
-  return revealed;
+    if (!inView) return;
+    let start = 0;
+    const duration = 1600;
+    const step = target / (duration / 16);
+    const timer = setInterval(() => {
+      start += step;
+      if (start >= target) { setCount(target); clearInterval(timer); }
+      else setCount(Math.floor(start));
+    }, 16);
+    return () => clearInterval(timer);
+  }, [inView, target]);
+  return count;
 }
 
-function rx(on: boolean): React.CSSProperties {
-  return {
-    opacity: on ? 1 : 0,
-    transform: on ? "translateY(0)" : "translateY(28px)",
-    transition: "opacity .8s ease, transform .8s ease",
-  };
+/* ─────────────────── COMPONENTS ─────────────────── */
+
+function FadeIn({ children, delay = 0, className = "" }: { children: React.ReactNode; delay?: number; className?: string }) {
+  const ref = useRef(null);
+  const inView = useInView(ref, { once: true, margin: "-80px" });
+  return (
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, y: 32 }}
+      animate={inView ? { opacity: 1, y: 0 } : {}}
+      transition={{ duration: 0.7, delay, ease: [0.16, 1, 0.3, 1] }}
+      className={className}
+    >
+      {children}
+    </motion.div>
+  );
 }
+
+function StatCard({ value, suffix, label }: { value: number; suffix: string; label: string }) {
+  const ref = useRef(null);
+  const inView = useInView(ref, { once: true });
+  const count = useAnimatedCounter(value, inView);
+  return (
+    <div ref={ref} className="text-center">
+      <div className="text-3xl lg:text-4xl font-black text-white">
+        {count.toLocaleString("tr-TR")}{suffix}
+      </div>
+      <div className="text-slate-400 text-sm mt-1 font-medium">{label}</div>
+    </div>
+  );
+}
+
+function SpotlightHero({ children }: { children: React.ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+  const springX = useSpring(mouseX, { stiffness: 80, damping: 20 });
+  const springY = useSpring(mouseY, { stiffness: 80, damping: 20 });
+
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (!ref.current) return;
+    const rect = ref.current.getBoundingClientRect();
+    mouseX.set(e.clientX - rect.left);
+    mouseY.set(e.clientY - rect.top);
+  }, [mouseX, mouseY]);
+
+  return (
+    <div ref={ref} onMouseMove={handleMouseMove} className="relative overflow-hidden">
+      <motion.div
+        className="pointer-events-none absolute -inset-px rounded-none opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+        style={{
+          background: `radial-gradient(600px circle at ${springX}px ${springY}px, rgba(220,38,38,0.08), transparent 40%)`,
+        }}
+      />
+      {children}
+    </div>
+  );
+}
+
+/* ─────────────────── MAIN ─────────────────── */
 
 export default function HomeClient() {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [notifs, setNotifs] = useState<Array<{ id: number; icon: string; sub: string; entered: boolean }>>([]);
-  const notifIdx = useRef(0);
-  const notifId = useRef(0);
-  const revealed = useReveal();
+  const [notifIdx, setNotifIdx] = useState(0);
+  const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
-    const push = () => {
-      const msg = NOTIF_MESSAGES[notifIdx.current % NOTIF_MESSAGES.length];
-      notifIdx.current++;
-      const id = notifId.current++;
-      setNotifs((prev) => [...prev.slice(-2), { id, icon: msg.icon, sub: msg.sub, entered: false }]);
-      setTimeout(() => {
-        setNotifs((prev) => prev.map((n) => (n.id === id ? { ...n, entered: true } : n)));
-      }, 30);
-    };
-    push();
-    const t = setInterval(push, 2600);
+    const onScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener("scroll", onScroll);
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    const t = setInterval(() => setNotifIdx((i) => (i + 1) % NOTIF_MESSAGES.length), 2800);
     return () => clearInterval(t);
   }, []);
 
   return (
     <div className="min-h-screen bg-white" style={{ fontFamily: "'Inter', -apple-system, sans-serif" }}>
 
-      {/* ── NAV ── */}
-      <nav style={{ position: "sticky", top: 0, zIndex: 100, background: "rgba(255,255,255,0.92)", backdropFilter: "blur(8px)", borderBottom: "1px solid #E2E8F0" }}>
-        <div style={{ maxWidth: 1280, margin: "0 auto", padding: "0 32px", display: "flex", alignItems: "center", justifyContent: "space-between", height: 64 }}>
-          <Link href="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
-            <LogoIcon size={32} className="text-[#1B2437]" />
-            <span style={{ fontWeight: 800, fontSize: 20, color: "#1B2437", letterSpacing: "-0.02em" }}>
-              teker<span style={{ color: "#DC2626" }}>takip</span>
+      {/* ═══ NAV ═══════════════════════════════════════════════════ */}
+      <nav className={`sticky top-0 z-50 transition-all duration-300 ${scrolled ? "bg-white/95 backdrop-blur-md shadow-sm border-b border-slate-100" : "bg-transparent"}`}>
+        <div className="max-w-7xl mx-auto px-6 lg:px-8 flex items-center justify-between h-16">
+          <Link href="/" className="flex items-center gap-2.5 no-underline">
+            <LogoIcon size={30} className="text-[#1B2437]" />
+            <span className="font-black text-lg text-[#1B2437] tracking-tight">
+              teker<span className="text-[#DC2626]">takip</span>
             </span>
           </Link>
 
-          {/* Desktop nav */}
-          <div className="hidden md:flex" style={{ alignItems: "center", gap: 36 }}>
-            <a href="#ozellikler" style={{ fontSize: 15, fontWeight: 500, color: "#334155", textDecoration: "none" }}>Özellikler</a>
-            <a href="#nasil-calisir" style={{ fontSize: 15, fontWeight: 500, color: "#334155", textDecoration: "none" }}>Nasıl Çalışır</a>
-            <a href="#fiyatlandirma" style={{ fontSize: 15, fontWeight: 500, color: "#334155", textDecoration: "none" }}>Fiyatlandırma</a>
-            <Link href="/login" style={{ fontSize: 15, fontWeight: 500, color: "#334155", textDecoration: "none" }}>Panel Girişi</Link>
-            <a
-              href={WA_LINK} target="_blank" rel="noopener noreferrer"
-              style={{ padding: "10px 22px", background: "#DC2626", color: "#fff", borderRadius: 8, fontSize: 14, fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap" }}
+          <div className="hidden md:flex items-center gap-8">
+            {[["#ozellikler", "Özellikler"], ["#nasil-calisir", "Nasıl Çalışır"], ["#yorumlar", "Yorumlar"], ["#fiyatlandirma", "Fiyatlandırma"]].map(([href, label]) => (
+              <a key={href} href={href} className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors no-underline">{label}</a>
+            ))}
+            <Link href="/login" className="px-5 py-2.5 bg-[#1B2437] text-white text-sm font-bold rounded-xl no-underline hover:bg-[#0B111E] transition-colors">Panel Girişi</Link>
+            <Link
+              href={KAYIT_LINK}
+              className="px-5 py-2.5 bg-[#DC2626] text-white text-sm font-bold rounded-xl no-underline hover:bg-[#B91C1C] transition-colors shadow-lg shadow-red-500/20"
             >
               Ücretsiz Deneyin
-            </a>
+            </Link>
           </div>
 
-          {/* Mobile hamburger */}
-          <button className="md:hidden" onClick={() => setMobileOpen(!mobileOpen)} style={{ padding: 6, background: "none", border: "none", cursor: "pointer", color: "#1B2437" }}>
-            {mobileOpen ? <X size={24} /> : <Menu size={24} />}
+          <button className="md:hidden p-2 text-[#1B2437]" onClick={() => setMobileOpen(!mobileOpen)}>
+            {mobileOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
         </div>
-
         {mobileOpen && (
-          <div style={{ background: "#fff", borderTop: "1px solid #E2E8F0", padding: "16px 32px", display: "flex", flexDirection: "column", gap: 18, boxShadow: "0 12px 24px rgba(27,36,55,0.1)" }}>
-            {["#ozellikler:Özellikler", "#nasil-calisir:Nasıl Çalışır", "#fiyatlandirma:Fiyatlandırma"].map((item) => {
-              const [href, label] = item.split(":");
-              return (
-                <a key={href} href={href} onClick={() => setMobileOpen(false)} style={{ fontSize: 15, fontWeight: 500, color: "#334155", textDecoration: "none" }}>{label}</a>
-              );
-            })}
-            <Link href="/login" onClick={() => setMobileOpen(false)} style={{ fontSize: 15, fontWeight: 500, color: "#334155", textDecoration: "none" }}>Panel Girişi</Link>
-            <a href={WA_LINK} target="_blank" rel="noopener noreferrer" style={{ padding: "12px", textAlign: "center", background: "#DC2626", color: "#fff", borderRadius: 8, fontSize: 14, fontWeight: 600, textDecoration: "none" }}>Ücretsiz Deneyin</a>
-          </div>
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="md:hidden bg-white border-t border-slate-100 px-6 py-4 flex flex-col gap-4 shadow-xl"
+          >
+            {[["#ozellikler", "Özellikler"], ["#nasil-calisir", "Nasıl Çalışır"], ["#yorumlar", "Yorumlar"], ["#fiyatlandirma", "Fiyatlandırma"]].map(([href, label]) => (
+              <a key={href} href={href} onClick={() => setMobileOpen(false)} className="text-sm font-medium text-slate-700 no-underline">{label}</a>
+            ))}
+            <Link href="/login" onClick={() => setMobileOpen(false)} className="py-3 bg-[#1B2437] text-white text-center text-sm font-bold rounded-xl no-underline">Panel Girişi</Link>
+            <Link href={KAYIT_LINK} onClick={() => setMobileOpen(false)} className="py-3 bg-[#DC2626] text-white text-center text-sm font-bold rounded-xl no-underline">Ücretsiz Deneyin</Link>
+          </motion.div>
         )}
       </nav>
 
-      {/* ── HERO ── */}
-      <section style={{ position: "relative", padding: "88px 32px 100px", background: "radial-gradient(circle at 88% 8%, rgba(27,36,55,0.07), transparent 45%)", overflow: "hidden" }}>
-        <div style={{ position: "absolute", inset: 0, backgroundImage: "radial-gradient(circle, #CBD5E1 1px, transparent 1px)", backgroundSize: "28px 28px", opacity: 0.35, pointerEvents: "none" }} />
-        <div style={{ maxWidth: 1280, margin: "0 auto", display: "flex", alignItems: "center", gap: 64, flexWrap: "wrap", position: "relative" }}>
+      {/* ═══ HERO ═══════════════════════════════════════════════════ */}
+      <SpotlightHero>
+        <section className="relative bg-[#0B111E] min-h-[92vh] flex items-center overflow-hidden">
+          {/* Animated grid background */}
+          <div
+            className="absolute inset-0 opacity-20"
+            style={{
+              backgroundImage: "radial-gradient(circle, #334155 1px, transparent 1px)",
+              backgroundSize: "32px 32px",
+            }}
+          />
+          {/* Red glow */}
+          <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-red-600/20 rounded-full blur-3xl" />
+          <div className="absolute bottom-1/4 left-1/3 w-64 h-64 bg-blue-600/10 rounded-full blur-3xl" />
 
-          {/* Left */}
-          <div style={{ flex: "1 1 480px", minWidth: 300 }}>
-            <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "8px 16px", background: "#F1F5F9", border: "1px solid #E2E8F0", borderRadius: 999, fontSize: 13, fontWeight: 600, color: "#1B2437", marginBottom: 28 }}>
-              <span>🚌</span><span>Türkiye&apos;nin Servis Yönetim Platformu</span>
-            </div>
-            <h1 style={{ fontSize: "clamp(40px,5vw,62px)", lineHeight: 1.06, fontWeight: 900, color: "#1B2437", letterSpacing: "-0.03em", marginBottom: 24 }}>
-              Servis Filosunu<br />
-              Tek Ekrandan<br />
-              <span style={{ color: "#DC2626" }}>Yönet.</span>
-            </h1>
-            <p style={{ fontSize: 19, lineHeight: 1.6, color: "#475569", maxWidth: 520, marginBottom: 36 }}>
-              Şöförler, veliler, güzergahlar, ödemeler ve belgeler – hepsi bir arada. Servis firmanızı bir adım öne çıkarın.
-            </p>
-            <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-              <a
-                href={WA_LINK} target="_blank" rel="noopener noreferrer"
-                style={{ padding: "16px 28px", background: "#DC2626", color: "#fff", borderRadius: 10, fontSize: 16, fontWeight: 700, textDecoration: "none", boxShadow: "0 8px 20px rgba(220,38,38,0.3)", display: "inline-flex", alignItems: "center", gap: 8 }}
+          <div className="relative max-w-7xl mx-auto px-6 lg:px-8 py-20 w-full">
+            <div className="flex flex-col lg:flex-row items-center gap-16">
+
+              {/* Left */}
+              <div className="flex-1 min-w-0 lg:max-w-[580px]">
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6 }}
+                >
+                  <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 border border-white/10 rounded-full text-xs font-semibold text-slate-300 mb-8 backdrop-blur-sm">
+                    <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                    Türkiye&apos;nin Servis Yönetim Platformu
+                  </div>
+                  <h1 className="text-5xl lg:text-[64px] font-black leading-[1.05] text-white tracking-tight mb-6">
+                    Filonuzu<br />
+                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-red-600">tek ekrandan</span><br />
+                    yönetin.
+                  </h1>
+                  <p className="text-lg text-slate-400 leading-relaxed mb-10 max-w-xl">
+                    Şöförler, veliler, güzergahlar, ödemeler ve belgeler — hepsi bir arada.
+                    Kağıt defter ve WhatsApp grubuna son.
+                  </p>
+                  <div className="flex flex-wrap gap-4">
+                    <Link
+                      href={KAYIT_LINK}
+                      className="inline-flex items-center gap-2 px-7 py-4 bg-[#DC2626] text-white text-base font-bold rounded-2xl no-underline hover:bg-[#B91C1C] transition-all shadow-2xl shadow-red-500/30 hover:shadow-red-500/50 hover:-translate-y-0.5"
+                    >
+                      Ücretsiz Deneyin <ChevronRight size={18} />
+                    </Link>
+                    <a
+                      href={WA_LINK} target="_blank" rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-7 py-4 border border-white/20 text-white text-base font-semibold rounded-2xl no-underline hover:bg-white/10 transition-all"
+                    >
+                      <MessageCircle size={18} /> WhatsApp Demo
+                    </a>
+                  </div>
+                  <p className="text-slate-500 text-sm mt-5">14 gün ücretsiz · Kredi kartı gerekmez · Kurulum desteği bizden</p>
+                </motion.div>
+              </div>
+
+              {/* Right: Dashboard mockup */}
+              <motion.div
+                initial={{ opacity: 0, x: 40 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.8, delay: 0.2 }}
+                className="flex-1 flex justify-center lg:justify-end w-full"
               >
-                Ücretsiz Deneyin <ChevronRight size={18} />
-              </a>
-              <a
-                href={WA_LINK} target="_blank" rel="noopener noreferrer"
-                style={{ padding: "16px 28px", background: "transparent", color: "#1B2437", border: "2px solid #1B2437", borderRadius: 10, fontSize: 16, fontWeight: 700, textDecoration: "none" }}
-              >
-                WhatsApp Demo
-              </a>
+                <div className="w-full max-w-[580px]" style={{ transform: "perspective(1400px) rotateY(-8deg) rotateX(3deg)" }}>
+                  <div className="rounded-2xl overflow-hidden border border-white/10 shadow-[0_60px_120px_-20px_rgba(0,0,0,0.7)]">
+                    {/* Browser bar */}
+                    <div className="bg-[#111827] px-4 py-2.5 flex items-center gap-2 border-b border-white/5">
+                      <div className="flex gap-1.5">
+                        <div className="w-3 h-3 rounded-full bg-red-500/70" />
+                        <div className="w-3 h-3 rounded-full bg-amber-500/70" />
+                        <div className="w-3 h-3 rounded-full bg-green-500/70" />
+                      </div>
+                      <div className="flex-1 mx-4 bg-white/5 rounded-lg px-3 py-1 text-xs text-slate-500">tekertakip.com/panel</div>
+                    </div>
+                    <div className="bg-[#1B2437] flex" style={{ height: 340 }}>
+                      {/* Sidebar */}
+                      <div className="w-36 bg-[#111827] py-4 px-2 flex flex-col gap-1">
+                        <div className="flex items-center gap-2 px-2 pb-3 mb-1 border-b border-white/5">
+                          <div className="w-5 h-5 rounded bg-[#DC2626] flex items-center justify-center">
+                            <div className="w-2.5 h-2.5 rounded-full border border-white/60" />
+                          </div>
+                          <span className="text-[10px] font-black text-white">tekertakip</span>
+                        </div>
+                        {[
+                          { label: "Dashboard", active: true },
+                          { label: "Araçlar", active: false },
+                          { label: "Şöförler", active: false },
+                          { label: "Güzergah", active: false },
+                          { label: "Yakıt", active: false },
+                          { label: "Raporlar", active: false },
+                        ].map((item) => (
+                          <div key={item.label} className={`px-2.5 py-1.5 rounded-lg flex items-center gap-2 ${item.active ? "bg-[#DC2626]" : ""}`}>
+                            <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${item.active ? "bg-white" : "bg-slate-600"}`} />
+                            <span className={`text-[9px] font-medium ${item.active ? "text-white" : "text-slate-500"}`}>{item.label}</span>
+                          </div>
+                        ))}
+                      </div>
+                      {/* Content */}
+                      <div className="flex-1 p-3 flex flex-col gap-2.5 overflow-hidden">
+                        <div className="text-xs font-bold text-white/70">Bugün · 12 Araç Aktif</div>
+                        <div className="grid grid-cols-3 gap-2">
+                          {[
+                            { label: "Aktif Sefer", value: "8", color: "#10B981" },
+                            { label: "Bu Ay Yakıt", value: "₺12k", color: "#F97316" },
+                            { label: "Bekleyen ₺", value: "₺45k", color: "#DC2626" },
+                          ].map((s) => (
+                            <div key={s.label} className="bg-[#222D45] rounded-xl p-2.5">
+                              <div className="text-base font-black" style={{ color: s.color }}>{s.value}</div>
+                              <div className="text-[8px] text-slate-500 mt-0.5">{s.label}</div>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="bg-[#222D45] rounded-xl p-2.5 flex-1">
+                          <div className="text-[8px] font-bold text-slate-400 mb-2">Canlı Araç Durumu</div>
+                          {[
+                            { plate: "45 J 9443", driver: "Muhammed", status: "Seferde", color: "#10B981" },
+                            { plate: "34 ABC 123", driver: "Ali K.", status: "Durakta", color: "#F59E0B" },
+                            { plate: "35 XYZ 456", driver: "Hasan D.", status: "Seferde", color: "#10B981" },
+                            { plate: "34 DEF 789", driver: "Yusuf A.", status: "Garajda", color: "#64748B" },
+                          ].map((row) => (
+                            <div key={row.plate} className="flex items-center justify-between py-1.5 border-b border-white/5 last:border-0">
+                              <span className="text-[8px] text-slate-300 font-mono font-bold">{row.plate}</span>
+                              <span className="text-[8px] text-slate-500">{row.driver}</span>
+                              <div className="flex items-center gap-1">
+                                <div className="w-1.5 h-1.5 rounded-full" style={{ background: row.color }} />
+                                <span className="text-[8px]" style={{ color: row.color }}>{row.status}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
             </div>
           </div>
+        </section>
+      </SpotlightHero>
 
-          {/* Right: Dashboard mockup */}
-          <div style={{ flex: "1 1 480px", minWidth: 340, display: "flex", justifyContent: "center" }}>
-            <div style={{ width: "100%", maxWidth: 620, transform: "perspective(1400px) rotateY(-10deg) rotateX(3deg)", boxShadow: "0 60px 100px -20px rgba(27,36,55,0.45)", borderRadius: 16, overflow: "hidden", border: "1px solid #2A3650" }}>
-              <div style={{ background: "#1B2437", display: "flex", height: 360 }}>
-                {/* Sidebar */}
-                <div style={{ width: 140, background: "#111827", padding: "16px 10px", display: "flex", flexDirection: "column", gap: 4 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 8px 12px", borderBottom: "1px solid #1F2937", marginBottom: 4 }}>
-                    <div style={{ width: 20, height: 20, borderRadius: 6, background: "#DC2626", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <div style={{ width: 10, height: 10, borderRadius: "50%", border: "1.5px solid white" }} />
-                    </div>
-                    <span style={{ fontSize: 10, fontWeight: 800, color: "#fff" }}>tekertakip</span>
+      {/* ═══ STATS BAR ══════════════════════════════════════════════ */}
+      <div className="bg-[#1B2437] border-y border-white/5">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8 py-10 grid grid-cols-2 lg:grid-cols-4 gap-8">
+          {STATS.map((s) => <StatCard key={s.label} {...s} />)}
+        </div>
+      </div>
+
+      {/* ═══ PROBLEM → ÇÖZÜM ════════════════════════════════════════ */}
+      <section className="py-24 px-6 lg:px-8 max-w-7xl mx-auto">
+        <FadeIn className="text-center mb-16">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-red-50 border border-red-100 rounded-full text-xs font-semibold text-red-600 mb-5">
+            Tanıdık geliyor mu?
+          </div>
+          <h2 className="text-4xl lg:text-5xl font-black text-[#1B2437] tracking-tight mb-4">
+            Hâlâ böyle mi yönetiyorsunuz?
+          </h2>
+          <p className="text-slate-500 text-lg max-w-2xl mx-auto">Çoğu servis firması hâlâ bu yöntemlerle çalışıyor. Bu maliyetli ve yorucu.</p>
+        </FadeIn>
+
+        <div className="grid lg:grid-cols-2 gap-6">
+          {/* BEFORE */}
+          <FadeIn delay={0.1}>
+            <div className="bg-red-50 border border-red-100 rounded-3xl p-8">
+              <div className="text-red-600 font-bold text-sm uppercase tracking-widest mb-6">Şu an nasıl?</div>
+              <div className="space-y-4">
+                {[
+                  "WhatsApp'tan şöförleri arayıp konum soruyorsunuz",
+                  "Excel'de el ile sefer kaydı tutuyorsunuz",
+                  "Muayene bitişini son an fark ediyorsunuz",
+                  "Her ay fatura kesmek saatler sürüyor",
+                  "Velilerden sürekli 'Servis nerede?' araması geliyor",
+                ].map((text) => (
+                  <div key={text} className="flex items-start gap-3">
+                    <div className="w-5 h-5 rounded-full bg-red-200 text-red-600 flex items-center justify-center flex-shrink-0 text-xs font-black mt-0.5">✕</div>
+                    <span className="text-slate-700 text-sm leading-relaxed">{text}</span>
                   </div>
+                ))}
+              </div>
+            </div>
+          </FadeIn>
+
+          {/* AFTER */}
+          <FadeIn delay={0.2}>
+            <div className="bg-green-50 border border-green-100 rounded-3xl p-8">
+              <div className="text-green-600 font-bold text-sm uppercase tracking-widest mb-6">TekerTakip ile</div>
+              <div className="space-y-4">
+                {[
+                  "Araçların konumunu haritada anlık görürsünüz",
+                  "Seferler otomatik kayıt altına alınır",
+                  "Belge bitiş tarihleri 30 gün önceden uyarır",
+                  "Fatura 2 dakikada hazır, PDF olarak gönderilir",
+                  "Veliler uygulamadan çocuklarını takip eder",
+                ].map((text) => (
+                  <div key={text} className="flex items-start gap-3">
+                    <div className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0 text-white text-xs font-black mt-0.5">✓</div>
+                    <span className="text-slate-700 text-sm leading-relaxed">{text}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </FadeIn>
+        </div>
+      </section>
+
+      {/* ═══ FEATURES — BENTO ═══════════════════════════════════════ */}
+      <section id="ozellikler" className="py-24 px-6 lg:px-8 bg-slate-50">
+        <div className="max-w-7xl mx-auto">
+          <FadeIn className="text-center mb-16">
+            <h2 className="text-4xl lg:text-5xl font-black text-[#1B2437] tracking-tight mb-4">Her Şey Düşünüldü</h2>
+            <p className="text-slate-500 text-lg">Servis yönetiminde ihtiyacınız olan tüm araçlar, tek platformda.</p>
+          </FadeIn>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* Büyük kart — GPS */}
+            <FadeIn delay={0} className="lg:col-span-2 lg:row-span-1">
+              <div className="bg-white border border-slate-200 rounded-3xl p-8 h-full hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group">
+                <div className="flex items-start gap-5">
+                  <div className="w-14 h-14 rounded-2xl bg-red-50 flex items-center justify-center flex-shrink-0">
+                    <MapPin className="w-7 h-7 text-red-500" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-[#1B2437] mb-2">Canlı GPS Takibi</h3>
+                    <p className="text-slate-500 leading-relaxed">Araçlarınızın konumunu Türkiye haritasında anlık izleyin. 30 saniyede bir güncelleme. Hangi araç nerede, ne hızda, kaç dakikada varır — hepsi tek ekranda.</p>
+                  </div>
+                </div>
+                <div className="mt-6 bg-[#1B2437] rounded-2xl h-32 flex items-center justify-center overflow-hidden relative">
+                  <div className="absolute inset-0 opacity-30" style={{ backgroundImage: "radial-gradient(circle, #334155 1px, transparent 1px)", backgroundSize: "20px 20px" }} />
                   {[
-                    { icon: "⬛", label: "Dashboard", active: true },
-                    { icon: "🚌", label: "Araçlar", active: false },
-                    { icon: "👤", label: "Şöförler", active: false },
-                    { icon: "🗺️", label: "Güzergah", active: false },
-                    { icon: "⛽", label: "Yakıt", active: false },
-                    { icon: "💰", label: "Finans", active: false },
-                  ].map((item) => (
-                    <div key={item.label} style={{ padding: "6px 8px", borderRadius: 7, background: item.active ? "#DC2626" : "transparent", display: "flex", alignItems: "center", gap: 6 }}>
-                      <span style={{ fontSize: 9 }}>{item.icon}</span>
-                      <span style={{ fontSize: 9, color: item.active ? "#fff" : "#64748B", fontWeight: item.active ? 700 : 400 }}>{item.label}</span>
+                    { top: "30%", left: "25%", color: "#10B981", label: "45 J 9443" },
+                    { top: "55%", left: "60%", color: "#F59E0B", label: "34 ABC" },
+                    { top: "20%", left: "70%", color: "#10B981", label: "35 XYZ" },
+                  ].map((pin) => (
+                    <div key={pin.label} className="absolute flex flex-col items-center" style={{ top: pin.top, left: pin.left }}>
+                      <div className="w-8 h-8 rounded-full border-2 border-white flex items-center justify-center text-xs font-bold" style={{ background: pin.color }}>
+                        <Truck className="w-3.5 h-3.5 text-white" />
+                      </div>
+                      <div className="mt-1 bg-white/90 rounded px-1 text-[8px] font-bold text-slate-700 whitespace-nowrap">{pin.label}</div>
                     </div>
                   ))}
                 </div>
-                {/* Main content */}
-                <div style={{ flex: 1, padding: "14px 12px", display: "flex", flexDirection: "column", gap: 10 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: "#fff", marginBottom: 2 }}>Dashboard</div>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8 }}>
-                    {[
-                      { label: "Toplam Araç", value: "12", color: "#DC2626" },
-                      { label: "Aktif Sefer", value: "8", color: "#10B981" },
-                      { label: "Öğrenci", value: "247", color: "#3B82F6" },
-                    ].map((s) => (
-                      <div key={s.label} style={{ background: "#222D45", borderRadius: 10, padding: "10px 8px" }}>
-                        <div style={{ fontSize: 20, fontWeight: 900, color: s.color }}>{s.value}</div>
-                        <div style={{ fontSize: 9, color: "#64748B", marginTop: 2 }}>{s.label}</div>
-                      </div>
-                    ))}
+              </div>
+            </FadeIn>
+
+            {/* Küçük kartlar */}
+            {FEATURES.slice(1).map((f, i) => (
+              <FadeIn key={f.title} delay={0.05 * (i + 1)}>
+                <div className="bg-white border border-slate-200 rounded-3xl p-6 h-full hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+                  <div className={`w-11 h-11 rounded-xl ${f.bg} flex items-center justify-center mb-4`}>
+                    <f.icon className={`w-5 h-5 ${f.color}`} />
                   </div>
-                  <div style={{ background: "#222D45", borderRadius: 10, padding: 10, flex: 1 }}>
-                    <div style={{ fontSize: 9, fontWeight: 700, color: "#94A3B8", marginBottom: 8 }}>Aktif Seferler</div>
-                    {[
-                      { plate: "34 ABC 123", driver: "Mehmet Y.", status: "Seferde", dot: "#10B981" },
-                      { plate: "34 XYZ 456", driver: "Ali K.", status: "Durakta", dot: "#F59E0B" },
-                      { plate: "34 DEF 789", driver: "Hasan D.", status: "Seferde", dot: "#10B981" },
-                      { plate: "34 GHI 001", driver: "Yusuf A.", status: "Garajda", dot: "#64748B" },
-                    ].map((row) => (
-                      <div key={row.plate} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "5px 0", borderBottom: "1px solid #2A3650" }}>
-                        <div style={{ fontSize: 9, color: "#E2E8F0", fontWeight: 600 }}>{row.plate}</div>
-                        <div style={{ fontSize: 9, color: "#64748B" }}>{row.driver}</div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                          <div style={{ width: 5, height: 5, borderRadius: "50%", background: row.dot }} />
-                          <span style={{ fontSize: 8, color: row.dot }}>{row.status}</span>
+                  <h3 className="text-base font-bold text-[#1B2437] mb-2">{f.title}</h3>
+                  <p className="text-slate-500 text-sm leading-relaxed">{f.desc}</p>
+                </div>
+              </FadeIn>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ═══ MOBILE APP + NOTIFICATIONS ════════════════════════════ */}
+      <section className="py-24 px-6 lg:px-8 max-w-7xl mx-auto">
+        <div className="grid lg:grid-cols-2 gap-16 items-center">
+          {/* Phone mockup — yoklama ekranı */}
+          <FadeIn delay={0.1} className="flex justify-center">
+            <div>
+              <div className="w-[260px] bg-[#1B2437] rounded-[40px] p-3.5 shadow-[0_60px_100px_-20px_rgba(27,36,55,0.5)]">
+                <div className="bg-[#0F1626] rounded-[30px] overflow-hidden h-[500px] flex flex-col">
+                  <div className="h-5 flex items-center justify-center">
+                    <div className="w-16 h-1.5 rounded-full bg-[#334155]" />
+                  </div>
+                  <div className="px-4 py-3 border-b border-white/5">
+                    <div className="text-xs text-slate-400 font-semibold">Bugünkü Sefer</div>
+                    <div className="text-sm font-bold text-white mt-0.5">45 J 9443 — Muhammed</div>
+                  </div>
+                  <div className="flex-1 px-4 py-3 flex flex-col gap-2 overflow-hidden">
+                    <div className="text-[10px] text-slate-500 font-semibold uppercase tracking-wide">Yoklama Listesi</div>
+                    {MOCK_STUDENTS.map((st) => (
+                      <div key={st.name} className="flex items-center gap-3 p-2.5 bg-[#1B2437] rounded-xl">
+                        <div className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-black text-white flex-shrink-0" style={{ background: st.color }}>
+                          {st.initials}
+                        </div>
+                        <div className="flex-1 text-xs text-white font-medium">{st.name}</div>
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center ${st.boarded ? "bg-green-500" : "bg-slate-700"}`}>
+                          {st.boarded ? <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} /> : <span className="text-slate-400 text-xs">○</span>}
                         </div>
                       </div>
                     ))}
+                    <button className="mt-auto p-3.5 bg-[#DC2626] rounded-xl text-xs font-bold text-white text-center">
+                      Sefer Başlat
+                    </button>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      </section>
+          </FadeIn>
 
-      {/* ── FEATURES ── */}
-      <section id="ozellikler" data-reveal="features" style={{ ...rx(!!revealed.features), padding: "110px 32px", maxWidth: 1280, margin: "0 auto" }}>
-        <div style={{ textAlign: "center", marginBottom: 64 }}>
-          <h2 style={{ fontSize: 42, fontWeight: 800, color: "#1B2437", letterSpacing: "-0.02em", marginBottom: 16 }}>Her Şey Düşünüldü</h2>
-          <p style={{ fontSize: 18, color: "#64748B", maxWidth: 560, margin: "0 auto" }}>Servis yönetiminde ihtiyacınız olan tüm araçlar, tek platformda.</p>
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 24 }}>
-          {FEATURES.map((f) => (
-            <div key={f.title} className="feature-card" style={{ padding: 32, background: "#fff", border: "1px solid #E2E8F0", borderRadius: 14, transition: "transform .25s ease, box-shadow .25s ease" }}>
-              <div style={{ width: 52, height: 52, borderRadius: 12, background: f.bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, marginBottom: 20 }}>{f.icon}</div>
-              <div style={{ fontSize: 19, fontWeight: 700, color: "#1B2437", marginBottom: 10 }}>{f.title}</div>
-              <div style={{ fontSize: 15, lineHeight: 1.6, color: "#64748B" }}>{f.desc}</div>
+          <FadeIn delay={0.2}>
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded-full text-xs font-semibold text-slate-500 mb-5">
+              <Smartphone className="w-3.5 h-3.5" /> iOS & Android
             </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── PARENT NOTIFICATIONS ── */}
-      <section data-reveal="notif" style={{ ...rx(!!revealed.notif), padding: "110px 32px", maxWidth: 1280, margin: "0 auto", display: "flex", alignItems: "center", gap: 80, flexWrap: "wrap-reverse" }}>
-        <div style={{ flex: "1 1 420px", minWidth: 300 }}>
-          <h2 style={{ fontSize: 38, fontWeight: 800, color: "#1B2437", letterSpacing: "-0.02em", marginBottom: 28 }}>Veliler Anında Haberdar Olur</h2>
-          <p style={{ fontSize: 17, color: "#64748B", lineHeight: 1.6, marginBottom: 32, maxWidth: 460 }}>
-            Araç durağa yaklaştığı andan öğrenci evine güvenle indiği ana kadar, veli hiçbir şeyi kaçırmaz.
-          </p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            {["Araç durağa yaklaşınca bildirim", "Öğrenci bindiğinde anlık onay", "İndiğinde tekrar bildirim", "Gecikme durumunda uyarı"].map((text) => (
-              <div key={text} style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <div style={{ width: 22, height: 22, borderRadius: 6, background: "#E7EAF3", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                  <Check size={13} color="#1B2437" strokeWidth={3} />
-                </div>
-                <span style={{ fontSize: 16, color: "#334155" }}>{text}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-        {/* Phone mockup */}
-        <div style={{ flex: "1 1 320px", display: "flex", justifyContent: "center", minWidth: 280 }}>
-          <div style={{ width: 260, background: "#1B2437", borderRadius: 36, padding: 14, boxShadow: "0 40px 80px -20px rgba(27,36,55,0.4)" }}>
-            <div style={{ background: "linear-gradient(160deg,#0F1626,#1B2437)", borderRadius: 24, overflow: "hidden", height: 480, display: "flex", flexDirection: "column" }}>
-              <div style={{ height: 20, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <div style={{ width: 60, height: 5, borderRadius: 3, background: "#334155" }} />
-              </div>
-              <div style={{ textAlign: "center", marginTop: 18 }}>
-                <div style={{ fontSize: 32, fontWeight: 700, color: "#fff" }}>09:14</div>
-                <div style={{ fontSize: 12, color: "#94A3B8", marginTop: 4 }}>Bugün</div>
-              </div>
-              <div style={{ flex: 1, padding: "24px 14px", display: "flex", flexDirection: "column", gap: 10 }}>
-                {[...notifs].reverse().map((n, idx) => (
-                  <div
-                    key={n.id}
-                    style={{
-                      display: "flex", alignItems: "flex-start", gap: 10, padding: 12,
-                      background: "rgba(255,255,255,0.08)", borderRadius: 14, border: "1px solid rgba(255,255,255,0.08)",
-                      opacity: n.entered ? ([1, 0.65, 0.4][idx] ?? 0.3) : 0,
-                      transform: n.entered ? "translateY(0) scale(1)" : "translateY(-14px) scale(0.96)",
-                      transition: "opacity .5s cubic-bezier(.16,1,.3,1), transform .5s cubic-bezier(.16,1,.3,1)",
-                    }}
-                  >
-                    <div style={{ width: 32, height: 32, borderRadius: 9, background: "#DC2626", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, flexShrink: 0 }}>
-                      {n.icon}
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: "#fff", marginBottom: 2 }}>tekertakip</div>
-                      <div style={{ fontSize: 12, color: "#CBD5E1", lineHeight: 1.4 }}>{n.sub}</div>
-                    </div>
+            <h2 className="text-4xl font-black text-[#1B2437] tracking-tight mb-4">Şöförler için<br />mobil uygulama</h2>
+            <p className="text-slate-500 text-lg leading-relaxed mb-8">
+              Şöförleriniz telefona uygulamayı yükler, siz kontrol edersiniz. Sefer başlatma, yoklama, yakıt girişi ve konum paylaşımı hepsi mobilde.
+            </p>
+            <div className="space-y-3 mb-8">
+              {[
+                "Sefer başlatma ve durak yoklama",
+                "Canlı GPS konum paylaşımı",
+                "Yakıt fişi fotoğrafla giriş",
+                "Arıza bildirimi (fotoğraflı)",
+                "Veli bildirimlerini otomatik tetikler",
+              ].map((text) => (
+                <div key={text} className="flex items-center gap-3">
+                  <div className="w-5 h-5 rounded-lg bg-red-100 flex items-center justify-center flex-shrink-0">
+                    <Check className="w-3 h-3 text-red-600" strokeWidth={3} />
                   </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── HOW IT WORKS ── */}
-      <section id="nasil-calisir" data-reveal="how" style={{ ...rx(!!revealed.how), background: "#1B2437", padding: "110px 32px" }}>
-        <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-          <h2 style={{ fontSize: 42, fontWeight: 800, color: "#fff", textAlign: "center", letterSpacing: "-0.02em", marginBottom: 72 }}>3 Adımda Başlayın</h2>
-          <div style={{ display: "flex", gap: 0, position: "relative", flexWrap: "wrap", justifyContent: "center" }}>
-            {[
-              { icon: "🏢", title: "Firmanızı Kaydedin", desc: "5 dakikada hesap oluşturun", showLine: false },
-              { icon: "🚌", title: "Araç ve Şöförlerinizi Ekleyin", desc: "Güzergahları, durakları ve öğrencileri tanımlayın", showLine: true },
-              { icon: "📱", title: "Yönetmeye Başlayın", desc: "Şöförler uygulamayı indirir, siz kontrol edersiniz", showLine: true },
-            ].map((step) => (
-              <div key={step.title} style={{ flex: "1 1 260px", minWidth: 220, textAlign: "center", padding: "0 20px", position: "relative" }}>
-                {step.showLine && (
-                  <div style={{ position: "absolute", top: 36, left: "-50%", width: "100%", height: 2, background: "#334155" }} />
-                )}
-                <div style={{ width: 72, height: 72, borderRadius: "50%", background: "#222D45", border: "2px solid #DC2626", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, margin: "0 auto 24px", position: "relative", zIndex: 2 }}>
-                  {step.icon}
+                  <span className="text-slate-700 text-sm">{text}</span>
                 </div>
-                <div style={{ fontSize: 20, fontWeight: 700, color: "#fff", marginBottom: 10 }}>{step.title}</div>
-                <div style={{ fontSize: 15, color: "#94A3B8", lineHeight: 1.6 }}>{step.desc}</div>
+              ))}
+            </div>
+            <div className="flex gap-3">
+              <div className="px-5 py-3 bg-[#1B2437] rounded-xl text-white text-sm font-semibold flex items-center gap-2 cursor-pointer">
+                <span>App Store</span>
               </div>
-            ))}
-          </div>
+              <div className="px-5 py-3 bg-[#1B2437] rounded-xl text-white text-sm font-semibold flex items-center gap-2 cursor-pointer">
+                <span>Google Play</span>
+              </div>
+            </div>
+          </FadeIn>
         </div>
       </section>
 
-      {/* ── MOBILE APP ── */}
-      <section data-reveal="mobileapp" style={{ ...rx(!!revealed.mobileapp), padding: "110px 32px", maxWidth: 1280, margin: "0 auto", display: "flex", alignItems: "center", gap: 80, flexWrap: "wrap" }}>
-        {/* Phone mockup */}
-        <div style={{ flex: "1 1 320px", display: "flex", justifyContent: "center", minWidth: 280 }}>
-          <div style={{ width: 260, background: "#1B2437", borderRadius: 36, padding: 14, boxShadow: "0 40px 80px -20px rgba(27,36,55,0.4)" }}>
-            <div style={{ background: "#0F1626", borderRadius: 24, overflow: "hidden", height: 480, display: "flex", flexDirection: "column" }}>
-              <div style={{ height: 20, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <div style={{ width: 60, height: 5, borderRadius: 3, background: "#334155" }} />
-              </div>
-              <div style={{ padding: 16, flex: 1, display: "flex", flexDirection: "column", gap: 10 }}>
-                <div style={{ fontSize: 13, color: "#94A3B8", fontWeight: 600, marginBottom: 4 }}>Bugünkü Sefer</div>
-                {MOCK_STUDENTS.map((st) => (
-                  <div key={st.name} style={{ display: "flex", alignItems: "center", gap: 10, padding: 10, background: "#1B2437", borderRadius: 10 }}>
-                    <div style={{ width: 30, height: 30, borderRadius: "50%", background: st.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: "#fff", flexShrink: 0 }}>
-                      {st.initials}
-                    </div>
-                    <div style={{ fontSize: 12, color: "#E2E8F0", fontWeight: 500, flex: 1 }}>{st.name}</div>
-                    <div style={{ fontSize: 14 }}>{st.boarded ? "✓" : "○"}</div>
+      {/* ═══ VELİ BİLDİRİMLERİ ══════════════════════════════════════ */}
+      <section className="py-24 px-6 lg:px-8 bg-slate-50">
+        <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-16 items-center">
+          <FadeIn delay={0.1}>
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 rounded-full text-xs font-semibold text-blue-600 mb-5">
+              <Bell className="w-3.5 h-3.5" /> Veli Takip Sistemi
+            </div>
+            <h2 className="text-4xl font-black text-[#1B2437] tracking-tight mb-4">Veliler anında haberdar olur</h2>
+            <p className="text-slate-500 text-lg leading-relaxed mb-8">
+              Araç durağa yaklaştığı andan çocuk eve güvenle indiği ana kadar, veli hiçbir şeyi kaçırmaz. Sizi aramak zorunda kalmaz.
+            </p>
+            <div className="space-y-3">
+              {[
+                "Araç durağa 3 dakika yaklaştığında bildirim",
+                "Çocuk servise bindiğinde anlık onay",
+                "Okul çıkışında servise biniş bildirimi",
+                "Evine güvenle indiğinde tekrar bildirim",
+                "Gecikme durumunda otomatik uyarı",
+              ].map((text) => (
+                <div key={text} className="flex items-center gap-3">
+                  <div className="w-5 h-5 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
+                    <Check className="w-3 h-3 text-blue-600" strokeWidth={3} />
                   </div>
-                ))}
-                <div style={{ marginTop: "auto", padding: 14, background: "#DC2626", borderRadius: 10, textAlign: "center", fontSize: 14, fontWeight: 700, color: "#fff" }}>
-                  Sefer Başlat
+                  <span className="text-slate-700 text-sm">{text}</span>
                 </div>
-              </div>
+              ))}
             </div>
-          </div>
-        </div>
-        {/* Text */}
-        <div style={{ flex: "1 1 420px", minWidth: 300 }}>
-          <h2 style={{ fontSize: 38, fontWeight: 800, color: "#1B2437", letterSpacing: "-0.02em", marginBottom: 28 }}>Şöförler İçin Mobil Uygulama</h2>
-          <div style={{ display: "flex", flexDirection: "column", gap: 16, marginBottom: 36 }}>
-            {APP_BULLETS.map((text) => (
-              <div key={text} style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <div style={{ width: 22, height: 22, borderRadius: 6, background: "#FEE2E2", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                  <Check size={13} color="#DC2626" strokeWidth={3} />
+          </FadeIn>
+
+          {/* Telefon — bildirimler */}
+          <FadeIn delay={0.2} className="flex justify-center">
+            <div className="w-[260px] bg-[#1B2437] rounded-[40px] p-3.5 shadow-[0_60px_100px_-20px_rgba(27,36,55,0.5)]">
+              <div className="bg-[#0F1626] rounded-[30px] overflow-hidden h-[500px] flex flex-col">
+                <div className="h-5 flex items-center justify-center">
+                  <div className="w-16 h-1.5 rounded-full bg-[#334155]" />
                 </div>
-                <span style={{ fontSize: 16, color: "#334155" }}>{text}</span>
-              </div>
-            ))}
-          </div>
-          <div style={{ fontSize: 14, fontWeight: 600, color: "#64748B", marginBottom: 14 }}>App Store ve Google Play&apos;de mevcut</div>
-          <div style={{ display: "flex", gap: 12 }}>
-            <div style={{ padding: "12px 20px", background: "#1B2437", borderRadius: 10, color: "#fff", fontSize: 13, fontWeight: 600 }}>App Store</div>
-            <div style={{ padding: "12px 20px", background: "#1B2437", borderRadius: 10, color: "#fff", fontSize: 13, fontWeight: 600 }}>Google Play</div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── PRICING ── */}
-      <section id="fiyatlandirma" data-reveal="pricing" style={{ ...rx(!!revealed.pricing), background: "#F8FAFC", padding: "110px 32px" }}>
-        <div style={{ maxWidth: 1000, margin: "0 auto", textAlign: "center" }}>
-          <h2 style={{ fontSize: 42, fontWeight: 800, color: "#1B2437", letterSpacing: "-0.02em", marginBottom: 16 }}>Şeffaf Fiyatlandırma</h2>
-          <p style={{ fontSize: 18, color: "#64748B", marginBottom: 56 }}>Gizli maliyet yok. İstediğiniz zaman iptal.</p>
-          <div style={{ display: "flex", gap: 28, flexWrap: "wrap", justifyContent: "center", alignItems: "stretch" }}>
-            {/* Monthly */}
-            <div style={{ flex: "1 1 320px", maxWidth: 380, background: "#fff", border: "1px solid #E2E8F0", borderRadius: 18, padding: 40, textAlign: "left" }}>
-              <div style={{ fontSize: 15, fontWeight: 700, color: "#64748B", marginBottom: 16 }}>Aylık Plan</div>
-              <div style={{ fontSize: 40, fontWeight: 900, color: "#1B2437", marginBottom: 24 }}>
-                ₺6.000<span style={{ fontSize: 16, fontWeight: 500, color: "#64748B" }}> / ay</span>
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 14, marginBottom: 32 }}>
-                {PLAN_FEATURES.map((f) => (
-                  <div key={f} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 15, color: "#334155" }}>
-                    <Check size={16} color="#10B981" strokeWidth={2.5} /><span>{f}</span>
-                  </div>
-                ))}
-              </div>
-              <a href={WA_LINK} target="_blank" rel="noopener noreferrer" style={{ display: "block", padding: 15, textAlign: "center", border: "2px solid #1B2437", color: "#1B2437", borderRadius: 10, fontSize: 15, fontWeight: 700, textDecoration: "none" }}>
-                Başlayın
-              </a>
-            </div>
-            {/* Annual */}
-            <div style={{ flex: "1 1 320px", maxWidth: 380, background: "#1B2437", border: "2px solid #DC2626", borderRadius: 18, padding: 40, textAlign: "left", position: "relative" }}>
-              <div style={{ position: "absolute", top: -14, right: 32, background: "#DC2626", color: "#fff", fontSize: 12, fontWeight: 800, padding: "6px 14px", borderRadius: 999, letterSpacing: "0.03em" }}>POPÜLER</div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: "#94A3B8", marginBottom: 16 }}>Yıllık Plan</div>
-              <div style={{ fontSize: 40, fontWeight: 900, color: "#fff", marginBottom: 8 }}>
-                ₺60.000<span style={{ fontSize: 16, fontWeight: 500, color: "#94A3B8" }}> / yıl</span>
-              </div>
-              <div style={{ display: "inline-block", background: "#222D45", color: "#4ADE80", fontSize: 12, fontWeight: 700, padding: "5px 12px", borderRadius: 999, marginBottom: 24 }}>2 Ay Bedava</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 14, marginBottom: 32 }}>
-                {PLAN_FEATURES.map((f) => (
-                  <div key={f} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 15, color: "#E2E8F0" }}>
-                    <Check size={16} color="#4ADE80" strokeWidth={2.5} /><span>{f}</span>
-                  </div>
-                ))}
-              </div>
-              <a href={WA_LINK} target="_blank" rel="noopener noreferrer" style={{ display: "block", padding: 15, textAlign: "center", background: "#DC2626", color: "#fff", borderRadius: 10, fontSize: 15, fontWeight: 700, textDecoration: "none" }}>
-                Başlayın
-              </a>
-            </div>
-          </div>
-          <div style={{ marginTop: 36, fontSize: 14, color: "#64748B" }}>14 gün ücretsiz deneme – kredi kartı gerekmez</div>
-        </div>
-      </section>
-
-      {/* ── CTA ── */}
-      <section data-reveal="cta" style={{ ...rx(!!revealed.cta), background: "linear-gradient(135deg, #1B2437, #0B111E)", padding: "110px 32px", textAlign: "center" }}>
-        <h2 style={{ fontSize: 44, fontWeight: 800, color: "#fff", letterSpacing: "-0.02em", marginBottom: 20 }}>Filonuzu Bugün Dijitalleştirin</h2>
-        <p style={{ fontSize: 18, color: "#94A3B8", marginBottom: 36 }}>14 gün ücretsiz deneyin. Kurulum desteği bizden.</p>
-        <a
-          href={WA_LINK} target="_blank" rel="noopener noreferrer"
-          style={{ display: "inline-block", padding: "18px 36px", background: "#DC2626", color: "#fff", borderRadius: 10, fontSize: 17, fontWeight: 700, textDecoration: "none", boxShadow: "0 12px 30px rgba(220,38,38,0.35)" }}
-        >
-          Hemen Başlayın →
-        </a>
-        <div style={{ marginTop: 28, fontSize: 14, color: "#64748B" }}>tekertakip.com · destek@tekertakip.com</div>
-      </section>
-
-      {/* ── FOOTER ── */}
-      <footer style={{ background: "#1B2437", padding: "64px 32px 32px" }}>
-        <div style={{ maxWidth: 1280, margin: "0 auto" }}>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 48, justifyContent: "space-between", paddingBottom: 48, borderBottom: "1px solid #2A3650" }}>
-            <div style={{ flex: "1 1 240px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
-                <LogoIcon size={28} className="text-white" />
-                <span style={{ fontSize: 18, fontWeight: 800, color: "#fff" }}>teker<span style={{ color: "#DC2626" }}>takip</span></span>
-              </div>
-              <p style={{ fontSize: 14, color: "#94A3B8", maxWidth: 260, lineHeight: 1.6 }}>Türkiye&apos;nin servis filosu yönetim platformu.</p>
-            </div>
-            {FOOTER_COLS.map((col) => (
-              <div key={col.title} style={{ flex: "1 1 160px" }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: "#fff", marginBottom: 18 }}>{col.title}</div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                  {col.links.map((link) => (
-                    <span key={link} style={{ fontSize: 14, color: "#94A3B8", cursor: "pointer" }}>{link}</span>
+                <div className="text-center mt-5 mb-2">
+                  <div className="text-3xl font-bold text-white">09:14</div>
+                  <div className="text-xs text-slate-500 mt-1">Salı, 28 Temmuz</div>
+                </div>
+                <div className="flex-1 px-4 py-4 flex flex-col gap-3">
+                  {NOTIF_MESSAGES.map((n, i) => (
+                    <motion.div
+                      key={n.text}
+                      initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                      animate={{
+                        opacity: i <= notifIdx ? [0, 0.4, 1][Math.min(notifIdx - i, 2)] ?? 0.3 : 0,
+                        y: 0, scale: 1,
+                      }}
+                      transition={{ duration: 0.5, delay: i * 0.1, ease: [0.16, 1, 0.3, 1] }}
+                      className="flex items-start gap-3 p-3 bg-white/8 rounded-2xl border border-white/8 backdrop-blur-sm"
+                      style={{ background: "rgba(255,255,255,0.06)", borderColor: "rgba(255,255,255,0.06)" }}
+                    >
+                      <div className="w-9 h-9 rounded-xl bg-[#DC2626] flex items-center justify-center text-lg flex-shrink-0">
+                        {n.icon}
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-white mb-0.5">tekertakip</div>
+                        <div className="text-xs text-slate-300 leading-snug">{n.text}</div>
+                      </div>
+                    </motion.div>
                   ))}
                 </div>
               </div>
+            </div>
+          </FadeIn>
+        </div>
+      </section>
+
+      {/* ═══ HOW IT WORKS ═══════════════════════════════════════════ */}
+      <section id="nasil-calisir" className="bg-[#1B2437] py-24 px-6 lg:px-8">
+        <div className="max-w-5xl mx-auto">
+          <FadeIn className="text-center mb-16">
+            <h2 className="text-4xl lg:text-5xl font-black text-white tracking-tight mb-4">5 dakikada başlayın</h2>
+            <p className="text-slate-400 text-lg">Kurulum yok, teknik bilgi gerekmez.</p>
+          </FadeIn>
+          <div className="grid md:grid-cols-3 gap-8 relative">
+            {/* Connecting line */}
+            <div className="hidden md:block absolute top-10 left-1/3 right-1/3 h-px bg-gradient-to-r from-[#DC2626]/0 via-[#DC2626]/50 to-[#DC2626]/0" />
+            {[
+              { num: "01", icon: "🏢", title: "Firmanızı kaydedin", desc: "WhatsApp'tan iletişime geçin. Hesabınız 5 dakikada hazır." },
+              { num: "02", icon: "🚌", title: "Araçlarınızı ekleyin", desc: "Araç, şöför ve güzergahları sisteme girin. Şöförler uygulamayı indirir." },
+              { num: "03", icon: "📱", title: "Yönetmeye başlayın", desc: "Filonuzu panelden takip edin. Veliler uygulamadan çocuklarını izlesin." },
+            ].map((step, i) => (
+              <FadeIn key={step.num} delay={i * 0.15} className="text-center">
+                <div className="relative inline-block mb-6">
+                  <div className="w-20 h-20 rounded-full bg-[#222D45] border-2 border-[#DC2626]/50 flex items-center justify-center text-3xl">
+                    {step.icon}
+                  </div>
+                  <div className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-[#DC2626] flex items-center justify-center text-white text-xs font-black">
+                    {i + 1}
+                  </div>
+                </div>
+                <h3 className="text-lg font-bold text-white mb-3">{step.title}</h3>
+                <p className="text-slate-400 text-sm leading-relaxed">{step.desc}</p>
+              </FadeIn>
             ))}
           </div>
-          <div style={{ paddingTop: 24, fontSize: 13, color: "#64748B" }}>© 2026 tekertakip. Tüm hakları saklıdır.</div>
         </div>
+      </section>
+
+      {/* ═══ TESTIMONIALS ═══════════════════════════════════════════ */}
+      <section id="yorumlar" className="py-24 px-6 lg:px-8 bg-white">
+        <div className="max-w-7xl mx-auto">
+          <FadeIn className="text-center mb-16">
+            <h2 className="text-4xl lg:text-5xl font-black text-[#1B2437] tracking-tight mb-4">Müşterilerimiz anlatıyor</h2>
+            <p className="text-slate-500 text-lg">Gerçek firmalar, gerçek sonuçlar.</p>
+          </FadeIn>
+          <div className="grid md:grid-cols-3 gap-6">
+            {TESTIMONIALS.map((t, i) => (
+              <FadeIn key={t.name} delay={i * 0.1}>
+                <div className="bg-slate-50 border border-slate-200 rounded-3xl p-7 h-full hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
+                  <div className="flex gap-0.5 mb-5">
+                    {Array.from({ length: t.rating }).map((_, j) => (
+                      <Star key={j} className="w-4 h-4 text-amber-400 fill-amber-400" />
+                    ))}
+                  </div>
+                  <p className="text-slate-700 leading-relaxed text-sm mb-6">&ldquo;{t.text}&rdquo;</p>
+                  <div>
+                    <div className="font-bold text-slate-800 text-sm">{t.name}</div>
+                    <div className="text-slate-400 text-xs mt-0.5">{t.role}</div>
+                  </div>
+                </div>
+              </FadeIn>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ═══ PRICING ════════════════════════════════════════════════ */}
+      <section id="fiyatlandirma" className="py-24 px-6 lg:px-8 bg-slate-50">
+        <div className="max-w-4xl mx-auto">
+          <FadeIn className="text-center mb-16">
+            <h2 className="text-4xl lg:text-5xl font-black text-[#1B2437] tracking-tight mb-4">Şeffaf fiyatlandırma</h2>
+            <p className="text-slate-500 text-lg">Gizli maliyet yok. İstediğiniz zaman iptal.</p>
+          </FadeIn>
+          <div className="grid md:grid-cols-2 gap-6 items-stretch">
+            {/* Aylık */}
+            <FadeIn delay={0.1}>
+              <div className="bg-white border border-slate-200 rounded-3xl p-8 h-full flex flex-col">
+                <div className="text-slate-500 text-sm font-semibold mb-4">Aylık Plan</div>
+                <div className="text-5xl font-black text-[#1B2437] mb-1">₺6.000</div>
+                <div className="text-slate-400 text-sm mb-8">aylık</div>
+                <div className="space-y-3 flex-1 mb-8">
+                  {PLAN_FEATURES.map((f) => (
+                    <div key={f} className="flex items-center gap-3 text-sm text-slate-600">
+                      <Check className="w-4 h-4 text-green-500 flex-shrink-0" strokeWidth={2.5} />
+                      {f}
+                    </div>
+                  ))}
+                </div>
+                <Link href={KAYIT_LINK}
+                  className="block py-3.5 text-center border-2 border-[#1B2437] text-[#1B2437] font-bold rounded-2xl no-underline hover:bg-[#1B2437] hover:text-white transition-all">
+                  Başlayın
+                </Link>
+              </div>
+            </FadeIn>
+
+            {/* Yıllık */}
+            <FadeIn delay={0.2}>
+              <div className="bg-[#1B2437] border-2 border-[#DC2626] rounded-3xl p-8 h-full flex flex-col relative overflow-hidden">
+                <div className="absolute top-0 right-0 bg-[#DC2626] text-white text-xs font-black px-4 py-1.5 rounded-bl-2xl tracking-wider">POPÜLER</div>
+                <div className="text-slate-400 text-sm font-semibold mb-4">Yıllık Plan</div>
+                <div className="text-5xl font-black text-white mb-1">₺60.000</div>
+                <div className="text-slate-400 text-sm mb-2">yıllık</div>
+                <div className="inline-flex items-center gap-1.5 bg-green-500/15 border border-green-500/30 text-green-400 text-xs font-bold px-3 py-1.5 rounded-full mb-8">
+                  <Zap className="w-3 h-3" /> 2 Ay Bedava — ₺12.000 Tasarruf
+                </div>
+                <div className="space-y-3 flex-1 mb-8">
+                  {PLAN_FEATURES.map((f) => (
+                    <div key={f} className="flex items-center gap-3 text-sm text-slate-300">
+                      <Check className="w-4 h-4 text-green-400 flex-shrink-0" strokeWidth={2.5} />
+                      {f}
+                    </div>
+                  ))}
+                </div>
+                <Link href={KAYIT_LINK}
+                  className="block py-3.5 text-center bg-[#DC2626] hover:bg-[#B91C1C] text-white font-bold rounded-2xl no-underline transition-colors shadow-xl shadow-red-500/20">
+                  Başlayın
+                </Link>
+              </div>
+            </FadeIn>
+          </div>
+          <FadeIn delay={0.3} className="text-center mt-8 text-slate-400 text-sm">
+            <Shield className="w-4 h-4 inline mr-1.5 text-slate-400" />
+            14 gün ücretsiz deneme · Kredi kartı gerekmez · İstediğin an iptal
+          </FadeIn>
+        </div>
+      </section>
+
+      {/* ═══ FINAL CTA ══════════════════════════════════════════════ */}
+      <section className="relative bg-[#0B111E] py-28 px-6 lg:px-8 text-center overflow-hidden">
+        <div className="absolute inset-0 opacity-20" style={{ backgroundImage: "radial-gradient(circle, #334155 1px, transparent 1px)", backgroundSize: "28px 28px" }} />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-red-600/15 rounded-full blur-3xl" />
+        <FadeIn className="relative">
+          <h2 className="text-5xl lg:text-6xl font-black text-white tracking-tight mb-5">
+            Filonuzu bugün<br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-red-600">dijitalleştirin.</span>
+          </h2>
+          <p className="text-slate-400 text-xl mb-10 max-w-xl mx-auto">14 gün ücretsiz deneyin. Kurulum desteği bizden. İstediğiniz zaman iptal.</p>
+          <Link
+            href={KAYIT_LINK}
+            className="inline-flex items-center gap-3 px-9 py-5 bg-[#DC2626] text-white text-lg font-bold rounded-2xl no-underline hover:bg-[#B91C1C] transition-all shadow-2xl shadow-red-500/30 hover:-translate-y-1"
+          >
+            Hemen Başlayın <ChevronRight className="w-5 h-5" />
+          </Link>
+          <p className="text-slate-600 text-sm mt-6">tekertakip.com · destek@tekertakip.com</p>
+        </FadeIn>
+      </section>
+
+      {/* ═══ FOOTER ═════════════════════════════════════════════════ */}
+      <footer className="bg-[#1B2437] border-t border-white/5 px-6 lg:px-8 py-14">
+        <div className="max-w-7xl mx-auto flex flex-wrap gap-12 justify-between pb-10 border-b border-white/5">
+          <div className="flex-1 min-w-[200px]">
+            <div className="flex items-center gap-2.5 mb-4">
+              <LogoIcon size={26} className="text-white" />
+              <span className="text-lg font-black text-white">teker<span className="text-[#DC2626]">takip</span></span>
+            </div>
+            <p className="text-slate-400 text-sm leading-relaxed max-w-[220px]">Türkiye&apos;nin servis filosu yönetim platformu.</p>
+          </div>
+          {[
+            { title: "Ürün", links: ["Özellikler", "Fiyatlandırma", "Demo İste"] },
+            { title: "Şirket", links: ["Hakkımızda", "İletişim"] },
+            { title: "Destek", links: ["Gizlilik Politikası", "SSS"] },
+          ].map((col) => (
+            <div key={col.title} className="min-w-[120px]">
+              <div className="text-white font-bold text-sm mb-4">{col.title}</div>
+              <div className="flex flex-col gap-3">
+                {col.links.map((link) => (
+                  <span key={link} className="text-slate-400 text-sm hover:text-white cursor-pointer transition-colors">{link}</span>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="pt-8 text-slate-600 text-xs">© 2026 tekertakip. Tüm hakları saklıdır.</div>
       </footer>
 
-      {/* ── WhatsApp Float ── */}
+      {/* WhatsApp float */}
       <a
         href={WA_LINK} target="_blank" rel="noopener noreferrer"
-        style={{ position: "fixed", bottom: 24, right: 24, zIndex: 50, width: 56, height: 56, background: "#25D366", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 20px rgba(37,211,102,0.4)", textDecoration: "none" }}
-        aria-label="WhatsApp ile iletişim"
+        className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-[#25D366] rounded-full flex items-center justify-center shadow-2xl shadow-green-500/30 hover:scale-110 transition-transform"
+        aria-label="WhatsApp"
       >
-        <MessageCircle size={28} color="#fff" />
+        <MessageCircle size={26} color="#fff" />
       </a>
-
-      <style>{`
-        .feature-card:hover {
-          transform: translateY(-6px);
-          box-shadow: 0 20px 40px rgba(27,36,55,0.1);
-          border-color: transparent !important;
-        }
-      `}</style>
     </div>
   );
 }

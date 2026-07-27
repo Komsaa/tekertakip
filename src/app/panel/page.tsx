@@ -102,8 +102,13 @@ export default async function DashboardPage() {
     }
 
     // ── FİRMA dashboard (mevcut) ─────────────────────────────────────────────
+    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+    const weekStart = new Date(today); weekStart.setDate(today.getDate() - today.getDay() + 1); weekStart.setHours(0, 0, 0, 0);
+    const weekEnd = new Date(weekStart); weekEnd.setDate(weekStart.getDate() + 6); weekEnd.setHours(23, 59, 59, 999);
+
     const [drivers, vehicles, todayJobs, creditCards, upcomingChecks, pendingInvoices, notesSetting,
-           activeDriverCount, activeVehicleCount, activeRouteCount, monthJobCount] =
+           activeDriverCount, activeVehicleCount, activeRouteCount, monthJobCount,
+           monthFuelAgg, weekJobs] =
       await Promise.all([
         prisma.driver.findMany({ where: { status: "active", ...cFilter } }),
         prisma.vehicle.findMany({ where: { status: "active", ...cFilter } }),
@@ -131,7 +136,15 @@ export default async function DashboardPage() {
         prisma.driver.count({ where: { status: "active", ...cFilter } }),
         prisma.vehicle.count({ where: { status: "active", ...cFilter } }),
         prisma.route.count({ where: { active: true, ...cFilter } }),
-        prisma.job.count({ where: { date: { gte: new Date(today.getFullYear(), today.getMonth(), 1) }, ...cFilter } }),
+        prisma.job.count({ where: { date: { gte: monthStart }, ...cFilter } }),
+        prisma.fuelEntry.aggregate({
+          _sum: { totalAmount: true },
+          where: { date: { gte: monthStart }, ...cFilter },
+        }).catch(() => ({ _sum: { totalAmount: null } })),
+        prisma.job.findMany({
+          where: { date: { gte: weekStart, lte: weekEnd }, status: { not: "cancelled" }, ...cFilter },
+          select: { driverId: true, driver: { select: { name: true } } },
+        }).catch(() => []),
       ]);
 
     const allDocs: any[] = [];
@@ -165,6 +178,15 @@ export default async function DashboardPage() {
       return { id: card.id, name: card.name, bank: card.bank, color: card.color, daysToPayment, paymentDue: paymentDue.toISOString(), periodTotal };
     }).filter(c => c.daysToPayment >= 0 && c.daysToPayment <= 7);
 
+    // Şöför haftalık yük
+    const driverWeekMap: Record<string, { name: string; count: number }> = {};
+    for (const job of weekJobs) {
+      if (!job.driverId || !job.driver) continue;
+      if (!driverWeekMap[job.driverId]) driverWeekMap[job.driverId] = { name: job.driver.name, count: 0 };
+      driverWeekMap[job.driverId].count++;
+    }
+    const weekDriverJobs = Object.values(driverWeekMap).sort((a, b) => b.count - a.count);
+
     return (
       <div className="flex-1 flex flex-col min-h-0">
         <CommandCenter
@@ -176,6 +198,7 @@ export default async function DashboardPage() {
           alertDocs={alertDocs}
           initialNotes={notesSetting?.value ?? ""}
           today={todayStr}
+          weekDriverJobs={weekDriverJobs}
           stats={{
             activeDrivers: activeDriverCount,
             activeVehicles: activeVehicleCount,
@@ -184,6 +207,7 @@ export default async function DashboardPage() {
             completedToday: todayJobs.filter(j => j.status === "completed").length,
             cancelledToday: todayJobs.filter(j => j.status === "cancelled").length,
             monthJobs: monthJobCount,
+            monthFuel: Math.round(monthFuelAgg._sum.totalAmount ?? 0),
           }}
         />
       </div>

@@ -51,6 +51,7 @@ type Stats = {
   completedToday: number;
   cancelledToday: number;
   monthJobs: number;
+  monthFuel: number;
 };
 
 interface Props {
@@ -63,6 +64,7 @@ interface Props {
   initialNotes: string;
   today: string;
   stats: Stats;
+  weekDriverJobs: { name: string; count: number }[];
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -75,7 +77,7 @@ const TYPE_LABELS: Record<string, string> = {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 export default function CommandCenter({
-  todayJobs: initialJobs, vehicles, creditCardAlerts, upcomingChecks, pendingInvoices, alertDocs, initialNotes, today, stats,
+  todayJobs: initialJobs, vehicles, creditCardAlerts, upcomingChecks, pendingInvoices, alertDocs, initialNotes, today, stats, weekDriverJobs,
 }: Props) {
   const [jobs, setJobs] = useState(initialJobs);
   const [notes, setNotes] = useState(initialNotes);
@@ -280,6 +282,34 @@ export default function CommandCenter({
               </section>
             )}
 
+            {/* ── Bu Hafta Şöför Yükü ──────────────────────────────────── */}
+            {weekDriverJobs.length > 0 && (
+              <section className="p-3">
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                  <Users className="w-3.5 h-3.5 text-purple-400" /> Bu Hafta Şöförler
+                </p>
+                <div className="space-y-1.5">
+                  {weekDriverJobs.map((d, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <div className="w-5 h-5 rounded-lg bg-white/10 flex items-center justify-center text-slate-500 text-xs font-bold flex-shrink-0">
+                        {i + 1}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-white text-xs font-medium truncate">{d.name}</p>
+                        <div className="flex items-center gap-1 mt-0.5">
+                          <div
+                            className="h-1 bg-purple-500 rounded-full"
+                            style={{ width: `${Math.min(100, (d.count / (weekDriverJobs[0]?.count || 1)) * 70)}%` }}
+                          />
+                        </div>
+                      </div>
+                      <span className="text-purple-300 text-xs font-bold flex-shrink-0">{d.count} sefer</span>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
             {/* ── Notlar ───────────────────────────────────────────────── */}
             <section className="p-3">
               <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1.5 justify-between">
@@ -367,6 +397,17 @@ export default function CommandCenter({
               <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Bu Ay Sefer</span>
             </div>
             <span className="text-xl font-black text-white">{stats.monthJobs}</span>
+          </div>
+
+          {/* Bu ay yakıt */}
+          <div className="flex-1 flex flex-col items-center justify-center py-2.5 px-2 min-w-0">
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <Fuel className="w-3.5 h-3.5 text-orange-400" />
+              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Bu Ay Yakıt</span>
+            </div>
+            <span className="text-xl font-black text-orange-400">
+              {stats.monthFuel > 0 ? stats.monthFuel.toLocaleString("tr-TR") + "₺" : "—"}
+            </span>
           </div>
 
         </div>
