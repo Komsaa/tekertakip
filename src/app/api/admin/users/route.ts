@@ -17,7 +17,6 @@ export async function GET() {
       name: true,
       phone: true,
       mobileUsername: true,
-      mobilePin: true,
       status: true,
       createdAt: true,
     },

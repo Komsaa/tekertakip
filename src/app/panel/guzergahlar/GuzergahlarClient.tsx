@@ -247,13 +247,16 @@ export default function GuzergahlarClient({
       const url = editingRoute ? `/api/routes/${editingRoute.id}` : "/api/routes";
       const method = editingRoute ? "PUT" : "POST";
       const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-      if (!res.ok) throw new Error(await res.text());
+      if (!res.ok) {
+        const errData = await res.json().catch(() => null);
+        throw new Error(errData?.error ?? `HTTP ${res.status}`);
+      }
       closeForm();
       router.refresh();
       const updated = await fetch("/api/routes").then((r) => r.json());
       setRoutes(updated);
     } catch (e) {
-      alert("Kayıt hatası: " + e);
+      alert("Kayıt hatası: " + (e instanceof Error ? e.message : String(e)));
     } finally {
       setSaving(false);
     }

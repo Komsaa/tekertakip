@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
-import { Plus, X, Building2, Users, Key, ToggleLeft, ToggleRight, Trash2, Edit2, UserPlus, Clock, Crown, AlertTriangle, School } from "lucide-react";
+import { Plus, X, Building2, Users, Key, ToggleLeft, ToggleRight, Trash2, Edit2, UserPlus, Clock, Crown, AlertTriangle, School, ChevronDown, ChevronUp, ShieldCheck, User } from "lucide-react";
 
 type Company = {
   id: string;
@@ -19,6 +18,17 @@ type Company = {
   _count: { drivers: number };
 };
 
+type PanelUser = {
+  id: string;
+  username: string;
+  name: string;
+  phone: string | null;
+  role: string;
+  active: boolean;
+  companyId: string | null;
+  createdAt: string;
+};
+
 function demoDaysLeft(expiresAt: string | null): number | null {
   if (!expiresAt) return null;
   const diff = new Date(expiresAt).getTime() - Date.now();
@@ -26,7 +36,6 @@ function demoDaysLeft(expiresAt: string | null): number | null {
 }
 
 export default function SirketlerPage() {
-  const router = useRouter();
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -38,20 +47,82 @@ export default function SirketlerPage() {
   const [extending, setExtending] = useState<string | null>(null);
   const [converting, setConverting] = useState<string | null>(null);
 
+  // Panel kullanıcıları
+  const [panelUsers, setPanelUsers] = useState<PanelUser[]>([]);
+  const [openUsersId, setOpenUsersId] = useState<string | null>(null);
+  const [showUserModal, setShowUserModal] = useState(false);
+  const [editUser, setEditUser] = useState<PanelUser | null>(null);
+  const [userForm, setUserForm] = useState({ username: "", password: "", name: "", phone: "", role: "firma", companyId: "" });
+  const [savingUser, setSavingUser] = useState(false);
+
   async function load() {
-    const [compRes, driversRes] = await Promise.all([
+    const [compRes, driversRes, usersRes] = await Promise.all([
       fetch("/api/companies"),
       fetch("/api/drivers"),
+      fetch("/api/admin/panel-users"),
     ]);
     if (compRes.ok) setCompanies(await compRes.json());
     if (driversRes.ok) {
       const drivers: Array<{ companyId: string | null }> = await driversRes.json();
       setUnassignedCount(drivers.filter((d) => !d.companyId).length);
     }
+    if (usersRes.ok) setPanelUsers(await usersRes.json());
     setLoading(false);
   }
 
   useEffect(() => { load(); }, []);
+
+  function openAddUser(companyId: string) {
+    setEditUser(null);
+    setUserForm({ username: "", password: "", name: "", phone: "", role: "firma", companyId });
+    setShowUserModal(true);
+  }
+
+  function openEditUser(u: PanelUser) {
+    setEditUser(u);
+    setUserForm({ username: u.username, password: "", name: u.name, phone: u.phone ?? "", role: u.role, companyId: u.companyId ?? "" });
+    setShowUserModal(true);
+  }
+
+  async function handleSaveUser(e: React.FormEvent) {
+    e.preventDefault();
+    setSavingUser(true);
+    try {
+      const body = editUser
+        ? { id: editUser.id, name: userForm.name, phone: userForm.phone, role: userForm.role, active: true, companyId: userForm.companyId || null, ...(userForm.password ? { password: userForm.password } : {}) }
+        : { username: userForm.username, password: userForm.password, name: userForm.name, phone: userForm.phone, role: userForm.role, companyId: userForm.companyId || null };
+      const res = await fetch("/api/admin/panel-users", {
+        method: editUser ? "PUT" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) { const err = await res.json(); toast.error(err.error || "Hata"); return; }
+      toast.success(editUser ? "Güncellendi" : "Kullanıcı oluşturuldu");
+      setShowUserModal(false);
+      load();
+    } catch { toast.error("Hata oluştu"); }
+    finally { setSavingUser(false); }
+  }
+
+  async function deleteUser(u: PanelUser) {
+    if (!confirm(`"${u.name}" kullanıcısı silinsin mi?`)) return;
+    const res = await fetch("/api/admin/panel-users", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: u.id }),
+    });
+    if (res.ok) { toast.success("Silindi"); load(); }
+    else toast.error("Silinemedi");
+  }
+
+  async function toggleUserActive(u: PanelUser) {
+    const res = await fetch("/api/admin/panel-users", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: u.id, active: !u.active }),
+    });
+    if (res.ok) load();
+  }
 
   async function assignUnassigned(companyId: string) {
     setAssigning(companyId);
@@ -313,6 +384,60 @@ export default function SirketlerPage() {
                 </div>
 
                 {c.notes && <p className="text-xs text-slate-400 border-t border-slate-50 pt-3">{c.notes}</p>}
+
+                {/* Panel Kullanıcıları */}
+                <div className="border-t border-slate-100 pt-3">
+                  <button
+                    onClick={() => setOpenUsersId(openUsersId === c.id ? null : c.id)}
+                    className="w-full flex items-center justify-between text-xs font-semibold text-slate-600 hover:text-slate-800"
+                  >
+                    <span className="flex items-center gap-1.5">
+                      <ShieldCheck className="w-3.5 h-3.5 text-slate-400" />
+                      Panel Kullanıcıları ({panelUsers.filter((u) => u.companyId === c.id).length})
+                    </span>
+                    {openUsersId === c.id ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                  </button>
+
+                  {openUsersId === c.id && (
+                    <div className="mt-2 space-y-1.5">
+                      {panelUsers.filter((u) => u.companyId === c.id).length === 0 && (
+                        <p className="text-xs text-slate-400 italic py-1">Henüz panel kullanıcısı yok.</p>
+                      )}
+                      {panelUsers.filter((u) => u.companyId === c.id).map((u) => (
+                        <div key={u.id} className="flex items-center gap-2 bg-slate-50 rounded-lg px-2.5 py-1.5">
+                          <User className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <div className="text-xs font-semibold text-slate-700 truncate">{u.name}</div>
+                            <div className="text-xs text-slate-400 font-mono truncate">@{u.username}</div>
+                          </div>
+                          <span className={`text-xs px-1.5 py-0.5 rounded font-medium flex-shrink-0 ${
+                            u.role === "admin" ? "bg-red-100 text-red-700" : "bg-blue-100 text-blue-700"
+                          }`}>
+                            {u.role === "admin" ? "Admin" : "Firma"}
+                          </span>
+                          <button onClick={() => toggleUserActive(u)} className="flex-shrink-0">
+                            {u.active
+                              ? <ToggleRight className="w-4 h-4 text-green-500" />
+                              : <ToggleLeft className="w-4 h-4 text-slate-300" />}
+                          </button>
+                          <button onClick={() => openEditUser(u)} className="p-1 text-slate-400 hover:text-blue-600 flex-shrink-0">
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                          <button onClick={() => deleteUser(u)} className="p-1 text-slate-300 hover:text-red-500 flex-shrink-0">
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                      <button
+                        onClick={() => openAddUser(c.id)}
+                        className="w-full flex items-center justify-center gap-1.5 py-1.5 border border-dashed border-slate-200 text-slate-400 hover:text-blue-600 hover:border-blue-300 rounded-lg text-xs font-medium transition-colors"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        Kullanıcı Ekle
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             );
           })}
@@ -433,6 +558,90 @@ export default function SirketlerPage() {
                 </button>
                 <button type="submit" disabled={saving} className="flex-1 py-2.5 bg-[#DC2626] hover:bg-[#B91C1C] disabled:opacity-60 text-white rounded-xl text-sm font-semibold">
                   {saving ? "Kaydediliyor..." : "Kaydet"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* Panel Kullanıcı Modal */}
+      {showUserModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setShowUserModal(false)} />
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md relative z-10">
+            <div className="flex items-center justify-between p-6 border-b border-slate-100">
+              <h2 className="text-lg font-bold text-slate-800">
+                {editUser ? "Kullanıcı Düzenle" : "Yeni Panel Kullanıcısı"}
+              </h2>
+              <button onClick={() => setShowUserModal(false)} className="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={handleSaveUser} className="p-6 space-y-4">
+              {!editUser && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Kullanıcı Adı *</label>
+                  <input
+                    type="text"
+                    value={userForm.username}
+                    onChange={(e) => setUserForm((f) => ({ ...f, username: e.target.value.toLowerCase() }))}
+                    placeholder="ataservis"
+                    required
+                    className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#DC2626] font-mono"
+                  />
+                </div>
+              )}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Ad Soyad *</label>
+                <input
+                  type="text"
+                  value={userForm.name}
+                  onChange={(e) => setUserForm((f) => ({ ...f, name: e.target.value }))}
+                  placeholder="Ahmet Yılmaz"
+                  required
+                  className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#DC2626]"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  {editUser ? "Yeni Şifre (boş bırakırsan değişmez)" : "Şifre *"}
+                </label>
+                <input
+                  type="password"
+                  value={userForm.password}
+                  onChange={(e) => setUserForm((f) => ({ ...f, password: e.target.value }))}
+                  placeholder={editUser ? "••••••••" : "Güçlü bir şifre gir"}
+                  required={!editUser}
+                  className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#DC2626]"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Telefon</label>
+                <input
+                  type="text"
+                  value={userForm.phone}
+                  onChange={(e) => setUserForm((f) => ({ ...f, phone: e.target.value }))}
+                  placeholder="05xx xxx xx xx"
+                  className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#DC2626]"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Rol</label>
+                <select
+                  value={userForm.role}
+                  onChange={(e) => setUserForm((f) => ({ ...f, role: e.target.value }))}
+                  className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#DC2626]"
+                >
+                  <option value="firma">Firma (sadece kendi şirketini görür)</option>
+                  <option value="admin">Admin (tüm şirketleri görür)</option>
+                </select>
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button type="button" onClick={() => setShowUserModal(false)} className="flex-1 py-2.5 border border-slate-200 text-slate-600 rounded-xl text-sm font-medium hover:bg-slate-50">
+                  İptal
+                </button>
+                <button type="submit" disabled={savingUser} className="flex-1 py-2.5 bg-[#DC2626] hover:bg-[#B91C1C] disabled:opacity-60 text-white rounded-xl text-sm font-semibold">
+                  {savingUser ? "Kaydediliyor..." : "Kaydet"}
                 </button>
               </div>
             </form>
