@@ -41,6 +41,7 @@ export default function GuzergahlarClient({
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [analyzingId, setAnalyzingId] = useState<string | null>(null);
   const [analysisResults, setAnalysisResults] = useState<Record<string, any[]>>({});
+  const [filterType, setFilterType] = useState<string>("tumu");
 
   // Form state
   const [name, setName] = useState("");
@@ -337,6 +338,10 @@ export default function GuzergahlarClient({
     if (res.ok) setRoutes(routes.map((x) => x.id === r.id ? { ...x, active: !x.active } : x));
   }
 
+  const filteredRoutes = filterType === "tumu" ? routes : routes.filter((r) => r.type === filterType);
+  const okulCount = routes.filter((r) => r.type === "okul").length;
+  const personelCount = routes.filter((r) => r.type === "personel").length;
+
   return (
     <div className="p-6 lg:p-8 space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
@@ -404,6 +409,28 @@ export default function GuzergahlarClient({
         </div>
       )}
 
+      {/* Tip filtresi */}
+      {routes.length > 0 && (
+        <div className="flex gap-1 bg-slate-100 p-1 rounded-xl w-fit">
+          {([
+            { key: "tumu", label: "Tümü", count: routes.length },
+            { key: "okul", label: "Okul Servisi", count: okulCount },
+            { key: "personel", label: "Personel", count: personelCount },
+          ] as { key: string; label: string; count: number }[])
+            .filter(({ count, key }) => key === "tumu" || count > 0)
+            .map(({ key, label, count }) => (
+              <button
+                key={key}
+                onClick={() => setFilterType(key)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${filterType === key ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+              >
+                {label}
+                <span className={`text-xs px-1.5 py-0.5 rounded-full ${filterType === key ? "bg-slate-100 text-slate-600" : "bg-slate-200 text-slate-400"}`}>{count}</span>
+              </button>
+            ))}
+        </div>
+      )}
+
       {routes.length === 0 && !showForm && (
         <div className="bg-white rounded-2xl p-12 text-center border border-dashed border-slate-200">
           <MapPin className="w-12 h-12 text-slate-300 mx-auto mb-3" />
@@ -416,8 +443,13 @@ export default function GuzergahlarClient({
       )}
 
       {/* Güzergah listesi */}
+      {filteredRoutes.length === 0 && routes.length > 0 && (
+        <div className="bg-white rounded-2xl border border-dashed border-slate-200 p-8 text-center">
+          <p className="text-slate-500 font-medium">Bu türde güzergah yok</p>
+        </div>
+      )}
       <div className="space-y-4">
-        {routes.map((r) => {
+        {filteredRoutes.map((r) => {
           const status = computeLiveStatus(r.stops as RouteStop[], r.weekdaysOnly);
           const isExpanded = expandedId === r.id;
           return (

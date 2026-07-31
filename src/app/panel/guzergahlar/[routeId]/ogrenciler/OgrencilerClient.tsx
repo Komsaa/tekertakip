@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Plus, Trash2, MessageCircle, Key, Users, CreditCard, Check, X, CalendarDays } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, MessageCircle, Key, Users, CreditCard, Check, X, CalendarDays, Edit2 } from "lucide-react";
 import toast from "react-hot-toast";
 
 interface Stop {
@@ -72,12 +72,21 @@ export default function OgrencilerClient({ route }: { route: Route }) {
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
   const [attLoading, setAttLoading] = useState(false);
 
-  // Ödeme state
-  const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
-  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
+  // Ödeme state — dönemlik
+  const okulYiliStart = (now.getMonth() + 1) >= 9 ? now.getFullYear() : now.getFullYear() - 1;
+  const [selectedDonem, setSelectedDonem] = useState((now.getMonth() + 1) >= 9 || (now.getMonth() + 1) <= 1 ? 1 : 2);
+  const [selectedOkulYili, setSelectedOkulYili] = useState(`${okulYiliStart}-${okulYiliStart + 1}`);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [toggleLoading, setToggleLoading] = useState<string | null>(null);
+
+  // Öğrenci düzenleme
+  const [editingPassenger, setEditingPassenger] = useState<Passenger | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editParentName, setEditParentName] = useState("");
+  const [editParentPhone, setEditParentPhone] = useState("");
+  const [editFee, setEditFee] = useState("");
+  const [editSaving, setEditSaving] = useState(false);
 
   // Yeni öğrenci formu
   const [newName, setNewName] = useState("");
@@ -109,16 +118,49 @@ export default function OgrencilerClient({ route }: { route: Route }) {
   const loadPayments = useCallback(async () => {
     setPaymentLoading(true);
     try {
-      const res = await fetch(`/api/routes/payments?routeId=${route.id}&month=${selectedMonth}&year=${selectedYear}`);
+      const startYear = parseInt(selectedOkulYili.split("-")[0]);
+      const res = await fetch(`/api/routes/payments?routeId=${route.id}&month=${selectedDonem}&year=${startYear}`);
       if (res.ok) setPayments(await res.json());
     } finally {
       setPaymentLoading(false);
     }
-  }, [route.id, selectedMonth, selectedYear]);
+  }, [route.id, selectedDonem, selectedOkulYili]);
 
   useEffect(() => {
     if (tab === "odemeler") loadPayments();
   }, [tab, loadPayments]);
+
+  function openEdit(p: Passenger) {
+    setEditingPassenger(p);
+    setEditName(p.name);
+    setEditParentName(p.parentName ?? "");
+    setEditParentPhone(p.parentPhone ?? "");
+    setEditFee(p.monthlyFee != null ? String(p.monthlyFee) : "");
+  }
+
+  async function saveEdit() {
+    if (!editingPassenger) return;
+    setEditSaving(true);
+    try {
+      const res = await fetch("/api/routes/passengers", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: editingPassenger.id,
+          name: editName.trim(),
+          parentName: editParentName.trim() || null,
+          parentPhone: editParentPhone.trim() || null,
+          monthlyFee: editFee,
+        }),
+      });
+      if (!res.ok) { toast.error("Hata"); return; }
+      await reload();
+      setEditingPassenger(null);
+      toast.success("Güncellendi");
+    } finally {
+      setEditSaving(false);
+    }
+  }
 
   async function addPassenger() {
     if (!newName.trim() || !newStopId) return;
@@ -221,7 +263,7 @@ export default function OgrencilerClient({ route }: { route: Route }) {
         const res = await fetch("/api/routes/payments", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ passengerId: passenger.id, month: selectedMonth, year: selectedYear, amount, paid: true }),
+          body: JSON.stringify({ passengerId: passenger.id, month: selectedDonem, year: parseInt(selectedOkulYili.split("-")[0]), amount, paid: true }),
         });
         if (res.ok) {
           const created = await res.json();
@@ -331,7 +373,7 @@ export default function OgrencilerClient({ route }: { route: Route }) {
                 className="w-44 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#DC2626]"
               />
               <input
-                placeholder="Aylık ücret (₺)"
+                placeholder="Dönem ücreti (₺)"
                 type="number"
                 value={newMonthlyFee}
                 onChange={(e) => setNewMonthlyFee(e.target.value)}
@@ -415,6 +457,13 @@ export default function OgrencilerClient({ route }: { route: Route }) {
                           )}
                           {/* Aksiyonlar */}
                           <div className="flex items-center gap-1.5 flex-shrink-0">
+                            <button
+                              onClick={() => openEdit(p)}
+                              className="p-1.5 rounded-lg bg-slate-50 text-slate-500 hover:bg-slate-100 transition-colors"
+                              title="Düzenle"
+                            >
+                              <Edit2 className="w-3.5 h-3.5" />
+                            </button>
                             {p.parentPhone && p.veliUsername && (
                               <button
                                 onClick={() => openWhatsApp(p.parentPhone!, p.name, p.veliUsername!, "••••••")}
@@ -457,20 +506,19 @@ export default function OgrencilerClient({ route }: { route: Route }) {
           <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
             <div className="flex items-center gap-3 flex-wrap">
               <select
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+                value={selectedDonem}
+                onChange={(e) => setSelectedDonem(parseInt(e.target.value))}
                 className="border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#DC2626] bg-white font-medium"
               >
-                {MONTHS.map((m, i) => (
-                  <option key={i + 1} value={i + 1}>{m}</option>
-                ))}
+                <option value={1}>1. Dönem (Eyl – Oca)</option>
+                <option value={2}>2. Dönem (Şub – Haz)</option>
               </select>
               <select
-                value={selectedYear}
-                onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                value={selectedOkulYili}
+                onChange={(e) => setSelectedOkulYili(e.target.value)}
                 className="border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#DC2626] bg-white font-medium"
               >
-                {[2024, 2025, 2026, 2027].map((y) => (
+                {["2023-2024", "2024-2025", "2025-2026", "2026-2027"].map((y) => (
                   <option key={y} value={y}>{y}</option>
                 ))}
               </select>
@@ -577,7 +625,7 @@ export default function OgrencilerClient({ route }: { route: Route }) {
                   unpaidPassengers.filter(p => p.parentPhone).forEach((p, i) => {
                     setTimeout(() => {
                       const phone = p.parentPhone!.replace(/\D/g, "").replace(/^0/, "90");
-                      const text = `Sayın ${p.parentName ?? "Veli"},\n\n${p.name} için ${MONTHS[selectedMonth - 1]} ${selectedYear} ayı servis ücreti (₺${p.monthlyFee ?? "?"}) henüz ödenmedi. Bilgilerinize sunarız.`;
+                      const text = `Sayın ${p.parentName ?? "Veli"},\n\n${p.name} için ${selectedDonem}. Dönem ${selectedOkulYili} servis ücreti (₺${p.monthlyFee ?? "?"}) henüz ödenmedi. Bilgilerinize sunarız.`;
                       window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`, "_blank");
                     }, i * 1500);
                   });
@@ -699,6 +747,67 @@ export default function OgrencilerClient({ route }: { route: Route }) {
             </div>
           )}
         </>
+      )}
+
+      {/* Öğrenci Düzenleme Modali */}
+      {editingPassenger && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4">
+            <h3 className="font-bold text-slate-800 text-lg">Öğrenci Düzenle</h3>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-semibold text-slate-500 mb-1 block">Öğrenci Adı Soyadı *</label>
+                <input
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#DC2626]"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-slate-500 mb-1 block">Veli Adı Soyadı</label>
+                <input
+                  value={editParentName}
+                  onChange={(e) => setEditParentName(e.target.value)}
+                  className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#DC2626]"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-slate-500 mb-1 block">Veli Telefonu (WhatsApp)</label>
+                <input
+                  value={editParentPhone}
+                  onChange={(e) => setEditParentPhone(e.target.value)}
+                  placeholder="05xx xxx xx xx"
+                  className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#DC2626]"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-slate-500 mb-1 block">Dönem Ücreti (₺)</label>
+                <input
+                  type="number"
+                  value={editFee}
+                  onChange={(e) => setEditFee(e.target.value)}
+                  placeholder="0"
+                  className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#DC2626]"
+                />
+              </div>
+            </div>
+            <div className="flex gap-2 pt-1">
+              <button
+                onClick={saveEdit}
+                disabled={editSaving || !editName.trim()}
+                className="flex-1 bg-[#DC2626] hover:bg-[#B91C1C] text-white rounded-xl py-2.5 text-sm font-semibold disabled:opacity-40"
+              >
+                {editSaving ? "Kaydediliyor..." : "Kaydet"}
+              </button>
+              <button
+                onClick={() => setEditingPassenger(null)}
+                className="px-4 text-sm text-slate-500 hover:text-slate-700 border border-slate-200 rounded-xl"
+              >
+                İptal
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Credentials Modal */}
