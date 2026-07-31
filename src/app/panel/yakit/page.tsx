@@ -1,6 +1,10 @@
 import { prisma } from "@/lib/prisma";
 import FuelClient from "./FuelClient";
 import { startOfMonth, endOfMonth } from "date-fns";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { getCompanyId, tenantWhere } from "@/lib/tenant";
+import { redirect } from "next/navigation";
 
 function calcConsumption(entries: { odometer: number | null; liters: number }[]) {
   // odometer'ı olan kayıtları sırala
@@ -24,29 +28,32 @@ function calcConsumption(entries: { odometer: number | null; liters: number }[])
   return { avgPer100: avg, totalKm, fillCount: sorted.length };
 }
 
-async function getData() {
+async function getData(companyId: string | null) {
   const now = new Date();
+  const tw = tenantWhere(companyId);
   try {
     const [fuelEntries, vehicles, drivers, monthStats] = await Promise.all([
       prisma.fuelEntry.findMany({
+        where: tw,
         orderBy: { date: "desc" },
         take: 100,
         include: { vehicle: true, driver: true },
       }).catch(async () =>
-        (await prisma.fuelEntry.findMany({ orderBy: { date: "desc" }, take: 100 }).catch(() => []))
+        (await prisma.fuelEntry.findMany({ where: tw, orderBy: { date: "desc" }, take: 100 }).catch(() => []))
           .map((e) => ({ ...e, vehicle: null as any, driver: null as any }))
       ),
-      prisma.vehicle.findMany({ where: { status: "active" }, orderBy: { plate: "asc" }, select: { id: true, plate: true, brand: true, model: true } }).catch(() => []),
-      prisma.driver.findMany({ where: { status: "active" }, orderBy: { name: "asc" }, select: { id: true, name: true } }).catch(() => []),
+      prisma.vehicle.findMany({ where: { status: "active", ...tw }, orderBy: { plate: "asc" }, select: { id: true, plate: true, brand: true, model: true } }).catch(() => []),
+      prisma.driver.findMany({ where: { status: "active", ...tw }, orderBy: { name: "asc" }, select: { id: true, name: true } }).catch(() => []),
       prisma.fuelEntry.groupBy({
         by: ["vehicleId"],
         _sum: { totalAmount: true, liters: true },
-        where: { date: { gte: startOfMonth(now), lte: endOfMonth(now) } },
+        where: { ...tw, date: { gte: startOfMonth(now), lte: endOfMonth(now) } },
       }).catch(() => []),
     ]);
 
     // Her araç için yakıt ortalaması hesapla
     const allEntries = await prisma.fuelEntry.findMany({
+      where: tw,
       select: { vehicleId: true, odometer: true, liters: true },
       orderBy: { date: "asc" },
     }).catch(() => []);
@@ -70,6 +77,9 @@ async function getData() {
 }
 
 export default async function FuelPage() {
-  const data = await getData();
+  const session = await getServerSession(authOptions);
+  if (!session) redirect("/login");
+  const companyId = getCompanyId(session);
+  const data = await getData(companyId);
   return <FuelClient {...data} />;
 }

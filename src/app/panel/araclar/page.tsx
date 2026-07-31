@@ -1,11 +1,17 @@
 import { prisma } from "@/lib/prisma";
 import { getDocStatus, formatDate, getDocStatusColor, getDaysLeft } from "@/lib/utils";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { getCompanyId, tenantWhere } from "@/lib/tenant";
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Plus, Truck, ChevronRight, AlertTriangle, CheckCircle } from "lucide-react";
 import AddVehicleModal from "./AddVehicleModal";
+import ExcelImportButton from "../soforler/ExcelImportButton";
 
-async function getVehicles() {
+async function getVehicles(companyId: string | null) {
   return prisma.vehicle.findMany({
+    where: tenantWhere(companyId),
     orderBy: { plate: "asc" },
     include: {
       assignedDrivers: { include: { driver: { select: { id: true, name: true } } } },
@@ -15,17 +21,35 @@ async function getVehicles() {
 }
 
 export default async function VehiclesPage() {
-  const vehicles = await getVehicles();
+  const session = await getServerSession(authOptions);
+  if (!session) redirect("/login");
+  const companyId = getCompanyId(session);
+  const vehicles = await getVehicles(companyId);
   const activeCount = vehicles.filter((v) => v.status === "active").length;
 
   return (
     <div className="p-6 lg:p-8 space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-black text-slate-800">Araçlar</h1>
           <p className="text-slate-500 text-sm mt-1">{activeCount} aktif araç</p>
         </div>
-        <AddVehicleModal />
+        <div className="flex items-center gap-2 flex-wrap">
+          <a
+            href="/api/excel/template?type=vehicles"
+            className="flex items-center gap-1.5 px-3 py-2 border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-xl text-sm font-medium"
+          >
+            Şablon İndir
+          </a>
+          <a
+            href="/api/excel/export?type=vehicles"
+            className="flex items-center gap-1.5 px-3 py-2 border border-green-200 text-green-700 hover:bg-green-50 rounded-xl text-sm font-medium"
+          >
+            Excel'e Aktar
+          </a>
+          <ExcelImportButton type="vehicles" />
+          <AddVehicleModal />
+        </div>
       </div>
 
       {vehicles.length === 0 ? (

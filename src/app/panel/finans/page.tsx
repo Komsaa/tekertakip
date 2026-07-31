@@ -1,21 +1,27 @@
 import { prisma } from "@/lib/prisma";
 import FinanceClient from "./FinanceClient";
 import { startOfMonth, endOfMonth, subMonths } from "date-fns";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { getCompanyId, tenantWhere } from "@/lib/tenant";
+import { redirect } from "next/navigation";
 
-async function getData() {
+async function getData(companyId: string | null) {
   const now = new Date();
+  const tw = tenantWhere(companyId);
   try {
     const [entries, fuelEntries, drivers] = await Promise.all([
-      prisma.financeEntry.findMany({ orderBy: { date: "desc" }, take: 200 }).catch(() => []),
+      prisma.financeEntry.findMany({ where: tw, orderBy: { date: "desc" }, take: 200 }).catch(() => []),
       prisma.fuelEntry.findMany({
+        where: tw,
         orderBy: { date: "desc" },
         take: 200,
         include: { vehicle: true },
       }).catch(async () =>
-        (await prisma.fuelEntry.findMany({ orderBy: { date: "desc" }, take: 200 }).catch(() => []))
+        (await prisma.fuelEntry.findMany({ where: tw, orderBy: { date: "desc" }, take: 200 }).catch(() => []))
           .map((e) => ({ ...e, vehicle: null as any }))
       ),
-      prisma.driver.findMany({ where: { status: "active" }, select: { id: true, name: true }, orderBy: { name: "asc" } }).catch(() => []),
+      prisma.driver.findMany({ where: { status: "active", ...tw }, select: { id: true, name: true }, orderBy: { name: "asc" } }).catch(() => []),
     ]);
 
     const monthlyData = [];
@@ -40,6 +46,9 @@ async function getData() {
 }
 
 export default async function FinancePage() {
-  const data = await getData();
+  const session = await getServerSession(authOptions);
+  if (!session) redirect("/login");
+  const companyId = getCompanyId(session);
+  const data = await getData(companyId);
   return <FinanceClient {...data} />;
 }

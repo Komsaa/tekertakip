@@ -1,5 +1,9 @@
 import { prisma } from "@/lib/prisma";
 import { getDocStatus, formatDate, getDocStatusColor } from "@/lib/utils";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { getCompanyId, tenantWhere } from "@/lib/tenant";
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import {
   Plus,
@@ -12,16 +16,22 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import AddDriverModal from "./AddDriverModal";
+import ExcelImportButton from "./ExcelImportButton";
 
-async function getDrivers() {
+async function getDrivers(companyId: string | null) {
   return prisma.driver.findMany({
+    where: tenantWhere(companyId),
     orderBy: { name: "asc" },
     include: { vehicles: { include: { vehicle: { select: { id: true, plate: true } } } }, company: { select: { id: true, name: true } }, _count: { select: { jobs: true } } },
   }).catch(() => []);
 }
 
-async function getCompanies() {
-  return prisma.company.findMany({ where: { active: true }, orderBy: { name: "asc" }, select: { id: true, name: true, code: true } }).catch(() => []);
+async function getCompanies(companyId: string | null) {
+  return prisma.company.findMany({
+    where: companyId ? { id: companyId, active: true } : { active: true },
+    orderBy: { name: "asc" },
+    select: { id: true, name: true, code: true },
+  }).catch(() => []);
 }
 
 function DocBadge({
@@ -55,7 +65,10 @@ function DocBadge({
 }
 
 export default async function DriversPage() {
-  const [drivers, companies] = await Promise.all([getDrivers(), getCompanies()]);
+  const session = await getServerSession(authOptions);
+  if (!session) redirect("/login");
+  const companyId = getCompanyId(session);
+  const [drivers, companies] = await Promise.all([getDrivers(companyId), getCompanies(companyId)]);
 
   const activeCount = drivers.filter((d) => d.status === "active").length;
   const hasAlertCount = drivers.filter((d) => {
@@ -68,7 +81,7 @@ export default async function DriversPage() {
   return (
     <div className="p-6 lg:p-8 space-y-6 animate-fade-in">
       {/* Başlık */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-black text-slate-800">Şöförler</h1>
           <p className="text-slate-500 text-sm mt-1">
@@ -78,7 +91,22 @@ export default async function DriversPage() {
             )}
           </p>
         </div>
-        <AddDriverModal companies={companies} />
+        <div className="flex items-center gap-2 flex-wrap">
+          <a
+            href="/api/excel/template?type=drivers"
+            className="flex items-center gap-1.5 px-3 py-2 border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-xl text-sm font-medium"
+          >
+            Şablon İndir
+          </a>
+          <a
+            href="/api/excel/export?type=drivers"
+            className="flex items-center gap-1.5 px-3 py-2 border border-green-200 text-green-700 hover:bg-green-50 rounded-xl text-sm font-medium"
+          >
+            Excel'e Aktar
+          </a>
+          <ExcelImportButton type="drivers" />
+          <AddDriverModal companies={companies} />
+        </div>
       </div>
 
       {/* Şöför Kartları */}
