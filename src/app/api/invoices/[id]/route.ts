@@ -21,7 +21,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       include: { client: { select: { id: true, name: true } } },
     });
 
-    // Fatura ödendi olarak işaretlenince otomatik finans kaydı oluştur
+    // Fatura ödendi → cari artı kayıt
     if (body.status === "odendi") {
       const alreadyExists = await prisma.financeEntry.findFirst({
         where: { ...tenantWhere(companyId), invoiceNo: inv.invoiceNo },
@@ -39,6 +39,13 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
           },
         });
       }
+    }
+
+    // Fatura geri alındı → cari kaydı sil
+    if (body.status === "bekliyor") {
+      await prisma.financeEntry.deleteMany({
+        where: { ...tenantWhere(companyId), invoiceNo: inv.invoiceNo },
+      });
     }
 
     return NextResponse.json(inv);

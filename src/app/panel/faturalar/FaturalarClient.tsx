@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import {
   FileText, Plus, Building2, TrendingUp, X, Save, Trash2,
   CheckCircle2, Clock, AlertCircle, ChevronDown, ChevronUp,
-  Upload, MapPin, Fuel, Banknote, ExternalLink,
+  Upload, MapPin, Fuel, Banknote, ExternalLink, Calendar, RotateCcw,
 } from "lucide-react";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -802,6 +802,12 @@ export default function FaturalarClient({
   const now = new Date();
   const [bulkPdfModal, setBulkPdfModal] = useState(false);
 
+  // Ödeme tarihi modalı
+  const [payModal, setPayModal] = useState<Invoice | null>(null);
+  const [payDate, setPayDate] = useState("");
+  const [payAmount, setPayAmount] = useState("");
+  const [payingSaving, setPayingSaving] = useState(false);
+
   async function refreshClients() {
     const r = await fetch("/api/clients");
     setClients(await r.json());
@@ -832,14 +838,34 @@ export default function FaturalarClient({
   useEffect(() => { if (tab === "nakit-akisi") loadForecast(); }, [tab]);
   useEffect(() => { if (tab === "net-kazanc") loadNetKazanc(netYear, netMonth); }, [tab, netYear, netMonth]);
 
-  async function markPaid(inv: Invoice) {
-    const today = new Date().toISOString().split("T")[0];
+  function openPayModal(inv: Invoice) {
+    setPayModal(inv);
+    setPayDate(new Date().toISOString().split("T")[0]);
+    setPayAmount(String(inv.payableAmount));
+  }
+
+  async function confirmPaid() {
+    if (!payModal) return;
+    setPayingSaving(true);
+    try {
+      const res = await fetch(`/api/invoices/${payModal.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "odendi", paidAt: payDate, paidAmount: parseFloat(payAmount) }),
+      });
+      if (res.ok) { toast.success("Ödendi olarak işaretlendi"); setPayModal(null); refreshInvoices(); }
+      else toast.error("Hata");
+    } finally { setPayingSaving(false); }
+  }
+
+  async function unmarkPaid(inv: Invoice) {
+    if (!confirm("Ödeme işareti kaldırılsın mı? Cariye eklenen kayıt da silinecek.")) return;
     const res = await fetch(`/api/invoices/${inv.id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "odendi", paidAt: today, paidAmount: inv.payableAmount }),
+      body: JSON.stringify({ status: "bekliyor", paidAt: null, paidAmount: 0 }),
     });
-    if (res.ok) { toast.success("Ödendi olarak işaretlendi"); refreshInvoices(); }
+    if (res.ok) { toast.success("Ödeme geri alındı"); refreshInvoices(); }
     else toast.error("Hata");
   }
 
@@ -935,11 +961,21 @@ export default function FaturalarClient({
                       <p className="text-xs text-slate-400">+KDV {TRY(inv.totalAmount)}</p>
                     </div>
                   </div>
-                  <div className="flex gap-2 mt-3 pt-3 border-t border-slate-50">
-                    {inv.status !== "odendi" && (
-                      <button onClick={() => markPaid(inv)} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-green-700 bg-green-50 hover:bg-green-100 rounded-lg">
+                  <div className="flex gap-2 mt-3 pt-3 border-t border-slate-50 flex-wrap">
+                    {inv.status !== "odendi" ? (
+                      <button onClick={() => openPayModal(inv)} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-green-700 bg-green-50 hover:bg-green-100 rounded-lg">
                         <CheckCircle2 className="w-3.5 h-3.5" /> Ödendi
                       </button>
+                    ) : (
+                      <button onClick={() => unmarkPaid(inv)} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-amber-600 bg-amber-50 hover:bg-amber-100 rounded-lg">
+                        <RotateCcw className="w-3.5 h-3.5" /> Geri Al
+                      </button>
+                    )}
+                    {inv.status === "odendi" && inv.paidAt && (
+                      <span className="flex items-center gap-1 text-xs text-slate-400 self-center">
+                        <Calendar className="w-3 h-3" />
+                        {new Date(inv.paidAt).toLocaleDateString("tr-TR")}
+                      </span>
                     )}
                     <button onClick={() => deleteInvoice(inv.id)} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-red-500 bg-red-50 hover:bg-red-100 rounded-lg ml-auto">
                       <Trash2 className="w-3.5 h-3.5" /> Sil
@@ -1229,6 +1265,57 @@ export default function FaturalarClient({
           onClose={() => setBulkPdfModal(false)}
           onSaved={() => { setBulkPdfModal(false); refreshInvoices(); }}
         />
+      )}
+
+      {/* Ödeme Tarihi Modalı */}
+      {payModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setPayModal(null)} />
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm relative z-10 p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold text-slate-800">Ödeme Bilgisi</h2>
+              <button onClick={() => setPayModal(null)} className="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <p className="text-sm text-slate-500">
+              <span className="font-semibold text-slate-700">{payModal.client.name}</span> — {payModal.invoiceNo}
+            </p>
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 mb-1">Ödeme Tarihi *</label>
+              <input
+                type="date"
+                value={payDate}
+                onChange={(e) => setPayDate(e.target.value)}
+                className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 mb-1">Tahsil Edilen Tutar (₺)</label>
+              <input
+                type="number"
+                step="0.01"
+                value={payAmount}
+                onChange={(e) => setPayAmount(e.target.value)}
+                className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+              />
+              <p className="text-xs text-slate-400 mt-1">Fatura tutarı: ₺{payModal.payableAmount.toLocaleString("tr-TR", { minimumFractionDigits: 2 })}</p>
+            </div>
+            <div className="flex gap-3 pt-1">
+              <button onClick={() => setPayModal(null)} className="flex-1 py-2.5 border border-slate-200 text-slate-600 rounded-xl text-sm font-medium hover:bg-slate-50">
+                İptal
+              </button>
+              <button
+                onClick={confirmPaid}
+                disabled={payingSaving || !payDate}
+                className="flex-1 py-2.5 bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white rounded-xl text-sm font-semibold flex items-center justify-center gap-2"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                {payingSaving ? "Kaydediliyor..." : "Ödendi Olarak İşaretle"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
