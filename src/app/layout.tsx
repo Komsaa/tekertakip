@@ -18,7 +18,8 @@ export const metadata: Metadata = {
     url: "https://merttur.com",
   },
   icons: {
-    icon: "/favicon.ico",
+    icon: "/favicon.png",
+    apple: "/logo.png",
   },
 };
 
