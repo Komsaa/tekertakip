@@ -128,7 +128,30 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // ── 4. Panel kullanıcısı (firma yöneticisi) ───────────────────────────
+    // ── 4. Panel kullanıcısı mobil girişi (mobileUsername + mobilePin) ──────
+    const panelUserMobile = await prisma.panelUser.findFirst({
+      where: { mobileUsername: { equals: u.toLowerCase() }, active: true },
+      select: { username: true, name: true, mobilePin: true, role: true, companyId: true },
+    });
+    if (panelUserMobile?.mobilePin) {
+      const mobileValid = safeCompare(panelUserMobile.mobilePin, p);
+      if (mobileValid) {
+        const company = await prisma.company.findUnique({
+          where: { id: panelUserMobile.companyId ?? "" },
+          select: { active: true },
+        });
+        if (company && !company.active) {
+          return NextResponse.json({ error: "Bu işletmenin erişimi askıya alınmış" }, { status: 403 });
+        }
+        const token = createManagerToken(panelUserMobile.username, {
+          companyId: panelUserMobile.companyId,
+          role: panelUserMobile.role,
+        });
+        return NextResponse.json({ role: "manager", token, username: panelUserMobile.name });
+      }
+    }
+
+    // ── 5. Panel kullanıcısı web şifresi ────────────────────────────────────
     const panelUser = await prisma.panelUser.findFirst({
       where: { username: { equals: u.toLowerCase() }, active: true },
       select: { username: true, name: true, passwordHash: true, role: true, companyId: true },

@@ -23,7 +23,7 @@ export async function GET() {
 
   try {
     const users = await prisma.panelUser.findMany({
-      select: { id: true, username: true, name: true, phone: true, role: true, active: true, companyId: true, createdAt: true },
+      select: { id: true, username: true, name: true, phone: true, role: true, active: true, companyId: true, mobileUsername: true, createdAt: true },
       orderBy: { createdAt: "asc" },
     });
     return NextResponse.json(users);
@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const _adminErr = requireAdmin(session); if (_adminErr) return _adminErr;
 
-  const { username, password, name, phone, role, companyId } = await req.json();
+  const { username, password, name, phone, role, companyId, mobileUsername, mobilePin } = await req.json();
   if (!username || !password || !name) {
     return NextResponse.json({ error: "username, password ve name zorunlu" }, { status: 400 });
   }
@@ -50,8 +50,8 @@ export async function POST(req: NextRequest) {
 
     const passwordHash = await bcrypt.hash(password, 10);
     const user = await prisma.panelUser.create({
-      data: { username, passwordHash, name, phone: phone || null, role: role ?? "firma", active: true, companyId: companyId || null },
-      select: { id: true, username: true, name: true, phone: true, role: true, active: true, companyId: true, createdAt: true },
+      data: { username, passwordHash, name, phone: phone || null, role: role ?? "firma", active: true, companyId: companyId || null, mobileUsername: mobileUsername || null, mobilePin: mobilePin || null },
+      select: { id: true, username: true, name: true, phone: true, role: true, active: true, companyId: true, mobileUsername: true, createdAt: true },
     });
     return NextResponse.json(user, { status: 201 });
   } catch (e) {
@@ -64,7 +64,7 @@ export async function PUT(req: NextRequest) {
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const _adminErr = requireAdmin(session); if (_adminErr) return _adminErr;
 
-  const { id, name, phone, role, active, password, companyId } = await req.json();
+  const { id, name, phone, role, active, password, companyId, mobileUsername, mobilePin } = await req.json();
   if (!id) return NextResponse.json({ error: "id zorunlu" }, { status: 400 });
 
   try {
@@ -84,11 +84,13 @@ export async function PUT(req: NextRequest) {
     if (active !== undefined) data.active = active;
     if (password) data.passwordHash = await bcrypt.hash(password, 10);
     if (companyId !== undefined) data.companyId = companyId || null;
+    if (mobileUsername !== undefined) data.mobileUsername = mobileUsername || null;
+    if (mobilePin !== undefined) data.mobilePin = mobilePin || null;
 
     const user = await prisma.panelUser.update({
       where: { id },
       data,
-      select: { id: true, username: true, name: true, phone: true, role: true, active: true, companyId: true, createdAt: true },
+      select: { id: true, username: true, name: true, phone: true, role: true, active: true, companyId: true, mobileUsername: true, createdAt: true },
     });
     return NextResponse.json(user);
   } catch (e) {

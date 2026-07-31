@@ -31,6 +31,7 @@ type PanelUser = {
   role: string;
   active: boolean;
   companyId: string | null;
+  mobileUsername: string | null;
   createdAt: string;
 };
 
@@ -59,11 +60,11 @@ export default function AdminClient() {
 
   // Panel users
   const [panelUsers, setPanelUsers] = useState<PanelUser[]>([]);
-  const [newUserForm, setNewUserForm] = useState({ username: "", password: "", name: "", phone: "", role: "admin", companyId: "", newCompanyName: "" });
+  const [newUserForm, setNewUserForm] = useState({ username: "", password: "", name: "", phone: "", role: "admin", companyId: "", newCompanyName: "", mobileUsername: "", mobilePin: "" });
   const [newUserError, setNewUserError] = useState("");
   const [newUserSaving, setNewUserSaving] = useState(false);
   const [editingPanelUser, setEditingPanelUser] = useState<string | null>(null);
-  const [editPanelForm, setEditPanelForm] = useState({ name: "", phone: "", role: "admin", password: "", active: true, companyId: "" });
+  const [editPanelForm, setEditPanelForm] = useState({ name: "", phone: "", role: "admin", password: "", active: true, companyId: "", mobileUsername: "", mobilePin: "" });
 
   // Companies
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -247,18 +248,18 @@ export default function AdminClient() {
     const data = await res.json();
     setNewUserSaving(false);
     if (!res.ok) { setNewUserError(data.error); return; }
-    setNewUserForm({ username: "", password: "", name: "", phone: "", role: "admin", companyId: "", newCompanyName: "" });
+    setNewUserForm({ username: "", password: "", name: "", phone: "", role: "admin", companyId: "", newCompanyName: "", mobileUsername: "", mobilePin: "" });
     fetchPanelUsers();
     fetchCompanies();
   }
 
   function startEditPanelUser(u: PanelUser) {
     setEditingPanelUser(u.id);
-    setEditPanelForm({ name: u.name, phone: u.phone ?? "", role: u.role, password: "", active: u.active, companyId: u.companyId ?? "" });
+    setEditPanelForm({ name: u.name, phone: u.phone ?? "", role: u.role, password: "", active: u.active, companyId: u.companyId ?? "", mobileUsername: u.mobileUsername ?? "", mobilePin: "" });
   }
 
   async function savePanelUser(id: string) {
-    const body: Record<string, unknown> = { id, name: editPanelForm.name, phone: editPanelForm.phone, role: editPanelForm.role, active: editPanelForm.active, companyId: editPanelForm.companyId || null };
+    const body: Record<string, unknown> = { id, name: editPanelForm.name, phone: editPanelForm.phone, role: editPanelForm.role, active: editPanelForm.active, companyId: editPanelForm.companyId || null, mobileUsername: editPanelForm.mobileUsername || null, mobilePin: editPanelForm.mobilePin || undefined };
     if (editPanelForm.password) body.password = editPanelForm.password;
     await fetch("/api/admin/panel-users", {
       method: "PUT",
@@ -385,6 +386,18 @@ export default function AdminClient() {
                   ))}
                 </select>
               </div>
+              <input
+                placeholder="Mobil Kullanıcı Adı (opsiyonel)"
+                className="bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm font-mono"
+                value={newUserForm.mobileUsername}
+                onChange={(e) => setNewUserForm((f) => ({ ...f, mobileUsername: e.target.value.toLowerCase() }))}
+              />
+              <input
+                placeholder="Mobil PIN (opsiyonel)"
+                className="bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm font-mono"
+                value={newUserForm.mobilePin}
+                onChange={(e) => setNewUserForm((f) => ({ ...f, mobilePin: e.target.value }))}
+              />
             </div>
             {newUserError && <p className="text-red-400 text-xs mt-2">{newUserError}</p>}
             <button
@@ -406,6 +419,7 @@ export default function AdminClient() {
                   <th className="pb-2 pr-4">Telefon</th>
                   <th className="pb-2 pr-4">Şirket</th>
                   <th className="pb-2 pr-4">Rol</th>
+                  <th className="pb-2 pr-4">Mobil Kullanıcı</th>
                   <th className="pb-2 pr-4">Durum</th>
                   <th className="pb-2 pr-4">Oluşturulma</th>
                   <th className="pb-2"></th>
@@ -475,6 +489,26 @@ export default function AdminClient() {
                     </td>
                     <td className="py-3 pr-4">
                       {editingPanelUser === u.id ? (
+                        <div className="flex gap-1">
+                          <input
+                            className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs w-28 font-mono"
+                            value={editPanelForm.mobileUsername}
+                            placeholder="mobil kullanıcı"
+                            onChange={(e) => setEditPanelForm((f) => ({ ...f, mobileUsername: e.target.value.toLowerCase() }))}
+                          />
+                          <input
+                            className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs w-20 font-mono"
+                            value={editPanelForm.mobilePin}
+                            placeholder="PIN"
+                            onChange={(e) => setEditPanelForm((f) => ({ ...f, mobilePin: e.target.value }))}
+                          />
+                        </div>
+                      ) : (
+                        <span className="font-mono text-xs text-yellow-300">{u.mobileUsername ?? "—"}</span>
+                      )}
+                    </td>
+                    <td className="py-3 pr-4">
+                      {editingPanelUser === u.id ? (
                         <label className="flex items-center gap-2 text-sm cursor-pointer">
                           <input
                             type="checkbox"
@@ -536,7 +570,7 @@ export default function AdminClient() {
                 ))}
                 {panelUsers.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="py-8 text-center text-gray-500">
+                    <td colSpan={9} className="py-8 text-center text-gray-500">
                       Henüz panel kullanıcısı yok. Yukarıdan ekleyebilirsiniz.
                     </td>
                   </tr>

@@ -113,17 +113,6 @@ export default function AddDriverModal({ companies = [] }: { companies?: Company
                     placeholder="05XX XXX XX XX"
                   />
                 </div>
-                {companies.length > 0 && (
-                  <div className="col-span-2">
-                    <label>Şirket</label>
-                    <select value={form.companyId} onChange={(e) => set("companyId", e.target.value)}>
-                      <option value="">Seçin...</option>
-                      {companies.map((c) => (
-                        <option key={c.id} value={c.id}>{c.name} ({c.code})</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
                 <div>
                   <label>Ehliyet Sınıfı</label>
                   <select

@@ -753,6 +753,9 @@ model PanelUser {
   active       Boolean  @default(true)
   companyId    String?
   company      Company? @relation(fields: [companyId], references: [id])
+  // Mobil uygulama erişimi (yönetici için ayrı, opsiyonel)
+  mobileUsername String? @unique
+  mobilePin      String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }
