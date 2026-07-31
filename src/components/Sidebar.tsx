@@ -125,6 +125,8 @@ export default function Sidebar({ userName, role, companyType }: SidebarProps) {
   const visibleGroups = navGroups.filter((group) => {
     if (!isAdmin && group.label === "Sistem") return false;
     if (isOkul && (group.label === "Operasyon" || group.label === "Finans")) return false;
+    // Admin kullanıcılar için sadece Genel ve Sistem
+    if (isAdmin && !["Genel", "Sistem"].includes(group.label)) return false;
     return true;
   });
 
