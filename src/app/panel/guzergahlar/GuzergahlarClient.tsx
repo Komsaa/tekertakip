@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, MapPin, Trash2, Edit2, CheckCircle, Clock, ChevronDown, ChevronUp, Search, X, GripVertical, Link2, Sparkles, Users } from "lucide-react";
+import { Plus, MapPin, Trash2, Edit2, CheckCircle, Clock, ChevronDown, ChevronUp, Search, X, GripVertical, Link2, Sparkles, Users, Bell } from "lucide-react";
 import toast from "react-hot-toast";
 import { computeLiveStatus, type RouteStop } from "@/lib/routeStatus";
 import RouteMap from "@/components/RouteMap";
@@ -61,6 +61,66 @@ export default function GuzergahlarClient({
   const [pendingStopIdx, setPendingStopIdx] = useState<number | null>(null);
   const [geoSearch, setGeoSearch] = useState<Record<number, string>>({});
   const [geoLoading, setGeoLoading] = useState<Record<number, boolean>>({});
+
+  // Güzergah teklifleri (şöför önerileri)
+  interface Proposal {
+    id: string;
+    name: string | null;
+    status: string;
+    createdAt: string;
+    stops: { name: string; lat: number; lng: number; timestamp: string }[];
+    driver: { id: string; name: string };
+  }
+  const [proposals, setProposals] = useState<Proposal[]>([]);
+  const [proposalsLoaded, setProposalsLoaded] = useState(false);
+  const [showProposals, setShowProposals] = useState(false);
+  const [reviewProposal, setReviewProposal] = useState<Proposal | null>(null);
+  const [propName, setPropName] = useState("");
+  const [propType, setPropType] = useState("okul");
+  const [propStops, setPropStops] = useState<{ name: string; lat: number; lng: number; timestamp: string; estimatedTime: string }[]>([]);
+  const [propSaving, setPropSaving] = useState(false);
+
+  async function loadProposals() {
+    const res = await fetch("/api/panel/route-proposals");
+    if (res.ok) { setProposals(await res.json()); }
+    setProposalsLoaded(true);
+  }
+
+  function openReview(p: Proposal) {
+    setReviewProposal(p);
+    setPropName(p.name ?? `${p.driver.name} Güzergahı`);
+    setPropType("okul");
+    setPropStops(p.stops.map((s) => ({
+      ...s,
+      estimatedTime: new Date(s.timestamp).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" }),
+    })));
+  }
+
+  async function approveProposal() {
+    if (!reviewProposal) return;
+    setPropSaving(true);
+    try {
+      const res = await fetch(`/api/panel/route-proposals/${reviewProposal.id}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: propName, type: propType, stops: propStops }),
+      });
+      if (!res.ok) { const e = await res.json(); toast.error(e.error ?? "Hata"); return; }
+      toast.success("Güzergah oluşturuldu!");
+      setReviewProposal(null);
+      setProposals((prev) => prev.filter((p) => p.id !== reviewProposal.id));
+      const updated = await fetch("/api/routes").then((r) => r.json());
+      setRoutes(updated);
+    } catch { toast.error("Bağlantı hatası"); }
+    finally { setPropSaving(false); }
+  }
+
+  async function rejectProposal(id: string) {
+    if (!confirm("Bu teklif reddedilsin mi?")) return;
+    await fetch(`/api/panel/route-proposals/${id}`, { method: "DELETE" });
+    setProposals((prev) => prev.filter((p) => p.id !== id));
+    toast.success("Teklif reddedildi");
+  }
 
   // Yolcu yönetimi
   const [openStopId, setOpenStopId] = useState<string | null>(null);
@@ -284,14 +344,65 @@ export default function GuzergahlarClient({
           <h1 className="text-2xl font-black text-slate-800">Güzergahlar</h1>
           <p className="text-slate-500 text-sm mt-1">Sabit güzergahları bir kez tanımla, canlı olarak takip et</p>
         </div>
-        <button
-          onClick={openNew}
-          className="flex items-center gap-2 bg-[#DC2626] hover:bg-[#B91C1C] text-white px-4 py-2 rounded-xl text-sm font-semibold transition-all"
-        >
-          <Plus className="w-4 h-4" />
-          Yeni Güzergah
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => { setShowProposals(!showProposals); if (!proposalsLoaded) loadProposals(); }}
+            className="flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-all"
+          >
+            <Bell className="w-4 h-4" />
+            Şöför Teklifleri
+            {proposals.length > 0 && (
+              <span className="bg-white text-amber-600 text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">{proposals.length}</span>
+            )}
+          </button>
+          <button
+            onClick={openNew}
+            className="flex items-center gap-2 bg-[#DC2626] hover:bg-[#B91C1C] text-white px-4 py-2 rounded-xl text-sm font-semibold transition-all"
+          >
+            <Plus className="w-4 h-4" />
+            Yeni Güzergah
+          </button>
+        </div>
       </div>
+
+      {/* Şöför teklifleri paneli */}
+      {showProposals && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 space-y-3">
+          <h2 className="font-bold text-amber-800 flex items-center gap-2">
+            <Bell className="w-4 h-4" />
+            Şöförlerden Gelen Güzergah Teklifleri
+          </h2>
+          {!proposalsLoaded && <p className="text-sm text-amber-600">Yükleniyor...</p>}
+          {proposalsLoaded && proposals.length === 0 && (
+            <p className="text-sm text-amber-600 italic">Bekleyen teklif yok.</p>
+          )}
+          {proposals.map((p) => (
+            <div key={p.id} className="bg-white rounded-xl border border-amber-200 p-4 flex items-start justify-between gap-4">
+              <div>
+                <div className="font-semibold text-slate-800">{p.name ?? `${p.driver.name} Güzergahı`}</div>
+                <div className="text-sm text-slate-500 mt-0.5">
+                  👤 {p.driver.name} &bull; {p.stops.length} durak &bull;{" "}
+                  {new Date(p.createdAt).toLocaleDateString("tr-TR")}
+                </div>
+              </div>
+              <div className="flex gap-2 flex-shrink-0">
+                <button
+                  onClick={() => openReview(p)}
+                  className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-lg"
+                >
+                  İncele & Onayla
+                </button>
+                <button
+                  onClick={() => rejectProposal(p.id)}
+                  className="px-3 py-1.5 bg-slate-100 hover:bg-red-50 text-slate-500 hover:text-red-600 text-sm font-semibold rounded-lg"
+                >
+                  Reddet
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {routes.length === 0 && !showForm && (
         <div className="bg-white rounded-2xl p-12 text-center border border-dashed border-slate-200">
@@ -728,6 +839,72 @@ export default function GuzergahlarClient({
               <button onClick={closeForm} className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-xl transition-colors">İptal</button>
               <button onClick={handleSave} disabled={saving} className="px-6 py-2 bg-[#DC2626] hover:bg-[#B91C1C] text-white rounded-xl text-sm font-semibold disabled:opacity-50">
                 {saving ? "Kaydediliyor..." : editingRoute ? "Güncelle" : "Kaydet"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Teklif İnceleme Modal */}
+      {reviewProposal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center overflow-y-auto p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl my-8">
+            <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+              <h2 className="font-bold text-slate-800 text-lg">Teklifi İncele: {reviewProposal.driver.name}</h2>
+              <button onClick={() => setReviewProposal(null)} className="p-2 text-slate-400 hover:text-slate-600"><X className="w-5 h-5" /></button>
+            </div>
+            <div className="p-6 space-y-5">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Güzergah Adı</label>
+                  <input
+                    value={propName}
+                    onChange={(e) => setPropName(e.target.value)}
+                    className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#DC2626]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Tür</label>
+                  <select value={propType} onChange={(e) => setPropType(e.target.value)} className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#DC2626]">
+                    <option value="okul">Okul Servisi</option>
+                    <option value="personel">Personel</option>
+                    <option value="ozel">Özel</option>
+                    <option value="transfer">Transfer</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-bold text-slate-700 mb-3">Duraklar — isimleri ve saatleri düzenleyebilirsin</h3>
+                <div className="space-y-2">
+                  {propStops.map((s, i) => (
+                    <div key={i} className="flex items-center gap-3 p-2.5 bg-slate-50 rounded-xl">
+                      <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0 ${i === 0 ? "bg-blue-500" : i === propStops.length - 1 ? "bg-red-500" : "bg-slate-400"}`}>{i + 1}</div>
+                      <input
+                        value={s.name}
+                        onChange={(e) => setPropStops(propStops.map((x, idx) => idx === i ? { ...x, name: e.target.value } : x))}
+                        className="flex-1 border border-slate-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#DC2626]"
+                      />
+                      <input
+                        type="time"
+                        value={s.estimatedTime}
+                        onChange={(e) => setPropStops(propStops.map((x, idx) => idx === i ? { ...x, estimatedTime: e.target.value } : x))}
+                        className="w-24 border border-slate-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#DC2626]"
+                      />
+                      <span className="text-xs text-slate-400 font-mono whitespace-nowrap">{s.lat.toFixed(4)},{s.lng.toFixed(4)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="p-6 border-t border-slate-100 flex justify-end gap-3">
+              <button onClick={() => setReviewProposal(null)} className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-xl">İptal</button>
+              <button
+                onClick={approveProposal}
+                disabled={propSaving}
+                className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-xl text-sm font-semibold disabled:opacity-50"
+              >
+                {propSaving ? "Oluşturuluyor..." : "Onayla & Güzergah Oluştur"}
               </button>
             </div>
           </div>

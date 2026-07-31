@@ -35,6 +35,7 @@ model Company {
   paymentCalendars PaymentCalendar[]
   checks       Check[]
   subcontractors Subcontractor[]
+  routeProposals RouteProposal[]
 }
 
 // ============ AUTH (NextAuth) ============
@@ -146,6 +147,7 @@ model Driver {
   routes            Route[]
   vehicleReports    VehicleReport[]
   locationHistory   DriverLocationHistory[]
+  routeProposals    RouteProposal[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -562,6 +564,20 @@ model TripAttendance {
   createdAt   DateTime       @default(now())
 
   @@unique([passengerId, routeId, date])
+}
+
+// ============ GÜZERGAH TEKLİFLERİ (Şöför kayıt) ============
+model RouteProposal {
+  id        String   @id @default(cuid())
+  driverId  String
+  driver    Driver   @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id])
+  name      String?
+  status    String   @default("pending") // pending, approved, rejected
+  stops     Json     // [{name, lat, lng, timestamp}]
+  notes     String?
+  createdAt DateTime @default(now())
 }
 
 // ============ KREDİ KARTLARI ============
