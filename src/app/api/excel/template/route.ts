@@ -14,12 +14,12 @@ export async function GET(req: NextRequest) {
 
   if (type === "drivers") {
     const headers = [
-      ["Ad Soyad *", "Telefon", "TC Kimlik No", "Ehliyet Sınıfı", "Ehliyet Son Geçerlilik", "Doğum Tarihi", "Adres", "Notlar"],
-      ["Ahmet Yılmaz", "05301234567", "12345678901", "D", "2027-06-30", "1985-03-15", "İzmir Merkez", "Örnek satır - silinebilir"],
+      ["Ad Soyad *", "Telefon", "Ehliyet Sınıfı", "Ehliyet Son Geçerlilik", "Doğum Tarihi", "Adres", "Notlar"],
+      ["Ahmet Yılmaz", "05301234567", "D", "2027-06-30", "1985-03-15", "İzmir Merkez", "Örnek satır - silinebilir"],
     ];
     const ws = XLSX.utils.aoa_to_sheet(headers);
     ws["!cols"] = [
-      { wch: 20 }, { wch: 15 }, { wch: 15 }, { wch: 12 },
+      { wch: 20 }, { wch: 15 }, { wch: 12 },
       { wch: 20 }, { wch: 15 }, { wch: 25 }, { wch: 20 },
     ];
     XLSX.utils.book_append_sheet(wb, ws, "Şöförler");

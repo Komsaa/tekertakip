@@ -30,7 +30,6 @@ export async function GET(req: NextRequest) {
     const rows = drivers.map((d) => ({
       "Ad Soyad": d.name,
       "Telefon": d.phone ?? "",
-      "TC Kimlik No": d.tcNo ?? "",
       "Ehliyet Sınıfı": d.licenseClass ?? "",
       "Ehliyet Son Geçerlilik": fmt(d.licenseExpiry),
       "Doğum Tarihi": fmt(d.birthDate),
@@ -41,7 +40,7 @@ export async function GET(req: NextRequest) {
 
     const ws = XLSX.utils.json_to_sheet(rows);
     ws["!cols"] = [
-      { wch: 22 }, { wch: 15 }, { wch: 15 }, { wch: 12 },
+      { wch: 22 }, { wch: 15 }, { wch: 12 },
       { wch: 22 }, { wch: 15 }, { wch: 25 }, { wch: 8 }, { wch: 20 },
     ];
     XLSX.utils.book_append_sheet(wb, ws, "Şöförler");

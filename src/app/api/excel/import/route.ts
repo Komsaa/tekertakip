@@ -57,7 +57,6 @@ export async function POST(req: NextRequest) {
             data: {
               name,
               phone: String(row["Telefon"] || "").trim() || null,
-              tcNo: String(row["TC Kimlik No"] || "").trim() || null,
               licenseClass: String(row["Ehliyet Sınıfı"] || "").trim() || null,
               licenseExpiry: parseDate(row["Ehliyet Son Geçerlilik"]),
               birthDate: parseDate(row["Doğum Tarihi"]),
