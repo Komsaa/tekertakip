@@ -7,7 +7,7 @@ import { LogoIcon } from "@/components/Logo";
 import {
   LayoutDashboard, Users, Truck, ClipboardList, Fuel,
   LogOut, Menu, X, Route, CalendarDays, Wallet, MapPin,
-  ShieldCheck, Sparkles, FlaskConical, Wrench, Banknote,
+  ShieldCheck, Sparkles, Wrench, Banknote,
   Receipt, HandCoins, Bus, CreditCard, ChevronDown, BarChart3, AlertTriangle,
 } from "lucide-react";
 import { useState, useEffect } from "react";
@@ -65,7 +65,6 @@ const navGroups: NavGroup[] = [
     icon: ShieldCheck,
     items: [
       { href: "/panel/admin",           icon: ShieldCheck,  label: "Admin" },
-      { href: "/panel/admin/simulator", icon: FlaskConical, label: "Mobil Simülatör" },
     ],
   },
 ];
