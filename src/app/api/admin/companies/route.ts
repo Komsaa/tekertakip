@@ -8,8 +8,15 @@ export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const _adminErr = requireAdmin(session); if (_adminErr) return _adminErr;
-  const companies = await prisma.company.findMany({ orderBy: { name: "asc" } });
-  return NextResponse.json(companies);
+  const companies = await prisma.company.findMany({
+    orderBy: { name: "asc" },
+    include: {
+      _count: { select: { drivers: true, vehicles: true, panelUsers: true } },
+    },
+  });
+  const routeCounts = await prisma.route.groupBy({ by: ["companyId"], _count: { _all: true } }).catch(() => []);
+  const routeMap = Object.fromEntries(routeCounts.map((r) => [r.companyId ?? "", r._count._all]));
+  return NextResponse.json(companies.map((c) => ({ ...c, routeCount: routeMap[c.id] ?? 0 })));
 }
 
 export async function POST(req: NextRequest) {

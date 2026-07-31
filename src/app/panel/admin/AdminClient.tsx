@@ -41,6 +41,8 @@ type Company = {
   type: string;
   active: boolean;
   demoExpiresAt?: string | null;
+  routeCount?: number;
+  _count?: { drivers: number; vehicles: number; panelUsers: number };
 };
 
 const ACTION_COLORS: Record<string, string> = {
@@ -786,6 +788,10 @@ export default function AdminClient() {
                   <th className="pb-2 pr-4">Kod</th>
                   <th className="pb-2 pr-4">Tip</th>
                   <th className="pb-2 pr-4">Durum</th>
+                  <th className="pb-2 pr-4">Şöför</th>
+                  <th className="pb-2 pr-4">Araç</th>
+                  <th className="pb-2 pr-4">Güzergah</th>
+                  <th className="pb-2 pr-4">Kullanıcı</th>
                   <th className="pb-2 pr-4">Süre Sonu</th>
                   <th className="pb-2"></th>
                 </tr>
@@ -812,6 +818,10 @@ export default function AdminClient() {
                         {c.active ? "Aktif" : "Pasif"}
                       </button>
                     </td>
+                    <td className="py-3 pr-4 text-center text-sm font-mono">{c._count?.drivers ?? "-"}</td>
+                    <td className="py-3 pr-4 text-center text-sm font-mono">{c._count?.vehicles ?? "-"}</td>
+                    <td className="py-3 pr-4 text-center text-sm font-mono">{c.routeCount ?? "-"}</td>
+                    <td className="py-3 pr-4 text-center text-sm font-mono">{c._count?.panelUsers ?? "-"}</td>
                     <td className="py-3 pr-4 min-w-[220px]">
                       {isEditing ? (
                         <div className="space-y-1.5">
