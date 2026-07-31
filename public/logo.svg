@@ -1,0 +1,18 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Arka plan -->
+  <rect width="512" height="512" rx="115" fill="#1B2437"/>
+
+  <!-- Dış lastik halkası -->
+  <circle cx="256" cy="256" r="174" stroke="white" stroke-width="39" fill="none"/>
+
+  <!-- 3 jant kolu -->
+  <line x1="256" y1="82" x2="256" y2="256" stroke="white" stroke-width="36" stroke-linecap="round"/>
+  <line x1="105" y1="343" x2="256" y2="256" stroke="white" stroke-width="36" stroke-linecap="round"/>
+  <line x1="407" y1="343" x2="256" y2="256" stroke="white" stroke-width="36" stroke-linecap="round"/>
+
+  <!-- GPS pin -->
+  <path d="M256 138 C210 138 164 179 164 220 C164 274 256 368 256 368 C256 368 348 274 348 220 C348 179 302 138 256 138Z" fill="#DC2626"/>
+
+  <!-- Pin beyaz deliği -->
+  <circle cx="256" cy="214" r="50" fill="white"/>
+</svg>
