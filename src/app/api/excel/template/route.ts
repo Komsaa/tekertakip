@@ -14,13 +14,14 @@ export async function GET(req: NextRequest) {
 
   if (type === "drivers") {
     const headers = [
-      ["Ad Soyad *", "Telefon", "Ehliyet Sınıfı", "Ehliyet Son Geçerlilik", "Adres", "Notlar"],
-      ["Ahmet Yılmaz", "05301234567", "D", "2027-06-30", "İzmir Merkez", "Örnek satır - silinebilir"],
+      ["Ad Soyad *", "Telefon", "Ehliyet No", "Ehliyet Sınıfı", "Ehliyet Son Geçerlilik", "SRC No", "SRC Son Geçerlilik", "Psikoteknik Son Geçerlilik", "Adli Sicil Geçerlilik", "Sağlık Raporu Geçerlilik", "Adres", "Notlar"],
+      ["Ahmet Yılmaz", "05301234567", "A-123456", "D", "2027-06-30", "SRC-123456", "2028-03-15", "2028-03-15", "2026-12-31", "2026-09-01", "İzmir Merkez", "Örnek satır - silinebilir"],
     ];
     const ws = XLSX.utils.aoa_to_sheet(headers);
     ws["!cols"] = [
-      { wch: 20 }, { wch: 15 }, { wch: 12 },
-      { wch: 20 }, { wch: 25 }, { wch: 20 },
+      { wch: 20 }, { wch: 15 }, { wch: 14 }, { wch: 12 },
+      { wch: 22 }, { wch: 14 }, { wch: 22 }, { wch: 22 },
+      { wch: 22 }, { wch: 22 }, { wch: 25 }, { wch: 20 },
     ];
     XLSX.utils.book_append_sheet(wb, ws, "Şöförler");
   } else if (type === "vehicles") {

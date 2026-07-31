@@ -20,7 +20,7 @@ import ExcelImportButton from "./ExcelImportButton";
 
 async function getDrivers(companyId: string | null) {
   return prisma.driver.findMany({
-    where: tenantWhere(companyId),
+    where: { ...tenantWhere(companyId), NOT: { status: "deleted" } },
     orderBy: { name: "asc" },
     include: { vehicles: { include: { vehicle: { select: { id: true, plate: true } } } }, company: { select: { id: true, name: true } }, _count: { select: { jobs: true } } },
   }).catch(() => []);

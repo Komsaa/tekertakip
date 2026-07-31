@@ -9,8 +9,12 @@ export const dynamic = "force-dynamic";
 
 // docType → DB expiry field haritası
 const DRIVER_EXPIRY: Record<string, string> = {
-  license:      "licenseExpiry",
-  residenceDoc: "residenceDocDate",
+  license:       "licenseExpiry",
+  src:           "srcExpiry",
+  psychotech:    "psychotechExpiry",
+  criminalRecord: "criminalRecordExpiry",
+  healthReport:  "healthReportExpiry",
+  residenceDoc:  "residenceDocDate",
 };
 const VEHICLE_EXPIRY: Record<string, string> = {
   inspection:  "inspectionExpiry",

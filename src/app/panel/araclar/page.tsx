@@ -11,7 +11,7 @@ import ExcelImportButton from "../soforler/ExcelImportButton";
 
 async function getVehicles(companyId: string | null) {
   return prisma.vehicle.findMany({
-    where: tenantWhere(companyId),
+    where: { ...tenantWhere(companyId), NOT: { status: "deleted" } },
     orderBy: { plate: "asc" },
     include: {
       assignedDrivers: { include: { driver: { select: { id: true, name: true } } } },

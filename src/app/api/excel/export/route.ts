@@ -30,8 +30,14 @@ export async function GET(req: NextRequest) {
     const rows = drivers.map((d) => ({
       "Ad Soyad": d.name,
       "Telefon": d.phone ?? "",
+      "Ehliyet No": d.licenseNumber ?? "",
       "Ehliyet Sınıfı": d.licenseClass ?? "",
       "Ehliyet Son Geçerlilik": fmt(d.licenseExpiry),
+      "SRC No": d.srcNumber ?? "",
+      "SRC Son Geçerlilik": fmt(d.srcExpiry),
+      "Psikoteknik Son Geçerlilik": fmt(d.psychotechExpiry),
+      "Adli Sicil Geçerlilik": fmt(d.criminalRecordExpiry),
+      "Sağlık Raporu Geçerlilik": fmt(d.healthReportExpiry),
       "Adres": d.address ?? "",
       "Durum": d.status === "active" ? "Aktif" : "Pasif",
       "Notlar": d.notes ?? "",
@@ -39,8 +45,9 @@ export async function GET(req: NextRequest) {
 
     const ws = XLSX.utils.json_to_sheet(rows);
     ws["!cols"] = [
-      { wch: 22 }, { wch: 15 }, { wch: 12 },
-      { wch: 22 }, { wch: 25 }, { wch: 8 }, { wch: 20 },
+      { wch: 22 }, { wch: 15 }, { wch: 14 }, { wch: 12 },
+      { wch: 22 }, { wch: 14 }, { wch: 22 }, { wch: 22 },
+      { wch: 22 }, { wch: 22 }, { wch: 25 }, { wch: 8 }, { wch: 20 },
     ];
     XLSX.utils.book_append_sheet(wb, ws, "Şöförler");
 
