@@ -53,7 +53,7 @@ export async function GET(req: NextRequest) {
     take: 30,
   });
 
-  const driverIds = [...new Set(entries.map((e) => e.driverId).filter(Boolean) as string[])];
+  const driverIds = Array.from(new Set(entries.map((e) => e.driverId).filter(Boolean) as string[]));
   const driverNames = await prisma.driver.findMany({
     where: { id: { in: driverIds } },
     select: { id: true, name: true },
