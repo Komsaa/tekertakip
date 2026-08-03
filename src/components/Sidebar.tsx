@@ -233,7 +233,7 @@ export default function Sidebar({ userName, role, companyType }: SidebarProps) {
     <>
       {/* Desktop */}
       <aside className="hidden lg:flex w-60 bg-[#1B2437] flex-col flex-shrink-0 h-screen sticky top-0">
-        <SidebarContent />
+        {SidebarContent()}
       </aside>
 
       {/* Mobile hamburger */}
@@ -255,7 +255,7 @@ export default function Sidebar({ userName, role, companyType }: SidebarProps) {
               >
                 <X className="w-5 h-5" />
               </button>
-              <SidebarContent />
+              {SidebarContent()}
             </div>
           </>
         )}

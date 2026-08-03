@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { getCompanyId, tenantWhere } from "@/lib/tenant";
 import KrediKartlariClient from "./KrediKartlariClient";
 
 export default async function KrediKartlariPage() {
@@ -13,8 +14,9 @@ export default async function KrediKartlariPage() {
     const month = now.getMonth() + 1;
     const year = now.getFullYear();
 
+    const companyId = getCompanyId(session);
     const cards = await prisma.creditCard.findMany({
-      where: { active: true },
+      where: { active: true, ...tenantWhere(companyId) },
       include: {
         expenses: {
           orderBy: { date: "desc" },

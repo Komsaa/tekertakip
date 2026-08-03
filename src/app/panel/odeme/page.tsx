@@ -1,10 +1,16 @@
 import { prisma } from "@/lib/prisma";
 import OdemeClient from "./OdemeClient";
 import { differenceInDays } from "date-fns";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import { getCompanyId, tenantWhere } from "@/lib/tenant";
 
-async function getData() {
+async function getData(companyId: string | null) {
+  const cFilter = tenantWhere(companyId);
   const [contacts, transactions, checks] = await Promise.all([
     prisma.contact.findMany({
+      where: { ...cFilter },
       orderBy: { name: "asc" },
       include: {
         transactions: true,
@@ -12,10 +18,12 @@ async function getData() {
       },
     }).catch(() => []),
     prisma.contactTransaction.findMany({
+      where: { contact: { ...cFilter } },
       orderBy: { date: "desc" },
       include: { contact: { select: { id: true, name: true, type: true } } },
     }).catch(() => []),
     prisma.check.findMany({
+      where: { contact: { ...cFilter } },
       orderBy: { dueDate: "asc" },
       include: { contact: { select: { id: true, name: true } } },
     }).catch(() => []),
@@ -82,8 +90,11 @@ async function getData() {
 }
 
 export default async function OdemePage() {
+  const session = await getServerSession(authOptions);
+  if (!session) redirect("/login");
+  const companyId = getCompanyId(session);
   try {
-    const data = await getData();
+    const data = await getData(companyId);
     return <OdemeClient {...data} />;
   } catch (e) {
     console.error("Ödeme sayfa hatası:", e);
