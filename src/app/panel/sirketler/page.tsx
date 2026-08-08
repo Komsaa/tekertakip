@@ -409,6 +409,7 @@ export default function SirketlerPage() {
                           <div className="flex-1 min-w-0">
                             <div className="text-xs font-semibold text-slate-700 truncate">{u.name}</div>
                             <div className="text-xs text-slate-400 font-mono truncate">@{u.username}</div>
+                            {u.phone && <div className="text-xs text-slate-500 truncate">{u.phone}</div>}
                           </div>
                           <span className={`text-xs px-1.5 py-0.5 rounded font-medium flex-shrink-0 ${
                             u.role === "admin" ? "bg-red-100 text-red-700" : "bg-blue-100 text-blue-700"

@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { logAction } from "@/lib/audit";
-import { getCompanyId, tenantWhere, tenantData } from "@/lib/tenant";
+import { getCompanyId, tenantWhere, tenantData, requireTenant } from "@/lib/tenant";
 
 function pd(s: string | undefined | null) {
   if (!s) return null;
@@ -14,6 +14,7 @@ function pd(s: string | undefined | null) {
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const tenantErr = requireTenant(session); if (tenantErr) return tenantErr;
   const companyId = getCompanyId(session);
   return NextResponse.json(await prisma.vehicle.findMany({ where: { ...tenantWhere(companyId), status: { not: "deleted" } }, orderBy: { plate: "asc" } }));
 }

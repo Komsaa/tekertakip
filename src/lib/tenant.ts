@@ -28,3 +28,14 @@ export function requireAdmin(session: Session): NextResponse | null {
   }
   return null;
 }
+
+// firma rolü + null companyId kombinasyonunu engeller
+export function requireTenant(session: Session): NextResponse | null {
+  if (getRole(session) !== "admin" && !getCompanyId(session)) {
+    return NextResponse.json(
+      { error: "Şirket bilgisi eksik, lütfen tekrar giriş yapın" },
+      { status: 403 }
+    );
+  }
+  return null;
+}

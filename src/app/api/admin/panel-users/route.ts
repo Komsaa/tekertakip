@@ -41,6 +41,9 @@ export async function POST(req: NextRequest) {
   if (!username || !password || !name) {
     return NextResponse.json({ error: "username, password ve name zorunlu" }, { status: 400 });
   }
+  if ((role ?? "firma") === "firma" && !companyId) {
+    return NextResponse.json({ error: "Firma kullanıcısı için şirket seçimi zorunlu" }, { status: 400 });
+  }
 
   try {
     if (role === "admin" && companyId) {
@@ -66,6 +69,9 @@ export async function PUT(req: NextRequest) {
 
   const { id, name, phone, role, active, password, companyId, mobileUsername, mobilePin } = await req.json();
   if (!id) return NextResponse.json({ error: "id zorunlu" }, { status: 400 });
+  if (role === "firma" && companyId !== undefined && !companyId) {
+    return NextResponse.json({ error: "Firma kullanıcısı için şirket seçimi zorunlu" }, { status: 400 });
+  }
 
   try {
     if (role === "admin") {

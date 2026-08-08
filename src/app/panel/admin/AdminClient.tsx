@@ -70,7 +70,7 @@ export default function AdminClient() {
   const [newUserForm, setNewUserForm] = useState({ username: "", password: "", name: "", phone: "", role: "firma", companyId: "", newCompanyName: "", mobileUsername: "", mobilePin: "" });
   const [newUserError, setNewUserError] = useState("");
   const [newUserSaving, setNewUserSaving] = useState(false);
-  const [editingUser, setEditingUser] = useState<string | null>(null);
+  const [editingUser, setEditingUser] = useState<PanelUser | null>(null);
   const [editUserForm, setEditUserForm] = useState({ name: "", phone: "", role: "firma", password: "", active: true, companyId: "", mobileUsername: "", mobilePin: "" });
 
   // Mobil kullanıcılar (şöförler)
@@ -210,8 +210,9 @@ export default function AdminClient() {
     fetchPanelUsers(); fetchCompanies();
   }
 
-  async function savePanelUser(id: string) {
-    const body: Record<string, unknown> = { id, ...editUserForm, companyId: editUserForm.companyId || null, mobileUsername: editUserForm.mobileUsername || null, mobilePin: editUserForm.mobilePin || undefined };
+  async function savePanelUser() {
+    if (!editingUser) return;
+    const body: Record<string, unknown> = { id: editingUser.id, ...editUserForm, companyId: editUserForm.companyId || null, mobileUsername: editUserForm.mobileUsername || null, mobilePin: editUserForm.mobilePin || undefined };
     if (!editUserForm.password) delete body.password;
     await fetch("/api/admin/panel-users", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
     setEditingUser(null);
@@ -222,6 +223,11 @@ export default function AdminClient() {
     if (!confirm("Bu kullanıcıyı silmek istediğinizden emin misiniz?")) return;
     await fetch("/api/admin/panel-users", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
     fetchPanelUsers();
+  }
+
+  function openEditUser(u: PanelUser) {
+    setEditingUser(u);
+    setEditUserForm({ name: u.name, phone: u.phone ?? "", role: u.role, password: "", active: u.active, companyId: u.companyId ?? "", mobileUsername: u.mobileUsername ?? "", mobilePin: "" });
   }
 
   // ── Mobil kullanıcı işlemleri ─────────────────────────────────────────────
@@ -410,27 +416,40 @@ export default function AdminClient() {
           <div className="bg-gray-800/50 rounded-xl border border-gray-700 p-5">
             <h2 className="text-sm font-semibold text-gray-300 mb-4">Yeni Panel Kullanıcısı</h2>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              <input placeholder="Ad Soyad *" className="bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm" value={newUserForm.name} onChange={(e) => setNewUserForm((f) => ({ ...f, name: e.target.value }))} />
-              <input placeholder="Kullanıcı Adı *" className="bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm font-mono" value={newUserForm.username} onChange={(e) => setNewUserForm((f) => ({ ...f, username: e.target.value }))} />
-              <input placeholder="Şifre *" type="password" className="bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm" value={newUserForm.password} onChange={(e) => setNewUserForm((f) => ({ ...f, password: e.target.value }))} />
-              <input placeholder="Telefon" className="bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm" value={newUserForm.phone} onChange={(e) => setNewUserForm((f) => ({ ...f, phone: e.target.value }))} />
-              <select className="bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm" value={newUserForm.role} onChange={(e) => setNewUserForm((f) => ({ ...f, role: e.target.value }))}>
-                <option value="firma">Firma / Muhasebeci</option>
-                <option value="admin">Admin</option>
-              </select>
-              <div className="flex flex-col gap-1">
-                <input placeholder="Yeni Şirket Adı (opsiyonel)" className="bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm" value={newUserForm.newCompanyName} onChange={(e) => setNewUserForm((f) => ({ ...f, newCompanyName: e.target.value, companyId: "" }))} />
-                <select className="bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm" value={newUserForm.companyId} onChange={(e) => setNewUserForm((f) => ({ ...f, companyId: e.target.value, newCompanyName: "" }))}>
-                  <option value="">— Var olan şirkete bağla —</option>
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">Ad Soyad *</label>
+                <input placeholder="Ahmet Yılmaz" className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm" value={newUserForm.name} onChange={(e) => setNewUserForm((f) => ({ ...f, name: e.target.value }))} />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">Kullanıcı Adı *</label>
+                <input placeholder="ataservis" className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm font-mono" value={newUserForm.username} onChange={(e) => setNewUserForm((f) => ({ ...f, username: e.target.value }))} />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">Şifre *</label>
+                <input placeholder="Şifre" type="text" className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm font-mono text-yellow-300" value={newUserForm.password} onChange={(e) => setNewUserForm((f) => ({ ...f, password: e.target.value }))} />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">Telefon</label>
+                <input placeholder="05xx xxx xx xx" className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm" value={newUserForm.phone} onChange={(e) => setNewUserForm((f) => ({ ...f, phone: e.target.value }))} />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">Rol</label>
+                <select className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm" value={newUserForm.role} onChange={(e) => setNewUserForm((f) => ({ ...f, role: e.target.value }))}>
+                  <option value="firma">Firma</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">Şirket</label>
+                <select className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm" value={newUserForm.companyId} onChange={(e) => setNewUserForm((f) => ({ ...f, companyId: e.target.value, newCompanyName: "" }))}>
+                  <option value="">— Şirket seç —</option>
                   {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>
-              <input placeholder="Mobil kullanıcı adı (opsiyonel)" className="bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm font-mono" value={newUserForm.mobileUsername} onChange={(e) => setNewUserForm((f) => ({ ...f, mobileUsername: e.target.value.toLowerCase() }))} />
-              <input placeholder="Mobil PIN (opsiyonel)" className="bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm font-mono" value={newUserForm.mobilePin} onChange={(e) => setNewUserForm((f) => ({ ...f, mobilePin: e.target.value }))} />
             </div>
             {newUserError && <p className="text-red-400 text-xs mt-2">{newUserError}</p>}
             <button onClick={createPanelUser} disabled={newUserSaving || !newUserForm.username || !newUserForm.password || !newUserForm.name}
-              className="mt-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 px-4 py-2 rounded text-sm font-semibold">
+              className="mt-4 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 px-5 py-2 rounded-lg text-sm font-semibold">
               {newUserSaving ? "Kaydediliyor..." : "Kullanıcı Oluştur"}
             </button>
           </div>
@@ -439,68 +458,109 @@ export default function AdminClient() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-gray-400 border-b border-gray-700">
-                  {["Ad Soyad", "Kullanıcı", "Şirket", "Rol", "Mobil", "Durum", ""].map((h) => (
-                    <th key={h} className="pb-2 pr-4 font-medium">{h}</th>
+                <tr className="text-left text-gray-400 border-b border-gray-700 text-xs uppercase tracking-wider">
+                  {["Ad Soyad", "Kullanıcı Adı", "Telefon", "Şirket", "Rol", "Durum", ""].map((h) => (
+                    <th key={h} className="pb-3 pr-4 font-semibold">{h}</th>
                   ))}
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-gray-800">
                 {panelUsers.map((u) => (
-                  <tr key={u.id} className="border-b border-gray-800 hover:bg-gray-800/30">
-                    <td className="py-3 pr-4">
-                      {editingUser === u.id
-                        ? <input className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm w-36" value={editUserForm.name} onChange={(e) => setEditUserForm((f) => ({ ...f, name: e.target.value }))} />
-                        : <span className="font-medium">{u.name}</span>}
-                    </td>
+                  <tr key={u.id} className="hover:bg-gray-800/40">
+                    <td className="py-3 pr-4 font-medium text-white">{u.name}</td>
                     <td className="py-3 pr-4 font-mono text-yellow-300 text-xs">{u.username}</td>
+                    <td className="py-3 pr-4 text-gray-300 text-xs">{u.phone ?? <span className="text-gray-600">—</span>}</td>
                     <td className="py-3 pr-4 text-xs text-slate-300">
-                      {editingUser === u.id
-                        ? <select className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm w-36" value={editUserForm.companyId} onChange={(e) => setEditUserForm((f) => ({ ...f, companyId: e.target.value }))}>
-                            <option value="">— Superadmin —</option>
-                            {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                          </select>
-                        : (u.companyId ? (companies.find((c) => c.id === u.companyId)?.name ?? u.companyId) : <span className="text-yellow-400">Superadmin</span>)}
+                      {u.companyId ? (companies.find((c) => c.id === u.companyId)?.name ?? <span className="text-orange-400">ID: {u.companyId.slice(0, 8)}</span>) : <span className="text-yellow-400 font-semibold">Superadmin</span>}
                     </td>
                     <td className="py-3 pr-4">
-                      {editingUser === u.id
-                        ? <select className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm" value={editUserForm.role} onChange={(e) => setEditUserForm((f) => ({ ...f, role: e.target.value }))}>
-                            <option value="firma">Firma</option>
-                            <option value="admin">Admin</option>
-                          </select>
-                        : <span className={`text-xs px-2 py-0.5 rounded-full ${u.role === "admin" ? "bg-purple-900 text-purple-300" : "bg-gray-700 text-gray-400"}`}>{u.role}</span>}
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${u.role === "admin" ? "bg-purple-900 text-purple-300" : "bg-blue-900/50 text-blue-300"}`}>
+                        {u.role === "admin" ? "Admin" : "Firma"}
+                      </span>
                     </td>
                     <td className="py-3 pr-4">
-                      {editingUser === u.id
-                        ? <div className="flex gap-1">
-                            <input className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs w-24 font-mono" value={editUserForm.mobileUsername} placeholder="mobil kullanıcı" onChange={(e) => setEditUserForm((f) => ({ ...f, mobileUsername: e.target.value.toLowerCase() }))} />
-                            <input className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs w-16 font-mono" value={editUserForm.mobilePin} placeholder="PIN" onChange={(e) => setEditUserForm((f) => ({ ...f, mobilePin: e.target.value }))} />
-                          </div>
-                        : <span className="text-xs font-mono text-yellow-300">{u.mobileUsername ?? "—"}</span>}
-                    </td>
-                    <td className="py-3 pr-4">
-                      {editingUser === u.id
-                        ? <label className="flex items-center gap-1 text-sm cursor-pointer"><input type="checkbox" checked={editUserForm.active} onChange={(e) => setEditUserForm((f) => ({ ...f, active: e.target.checked }))} /> Aktif</label>
-                        : <span className={`text-xs px-2 py-0.5 rounded-full ${u.active ? "bg-green-900 text-green-300" : "bg-gray-700 text-gray-400"}`}>{u.active ? "Aktif" : "Pasif"}</span>}
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${u.active ? "bg-green-900 text-green-300" : "bg-gray-700 text-gray-400"}`}>
+                        {u.active ? "Aktif" : "Pasif"}
+                      </span>
                     </td>
                     <td className="py-3">
-                      {editingUser === u.id
-                        ? <div className="flex gap-2 items-center">
-                            <input placeholder="Yeni şifre" type="password" className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs w-32" value={editUserForm.password} onChange={(e) => setEditUserForm((f) => ({ ...f, password: e.target.value }))} />
-                            <button onClick={() => savePanelUser(u.id)} className="text-xs bg-blue-600 hover:bg-blue-500 px-3 py-1 rounded">Kaydet</button>
-                            <button onClick={() => setEditingUser(null)} className="text-xs text-gray-400 hover:text-gray-200">İptal</button>
-                          </div>
-                        : <div className="flex gap-2">
-                            <button onClick={() => { setEditingUser(u.id); setEditUserForm({ name: u.name, phone: u.phone ?? "", role: u.role, password: "", active: u.active, companyId: u.companyId ?? "", mobileUsername: u.mobileUsername ?? "", mobilePin: "" }); }} className="text-xs text-blue-400 hover:text-blue-300">Düzenle</button>
-                            <button onClick={() => deletePanelUser(u.id)} className="text-xs text-red-400 hover:text-red-300">Sil</button>
-                          </div>}
+                      <div className="flex gap-2">
+                        <button onClick={() => openEditUser(u)} className="text-xs bg-blue-900/50 hover:bg-blue-800 text-blue-300 px-3 py-1 rounded-lg font-medium">Düzenle</button>
+                        <button onClick={() => deletePanelUser(u.id)} className="text-xs text-red-400 hover:text-red-300 px-2 py-1">Sil</button>
+                      </div>
                     </td>
                   </tr>
                 ))}
+                {panelUsers.length === 0 && (
+                  <tr><td colSpan={7} className="py-8 text-center text-gray-500">Henüz panel kullanıcısı yok</td></tr>
+                )}
               </tbody>
             </table>
           </div>
-          <p className="text-xs text-gray-600">Not: .env dosyasındaki ADMIN_USERNAME/PASSWORD ile tanımlı hesaplar bu listede görünmez.</p>
+          <p className="text-xs text-gray-600">Not: .env dosyasındaki admin hesapları bu listede görünmez.</p>
+        </div>
+      )}
+
+      {/* ── KULLANICI DÜZENLEME MODAL ── */}
+      {editingUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60" onClick={() => setEditingUser(null)} />
+          <div className="bg-gray-800 border border-gray-600 rounded-2xl shadow-2xl w-full max-w-md relative z-10">
+            <div className="flex items-center justify-between p-5 border-b border-gray-700">
+              <h2 className="text-base font-bold text-white">Kullanıcı Düzenle</h2>
+              <button onClick={() => setEditingUser(null)} className="text-gray-400 hover:text-white text-xl leading-none">×</button>
+            </div>
+            <div className="p-5 space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">Ad Soyad</label>
+                  <input className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white" value={editUserForm.name} onChange={(e) => setEditUserForm((f) => ({ ...f, name: e.target.value }))} />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">Telefon</label>
+                  <input className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white" value={editUserForm.phone} placeholder="05xx xxx xx xx" onChange={(e) => setEditUserForm((f) => ({ ...f, phone: e.target.value }))} />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">Yeni Şifre <span className="text-gray-600">(boş bırakırsan değişmez)</span></label>
+                <input type="text" className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm font-mono text-yellow-300" placeholder="Yeni şifre gir" value={editUserForm.password} onChange={(e) => setEditUserForm((f) => ({ ...f, password: e.target.value }))} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">Rol</label>
+                  <select className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white" value={editUserForm.role} onChange={(e) => setEditUserForm((f) => ({ ...f, role: e.target.value }))}>
+                    <option value="firma">Firma</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">Şirket</label>
+                  <select className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white" value={editUserForm.companyId} onChange={(e) => setEditUserForm((f) => ({ ...f, companyId: e.target.value }))}>
+                    <option value="">— Superadmin —</option>
+                    {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">Mobil Kullanıcı Adı</label>
+                  <input className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm font-mono text-white" value={editUserForm.mobileUsername} placeholder="—" onChange={(e) => setEditUserForm((f) => ({ ...f, mobileUsername: e.target.value.toLowerCase() }))} />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">Mobil PIN <span className="text-gray-600">(değiştirmek için)</span></label>
+                  <input className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm font-mono text-white" value={editUserForm.mobilePin} placeholder="••••" onChange={(e) => setEditUserForm((f) => ({ ...f, mobilePin: e.target.value }))} />
+                </div>
+              </div>
+              <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
+                <input type="checkbox" checked={editUserForm.active} onChange={(e) => setEditUserForm((f) => ({ ...f, active: e.target.checked }))} className="w-4 h-4" />
+                Hesap Aktif
+              </label>
+            </div>
+            <div className="flex gap-3 p-5 border-t border-gray-700">
+              <button onClick={() => setEditingUser(null)} className="flex-1 py-2.5 border border-gray-600 text-gray-400 rounded-lg text-sm font-medium hover:bg-gray-700">İptal</button>
+              <button onClick={savePanelUser} className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-semibold">Kaydet</button>
+            </div>
+          </div>
         </div>
       )}
 
