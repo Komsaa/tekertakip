@@ -14,6 +14,11 @@ export default async function DashboardPage() {
     if (!session) redirect("/login");
 
     const companyId = (session.user as any)?.companyId ?? null;
+    const role = (session.user as any)?.role;
+
+    // Superadmin → direkt admin paneline yönlendir
+    if (role === "admin" && !companyId) redirect("/panel/admin");
+
     const cFilter = companyId ? { companyId } : {};
 
     // Şirket tipini belirle
