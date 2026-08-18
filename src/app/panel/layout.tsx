@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import Sidebar from "@/components/Sidebar";
 import RouteAlerts from "@/components/RouteAlerts";
 import DemoBanner from "@/components/DemoBanner";
+import ImpersonationBanner from "@/components/ImpersonationBanner";
 
 export default async function PanelLayout({
   children,
@@ -21,6 +22,8 @@ export default async function PanelLayout({
   let demoBanner: { daysLeft: number; expired: boolean } | null = null;
   let companyType = (session.user as any)?.companyType ?? "firma";
   const companyId = (session.user as any)?.companyId;
+  const isImpersonating = (session.user as any)?.impersonating ?? false;
+  const impersonatedCompanyName = (session.user as any)?.impersonatedCompanyName as string | null;
   if (companyId) {
     const company = await prisma.company.findUnique({
       where: { id: companyId },
@@ -41,6 +44,9 @@ export default async function PanelLayout({
 
       {/* Ana içerik */}
       <main className="flex-1 overflow-y-auto flex flex-col pt-14 lg:pt-0">
+        {isImpersonating && impersonatedCompanyName && (
+          <ImpersonationBanner companyName={impersonatedCompanyName} />
+        )}
         {demoBanner && <DemoBanner daysLeft={demoBanner.daysLeft} expired={demoBanner.expired} />}
         {children}
       </main>

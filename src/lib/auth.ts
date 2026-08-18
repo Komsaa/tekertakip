@@ -68,6 +68,8 @@ export const authOptions: NextAuthOptions = {
         (session.user as any).role = token.role;
         (session.user as any).companyId = token.companyId ?? null;
         (session.user as any).companyType = token.companyType ?? "firma";
+        (session.user as any).impersonating = token.impersonating ?? false;
+        (session.user as any).impersonatedCompanyName = token.impersonatedCompanyName ?? null;
       }
       return session;
     },

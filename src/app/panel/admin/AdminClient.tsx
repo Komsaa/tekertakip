@@ -114,6 +114,20 @@ export default function AdminClient() {
     if (res.ok) setMobileUsers(await res.json());
   }
 
+  async function enterCompany(companyId: string) {
+    const res = await fetch("/api/admin/impersonate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ companyId }),
+    });
+    if (res.ok) {
+      window.location.href = "/panel";
+    } else {
+      const err = await res.json();
+      alert(err.error || "Hata olustu");
+    }
+  }
+
   const fetchLogs = useCallback(async (page = 1, filter = logFilter) => {
     setLogLoading(true);
     const p = new URLSearchParams({ page: String(page), limit: "50" });
@@ -357,10 +371,18 @@ export default function AdminClient() {
                         <span>💻 <strong className="text-slate-800">{c._count?.panelUsers ?? 0}</strong> kullanıcı</span>
                       </div>
                     </div>
-                    <button onClick={() => toggleActive(c.id, !c.active)}
-                      className={`text-xs px-3 py-1.5 rounded-full font-semibold transition-colors ${c.active ? "bg-green-100 text-green-700 hover:bg-green-200" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}>
-                      {c.active ? "✓ Aktif" : "Pasif"}
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => enterCompany(c.id)}
+                        className="text-xs px-3 py-1.5 rounded-full font-semibold bg-purple-100 text-purple-700 hover:bg-purple-200 transition-colors"
+                      >
+                        Panele Gir
+                      </button>
+                      <button onClick={() => toggleActive(c.id, !c.active)}
+                        className={`text-xs px-3 py-1.5 rounded-full font-semibold transition-colors ${c.active ? "bg-green-100 text-green-700 hover:bg-green-200" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}>
+                        {c.active ? "✓ Aktif" : "Pasif"}
+                      </button>
+                    </div>
                   </div>
 
                   <div className="mt-4 pt-4 border-t border-slate-100">
