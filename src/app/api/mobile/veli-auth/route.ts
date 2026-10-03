@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
+import { companyAccessError, parseLogin } from "@/lib/access-policy";
 
 export async function POST(req: NextRequest) {
-  const { username, password } = await req.json();
-  if (!username || !password) {
+  const credentials = parseLogin(await req.json().catch(() => null));
+  if (!credentials) {
     return NextResponse.json({ error: "Kullanıcı adı ve şifre zorunlu" }, { status: 400 });
   }
+  const { username, password } = credentials;
 
   const passenger = await prisma.routePassenger.findUnique({
     where: { veliUsername: username.trim().toLowerCase() },
@@ -40,9 +42,9 @@ export async function POST(req: NextRequest) {
   const route = passenger.stop.route;
   const company = await prisma.company.findUnique({
     where: { id: route.companyId ?? "" },
-    select: { active: true, name: true },
+    select: { active: true, name: true, isDemo: true, demoExpiresAt: true },
   });
-  if (company && !company.active) {
+  if (!route.active || companyAccessError(company)) {
     return NextResponse.json({ error: "Bu işletmenin erişimi askıya alınmış" }, { status: 403 });
   }
 

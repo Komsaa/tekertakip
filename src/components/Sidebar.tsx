@@ -7,10 +7,10 @@ import { LogoIcon } from "@/components/Logo";
 import {
   LayoutDashboard, Users, Truck, ClipboardList, Fuel,
   LogOut, Menu, X, Route, CalendarDays, Wallet, MapPin,
-  ShieldCheck, Sparkles, Wrench, Banknote,
+  ShieldCheck, Sparkles, Wrench, Banknote, Settings, FileText, ListChecks,
   Receipt, HandCoins, Bus, CreditCard, ChevronDown, BarChart3, AlertTriangle,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 
 type NavItem  = { href: string; icon: React.ElementType; label: string; exact?: boolean };
@@ -21,15 +21,15 @@ const navGroups: NavGroup[] = [
     label: "Genel",
     icon: LayoutDashboard,
     items: [
-      { href: "/panel", icon: LayoutDashboard, label: "Dashboard", exact: true },
-      { href: "/panel/hosgeldiniz", icon: Sparkles, label: "Başlangıç Rehberi" },
+      { href: "/panel", icon: LayoutDashboard, label: "Genel Bakış", exact: true },
+      { href: "/panel/hosgeldiniz", icon: Sparkles, label: "Kurulum Sihirbazı" },
     ],
   },
   {
     label: "Filo",
     icon: Bus,
     items: [
-      { href: "/panel/soforler",        icon: Users,      label: "Şöförler" },
+      { href: "/panel/soforler",        icon: Users,      label: "Şoförler" },
       { href: "/panel/araclar",         icon: Truck,      label: "Araçlar" },
       { href: "/panel/guzergahlar",     icon: Route,      label: "Güzergahlar" },
       { href: "/panel/servis-takip",    icon: Bus,        label: "Servis Takip" },
@@ -61,6 +61,16 @@ const navGroups: NavGroup[] = [
     ],
   },
   {
+    label: "Çalışma Alanı",
+    icon: ListChecks,
+    items: [
+      { href: "/panel/belgeler", icon: FileText, label: "Belgeler" },
+      { href: "/panel/evrak-rehberi", icon: FileText, label: "Evrak Rehberi" },
+      { href: "/panel/gorevler", icon: ListChecks, label: "Görevler" },
+      { href: "/panel/ayarlar", icon: Settings, label: "Ayarlar" },
+    ],
+  },
+  {
     label: "Sistem",
     icon: ShieldCheck,
     items: [
@@ -76,13 +86,33 @@ const okulAllowed = new Set([
   "/panel/gorevler", "/panel/ayarlar",
 ]);
 
-interface SidebarProps { userName: string; role?: string; companyType?: string }
+interface SidebarProps { userName: string; role?: string; companyType?: string; companyId?: string | null }
 
-export default function Sidebar({ userName, role, companyType }: SidebarProps) {
-  const isAdmin = !role || role === "admin";
+export default function Sidebar({ userName, role, companyType, companyId }: SidebarProps) {
+  const isAdmin = role === "admin" && !companyId;
   const isOkul  = !isAdmin && companyType === "okul";
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const drawerRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const main = document.getElementById("panel-main");
+    main?.setAttribute("inert", "");
+    const focusables = () => Array.from(drawerRef.current?.querySelectorAll<HTMLElement>('a[href], button:not([disabled])') ?? []).filter(el => el.getClientRects().length);
+    focusables()[0]?.focus();
+    const keydown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") { event.preventDefault(); setMobileOpen(false); }
+      if (event.key === "Tab") {
+        const elements = focusables(); const first = elements[0]; const last = elements[elements.length - 1];
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+        if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+      }
+    };
+    const resize = () => { if (window.innerWidth >= 1024) setMobileOpen(false); };
+    document.addEventListener("keydown", keydown); window.addEventListener("resize", resize);
+    return () => { main?.removeAttribute("inert"); document.removeEventListener("keydown", keydown); window.removeEventListener("resize", resize); menuRef.current?.focus(); };
+  }, [mobileOpen]);
 
   function isActive(item: NavItem) {
     return item.exact ? pathname === item.href : pathname.startsWith(item.href);
@@ -163,6 +193,7 @@ export default function Sidebar({ userName, role, companyType }: SidebarProps) {
             <div key={group.label}>
               {/* Grup başlığı — tıklanabilir */}
               <button
+                aria-expanded={isOpen}
                 onClick={() => toggleGroup(group.label)}
                 className={cn(
                   "w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all",
@@ -189,6 +220,7 @@ export default function Sidebar({ userName, role, companyType }: SidebarProps) {
                 <div className="mt-0.5 ml-3 pl-3 border-l border-white/10 space-y-0.5 pb-1">
                   {visibleItems.map((item) => (
                     <Link
+                      aria-current={isActive(item) ? "page" : undefined}
                       key={item.href}
                       href={item.href}
                       onClick={() => setMobileOpen(false)}
@@ -215,7 +247,7 @@ export default function Sidebar({ userName, role, companyType }: SidebarProps) {
         <div className="px-4 py-2 rounded-xl bg-white/5">
           <div className="text-white text-sm font-semibold truncate">{userName}</div>
           <div className="text-slate-500 text-xs mt-0.5">
-            {role === "admin" ? "Süper Admin" : companyType === "okul" ? "Okul Yöneticisi" : role === "firma" ? "Firma Yöneticisi" : "Kullanıcı"}
+            {isAdmin ? "Süper Admin" : companyType === "okul" ? "Okul Yöneticisi" : companyId ? "Firma Yöneticisi" : "Kullanıcı"}
           </div>
         </div>
         <button
@@ -232,13 +264,14 @@ export default function Sidebar({ userName, role, companyType }: SidebarProps) {
   return (
     <>
       {/* Desktop */}
-      <aside className="hidden lg:flex w-60 bg-[#1B2437] flex-col flex-shrink-0 h-screen sticky top-0">
+      <aside className="panel-sidebar hidden lg:flex w-64 bg-[#1B2437] flex-col flex-shrink-0 h-full sticky top-0">
         {SidebarContent()}
       </aside>
 
       {/* Mobile hamburger */}
       <div className="lg:hidden">
         <button
+          ref={menuRef} aria-label="Menüyü aç" aria-expanded={mobileOpen} aria-controls="panel-drawer"
           onClick={() => setMobileOpen(true)}
           className="fixed top-4 left-4 z-50 p-2 bg-[#1B2437] text-white rounded-xl shadow-lg"
         >
@@ -248,8 +281,9 @@ export default function Sidebar({ userName, role, companyType }: SidebarProps) {
         {mobileOpen && (
           <>
             <div className="fixed inset-0 bg-black/50 z-40" onClick={() => setMobileOpen(false)} />
-            <div className="fixed left-0 top-0 bottom-0 w-72 bg-[#1B2437] z-50 shadow-2xl">
+            <div ref={drawerRef} id="panel-drawer" role="dialog" aria-modal="true" aria-label="Ana menü" className="panel-sidebar fixed left-0 top-0 bottom-0 w-72 max-w-[90vw] bg-[#1B2437] z-50 shadow-2xl">
               <button
+                aria-label="Menüyü kapat"
                 onClick={() => setMobileOpen(false)}
                 className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white"
               >

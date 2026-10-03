@@ -1,259 +1,63 @@
 "use client";
-
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
-import { CheckCircle, FileText, AlertTriangle, Upload, ExternalLink, Loader2, CalendarPlus, Check } from "lucide-react";
-import {
-  getDocStatus,
-  getDocStatusColor,
-  getDocStatusLabel,
-  getDaysLeft,
-  formatDate,
-} from "@/lib/utils";
-
-// docType → API field adı
-const DRIVER_DATE_FIELDS: Record<string, string> = {
-  src: "srcExpiry",
-  psychotech: "psychotechExpiry",
-  criminalRecord: "criminalRecordExpiry",
-  healthReport: "healthReportExpiry",
-  license: "licenseExpiry",
-  residenceDoc: "residenceDocDate",
-};
-const VEHICLE_DATE_FIELDS: Record<string, string> = {
-  inspection: "inspectionExpiry",
-  insurance: "insuranceExpiry",
-  routePermit: "routePermitExpiry",
-  approval: "approvalExpiry",
-  kasko: "kaskoExpiry",
-};
-
-interface Props {
-  label: string;
-  expiry: Date | null | undefined;
-  fileUrl?: string | null;
-  entityType: "driver" | "vehicle";
-  entityId: string;
-  docType: string;
-  notes?: string;
-  edevletUrl?: string;
-}
-
-export default function DocRow({ label, expiry, fileUrl, entityType, entityId, docType, notes, edevletUrl }: Props) {
-  const router = useRouter();
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [uploading, setUploading] = useState(false);
-  const [pendingFile, setPendingFile] = useState<File | null>(null);
-  const [dragging, setDragging] = useState(false);
-  const [showDateInput, setShowDateInput] = useState(false);
-  const [dateValue, setDateValue] = useState("");
-  const [savingDate, setSavingDate] = useState(false);
-
-  const status = getDocStatus(expiry);
-  const colorClass = getDocStatusColor(status);
-  const daysLeft = getDaysLeft(expiry);
-
-  async function uploadFile(file: File) {
-    setUploading(true);
+import { FileText, Upload, ExternalLink, Loader2 } from "lucide-react";
+import { getDocStatus, getDocStatusColor, getDocStatusLabel, formatDate } from "@/lib/utils";
+import { validDocumentDate } from "@/lib/document-dates";
+interface Props { label:string; expiry:Date|null|undefined; fileUrl?:string|null; entityType:"driver"|"vehicle"; entityId:string; docType:string; notes?:string }
+export default function DocRow({label,expiry,fileUrl,entityType,entityId,docType,notes}:Props) {
+  const router=useRouter(), input=useRef<HTMLInputElement>(null), busy=useRef(false);
+  const [uploading,setUploading]=useState(false), [saving,setSaving]=useState(false);
+  const [pending,setPending]=useState<File|null>(null), [editing,setEditing]=useState(false);
+  const [date,setDate]=useState(""), [message,setMessage]=useState("");
+  const noExpiry=entityType==="driver"&&docType==="src";
+  const issueDate=docType==="residenceDoc";
+  const status=getDocStatus(noExpiry||issueDate ? null : expiry);
+  async function upload() {
+    if (!pending||busy.current) return;
+    busy.current=true;setUploading(true);setMessage("");
     try {
-      const fd = new FormData();
-      fd.append("file", file);
-      fd.append("entityType", entityType);
-      fd.append("entityId", entityId);
-      fd.append("docType", docType);
-      const res = await fetch("/api/upload", { method: "POST", body: fd });
-      if (!res.ok) {
-        let errMsg = "Yükleme hatası";
-        try { const e = await res.json(); errMsg = e.error ?? errMsg; } catch {}
-        throw new Error(errMsg);
+      const body=new FormData();body.append("file",pending);body.append("entityType",entityType);body.append("entityId",entityId);body.append("docType",docType);
+      const response=await fetch("/api/upload",{method:"POST",body});const result=await response.json();
+      if (!response.ok) throw new Error(result.error||"Dosya yüklenemedi");
+      setPending(null);if(input.current)input.current.value="";
+      toast.success(`${label} yüklendi`);
+      if (!noExpiry) {
+        const suggestion=issueDate?result.parsed?.issueDate:result.parsed?.expiryDate;
+        setDate(validDocumentDate(suggestion)?suggestion:"");setEditing(true);
+        setMessage(validDocumentDate(suggestion)?"Belgeden tarih okundu. Belgeyle karşılaştırıp onaylayın; mevcut tarih henüz değişmedi.":"Dosya yüklendi ancak tarih okunamadı. Açık tarih varsa elle girin; belgeden süre tahmin edilmez.");
       }
-      toast.success(`${label} yüklendi!`);
       router.refresh();
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Hata oluştu");
-    } finally {
-      setUploading(false);
-      if (inputRef.current) inputRef.current.value = "";
-    }
+    } catch(e) {toast.error(e instanceof Error?e.message:"Yükleme başarısız");}
+    finally{busy.current=false;setUploading(false);}
   }
-
-  async function saveDate() {
-    if (!dateValue) return;
-    const fieldMap = entityType === "driver" ? DRIVER_DATE_FIELDS : VEHICLE_DATE_FIELDS;
-    const field = fieldMap[docType];
-    if (!field) return;
-    const apiPath = entityType === "driver" ? `/api/drivers/${entityId}` : `/api/vehicles/${entityId}`;
-    setSavingDate(true);
+  async function save() {
+    if (!validDocumentDate(date)||busy.current||noExpiry) return;
+    busy.current=true;setSaving(true);
     try {
-      const res = await fetch(apiPath, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ [field]: dateValue }),
-      });
-      if (!res.ok) throw new Error();
-      toast.success("Tarih kaydedildi!");
-      setShowDateInput(false);
-      router.refresh();
-    } catch {
-      toast.error("Kaydedilemedi");
-    } finally {
-      setSavingDate(false);
-    }
+      const response=await fetch("/api/documents/date",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({entityType,entityId,docType,date})});
+      if(!response.ok)throw new Error("Tarih kaydedilemedi");
+      setEditing(false);setMessage("");toast.success("Tarih kaydedildi");router.refresh();
+    }catch{toast.error("Tarih kaydedilemedi. Tekrar deneyin.");}finally{busy.current=false;setSaving(false);}
   }
-
-  function handleDrop(e: React.DragEvent) {
-    e.preventDefault();
-    setDragging(false);
-    const file = e.dataTransfer.files?.[0];
-    if (file) setPendingFile(file);
-  }
-
-  // Dosya yüklü ama tarih yok → özel durum
-  const fileUploadedNoDate = !!fileUrl && !expiry;
-
-  return (
-    <div
-      className={`flex items-center justify-between py-3 border-b border-slate-50 last:border-0 rounded-lg px-2 -mx-2 transition-colors ${
-        dragging ? "bg-blue-50 border border-blue-200 border-dashed" : ""
-      }`}
-      onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
-      onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragging(false); }}
-      onDrop={handleDrop}
-    >
-      {/* Sol: ikon + isim */}
-      <div className="flex items-center gap-3 min-w-0">
-        <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
-          fileUploadedNoDate ? "bg-amber-50" :
-          status === "valid" ? "bg-green-50" : status === "missing" ? "bg-gray-50" : "bg-red-50"
-        }`}>
-          {fileUploadedNoDate ? (
-            <CalendarPlus className="w-4 h-4 text-amber-500" />
-          ) : status === "valid" ? (
-            <CheckCircle className="w-4 h-4 text-green-500" />
-          ) : status === "missing" ? (
-            <FileText className="w-4 h-4 text-gray-400" />
-          ) : (
-            <AlertTriangle className="w-4 h-4 text-red-500" />
-          )}
-        </div>
-        <div className="min-w-0">
-          <div className="text-sm font-semibold text-slate-700">{label}</div>
-          {notes && <div className="text-xs text-slate-400 truncate">{notes}</div>}
-        </div>
+  return <section aria-label={label} className="py-4 border-b border-slate-100 last:border-0" onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();if(!busy.current&&e.dataTransfer.files[0])setPending(e.dataTransfer.files[0]);}}>
+    <div className="flex items-center justify-between flex-wrap gap-3">
+      <div className="flex items-center gap-3 min-w-0"><FileText size={20} className="text-slate-400 shrink-0"/><div><h3 className="text-sm font-semibold text-slate-700">{label}</h3>{notes&&<p className="text-xs text-slate-500 break-words">{notes}</p>}</div></div>
+      <div className="flex items-center gap-3 flex-wrap">
+        {noExpiry?<span className="text-xs text-slate-600">Süre takibi yok · {fileUrl?"Dosya yüklü":"Dosya bekleniyor"}</span>:<>
+          {expiry&&<span className="text-sm text-slate-700">{issueDate?"Düzenleme: ":""}{formatDate(expiry)}</span>}
+          {!issueDate&&<span className={`text-xs px-2 py-1 rounded-full border ${getDocStatusColor(status)}`}>{getDocStatusLabel(status)}</span>}
+          <button disabled={uploading||saving} onClick={()=>{setDate(expiry?new Date(expiry).toISOString().slice(0,10):"");setMessage("");setEditing(true);}} className="text-sm text-blue-700">{expiry?"Tarihi düzenle":"Tarih gir"}</button>
+        </>}
+        {fileUrl&&<a href={fileUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-700 inline-flex gap-1 items-center"><ExternalLink size={14}/>Görüntüle</a>}
+        <button disabled={uploading||saving} onClick={()=>input.current?.click()} className="inline-flex gap-1 items-center text-sm text-slate-600 py-2">{uploading?<Loader2 size={15} className="animate-spin"/>:<Upload size={15}/>} {uploading?"Yükleniyor ve okunuyor…":fileUrl?"Güncelle":"Yükle"}</button>
       </div>
-
-      {/* Sağ: tarih + butonlar */}
-      <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-        {dragging ? (
-          <span className="text-xs text-blue-600 font-medium flex items-center gap-1">
-            <Upload className="w-3 h-3" /> Bırak
-          </span>
-        ) : showDateInput ? (
-          <div className="flex items-center gap-1">
-            <input
-              type="date"
-              value={dateValue}
-              onChange={(e) => setDateValue(e.target.value)}
-              className="text-xs border border-slate-200 rounded-lg px-2 py-1 focus:outline-none focus:border-blue-400"
-              autoFocus
-            />
-            <button
-              onClick={saveDate}
-              disabled={savingDate || !dateValue}
-              className="p-1.5 bg-green-500 hover:bg-green-600 text-white rounded-lg disabled:opacity-50"
-            >
-              {savingDate ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
-            </button>
-            <button onClick={() => setShowDateInput(false)} className="text-xs text-slate-400 hover:text-slate-600 px-1">✕</button>
-          </div>
-        ) : expiry ? (
-          <div className="text-right">
-            <div className="text-sm font-medium text-slate-700">{formatDate(expiry)}</div>
-            {daysLeft !== null && (
-              <div className={`text-xs ${daysLeft < 0 ? "text-red-600" : daysLeft <= 30 ? "text-amber-600" : "text-slate-400"}`}>
-                {daysLeft < 0 ? `${Math.abs(daysLeft)} gün geçti` : `${daysLeft} gün kaldı`}
-              </div>
-            )}
-          </div>
-        ) : fileUploadedNoDate ? (
-          <button
-            onClick={() => setShowDateInput(true)}
-            className="text-xs text-amber-600 hover:text-amber-800 font-medium flex items-center gap-1 bg-amber-50 hover:bg-amber-100 px-2 py-1 rounded-lg"
-          >
-            <CalendarPlus className="w-3 h-3" />
-            Tarih gir
-          </button>
-        ) : (
-          <button
-            onClick={() => setShowDateInput(true)}
-            className="text-xs text-slate-400 hover:text-slate-600 flex items-center gap-1"
-          >
-            <CalendarPlus className="w-3 h-3" />
-            Tarih gir
-          </button>
-        )}
-
-        {!dragging && !showDateInput && !pendingFile && (
-          <span className={`text-xs px-2 py-1 rounded-full border font-medium ${
-            fileUploadedNoDate
-              ? "bg-amber-100 text-amber-700 border-amber-200"
-              : colorClass
-          }`}>
-            {fileUploadedNoDate ? "Tarih Eksik" : getDocStatusLabel(status)}
-          </span>
-        )}
-
-        {!dragging && !showDateInput && pendingFile && (
-          <div className="flex items-center gap-1 bg-blue-50 border border-blue-200 rounded-lg px-2 py-1">
-            <span className="text-xs text-blue-700 max-w-[120px] truncate">{pendingFile.name}</span>
-            <button
-              onClick={() => { uploadFile(pendingFile); setPendingFile(null); }}
-              disabled={uploading}
-              className="flex items-center gap-1 text-xs bg-green-500 hover:bg-green-600 text-white px-2 py-0.5 rounded-md font-medium disabled:opacity-50"
-            >
-              {uploading ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
-              Kaydet
-            </button>
-            <button
-              onClick={() => { setPendingFile(null); if (inputRef.current) inputRef.current.value = ""; }}
-              className="text-xs text-slate-400 hover:text-slate-600"
-            >✕</button>
-          </div>
-        )}
-
-        {!dragging && !showDateInput && !pendingFile && (
-          <div className="flex items-center gap-1">
-            {edevletUrl && (
-              <a href={edevletUrl} target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 px-2 py-1 rounded-lg font-medium"
-                title="e-Devlet'te aç">
-                <ExternalLink className="w-3 h-3" />
-                e-Devlet
-              </a>
-            )}
-            {fileUrl && (
-              <a href={fileUrl} target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 hover:underline">
-                <ExternalLink className="w-3 h-3" />
-                Görüntüle
-              </a>
-            )}
-            <button
-              type="button"
-              onClick={() => inputRef.current?.click()}
-              disabled={uploading}
-              className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-100 px-2 py-1 rounded-lg transition-colors disabled:opacity-50"
-            >
-              {uploading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
-              {uploading ? "..." : fileUrl ? "Güncelle" : "Yükle"}
-            </button>
-          </div>
-        )}
-      </div>
-
-      <input ref={inputRef} type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden"
-        onChange={(e) => { const f = e.target.files?.[0]; if (f) setPendingFile(f); }} />
     </div>
-  );
+    {pending&&<div className="flex flex-wrap gap-3 items-center mt-3 text-sm"><span className="break-all">{pending.name}</span><button disabled={uploading||saving} onClick={()=>void upload()} className="text-green-700 font-semibold">Dosyayı yükle</button><button disabled={uploading||saving} onClick={()=>{setPending(null);if(input.current)input.current.value="";}}>Vazgeç</button></div>}
+    {message&&<p role="status" className="text-sm text-slate-600 mt-3">{message}</p>}
+    {editing&&!noExpiry&&<div className="flex gap-3 items-center flex-wrap mt-3 bg-slate-50 p-3 rounded-xl"><label className="text-sm">{issueDate?"Düzenleme tarihi":"Belgedeki son geçerlilik tarihi"}<input aria-label={`${label} tarihi`} type="date" value={date} disabled={saving||uploading} onChange={e=>setDate(e.target.value)}/></label><button disabled={saving||uploading||!validDocumentDate(date)} onClick={()=>void save()} className="text-sm text-green-700 disabled:opacity-50">{saving?"Kaydediliyor…":"Tarihi onayla"}</button><button disabled={saving||uploading} onClick={()=>{setEditing(false);setMessage("");}} className="text-sm text-slate-500">Vazgeç</button></div>}
+    {!noExpiry&&<p className="text-xs text-slate-500 mt-2">Otomatik tarih okuma için dosya mevcut yapay zekâ hizmetine gönderilir. Sonucu kaydetmeden önce kontrol edin.</p>}
+    <input ref={input} aria-label={`${label} dosyası`} type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" disabled={uploading||saving} onChange={e=>{if(e.target.files?.[0])setPending(e.target.files[0]);}}/>
+  </section>;
 }

@@ -4,15 +4,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { randomUUID } from "crypto";
 import bcrypt from "bcryptjs";
+import { parseLogin, companyAccessError } from "@/lib/access-policy";
 
 export async function POST(req: NextRequest) {
   try {
-    const { username, password } = await req.json();
-
-    if (!username || !password) {
-      return NextResponse.json({ error: "Kullanıcı adı ve şifre zorunlu" }, { status: 400 });
+    const credentials = parseLogin(await req.json().catch(() => null));
+    if (!credentials) {
+      return NextResponse.json(
+        { error: "Kullanıcı adı ve şifre zorunlu" },
+        { status: 400 },
+      );
     }
 
+    const { username, password } = credentials;
     // Kullanıcı adına göre şöförü bul (PIN karşılaştırması aşağıda yapılır)
     const driver = await prisma.driver.findFirst({
       where: {
@@ -24,13 +28,25 @@ export async function POST(req: NextRequest) {
         name: true,
         mobilePin: true,
         companyId: true,
-        vehicles: { include: { vehicle: { select: { id: true, plate: true } } } },
-        company: { select: { name: true, active: true } },
+        vehicles: {
+          include: { vehicle: { select: { id: true, plate: true } } },
+        },
+        company: {
+          select: {
+            name: true,
+            active: true,
+            isDemo: true,
+            demoExpiresAt: true,
+          },
+        },
       },
     });
 
     if (!driver || !driver.mobilePin) {
-      return NextResponse.json({ error: "Kullanıcı adı veya şifre hatalı" }, { status: 401 });
+      return NextResponse.json(
+        { error: "Kullanıcı adı veya şifre hatalı" },
+        { status: 401 },
+      );
     }
 
     // PIN doğrulama: bcrypt hash mi yoksa düz metin mi?
@@ -43,17 +59,23 @@ export async function POST(req: NextRequest) {
       pinValid = driver.mobilePin === password;
       if (pinValid) {
         const hash = await bcrypt.hash(password, 10);
-        await prisma.driver.update({ where: { id: driver.id }, data: { mobilePin: hash } });
+        await prisma.driver.update({
+          where: { id: driver.id },
+          data: { mobilePin: hash },
+        });
       }
     }
 
     if (!pinValid) {
-      return NextResponse.json({ error: "Kullanıcı adı veya şifre hatalı" }, { status: 401 });
+      return NextResponse.json(
+        { error: "Kullanıcı adı veya şifre hatalı" },
+        { status: 401 },
+      );
     }
 
-    if (driver.company && !driver.company.active) {
-      return NextResponse.json({ error: "Bu işletmenin erişimi askıya alınmış" }, { status: 403 });
-    }
+    const accessError = companyAccessError(driver.company);
+    if (accessError)
+      return NextResponse.json({ error: accessError }, { status: 403 });
 
     const token = randomUUID();
     await prisma.driver.update({
@@ -67,7 +89,7 @@ export async function POST(req: NextRequest) {
         id: driver.id,
         name: driver.name,
         vehicle: driver.vehicles?.[0]?.vehicle ?? null,
-        vehicles: driver.vehicles?.map(dv => dv.vehicle) ?? [],
+        vehicles: driver.vehicles?.map((dv) => dv.vehicle) ?? [],
         companyName: driver.company?.name ?? null,
       },
     });

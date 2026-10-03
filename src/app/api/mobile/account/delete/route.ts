@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getDriverFromRequest } from "@/lib/mobile-auth";
+import { getActiveParent } from "@/lib/parent-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -12,8 +13,8 @@ export async function DELETE(req: NextRequest) {
     const token = (req.headers.get("authorization") ?? "").replace("Bearer ", "").trim();
     if (!token) return NextResponse.json({ error: "Yetkisiz" }, { status: 401 });
 
-    const passenger = await prisma.routePassenger.findUnique({ where: { veliToken: token } });
-    if (!passenger) return NextResponse.json({ error: "Hesap bulunamadı" }, { status: 404 });
+    const passenger = await getActiveParent(req.headers.get("authorization") ?? "");
+    if (!passenger) return NextResponse.json({ error: "Yetkisiz" }, { status: 401 });
 
     // Veli bilgilerini temizle (yolcuyu silme, sadece giriş bilgilerini sil)
     await prisma.routePassenger.update({

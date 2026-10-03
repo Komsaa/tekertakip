@@ -3,7 +3,7 @@ import HomeClient from "./HomeClient";
 export const metadata = {
   title: "TekerTakip – Okul ve Personel Servis Firmalarına Özel Filo Yönetimi",
   description:
-    "Şöför mobil uygulaması, canlı GPS takibi, veli bildirimleri, yakıt ve belge yönetimi. Aylık ₺6.000 + KDV. GPS cihazına gerek yok.",
+    "Araçlarınız, şoförleriniz ve günlük operasyonunuz tek ekranda. Canlı konum, güzergâh, yakıt, belge ve finans yönetimi. TekerTakip ile tanışın.",
 };
 
 export default function HomePage() {

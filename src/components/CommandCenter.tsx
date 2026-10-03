@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import CommandCenterMap from "./CommandCenterMap";
+import { MetricCard, WorkspaceHeader, workspaceStyles as s } from "./workspace/Workspace";
 import {
   CheckCircle2, XCircle, Clock, CreditCard, FileText,
   AlertTriangle, StickyNote, Banknote, Truck, Users, Route,
@@ -82,58 +83,83 @@ export default function CommandCenter({
   const [jobs, setJobs] = useState(initialJobs);
   const [notes, setNotes] = useState(initialNotes);
   const [notesSaving, setNotesSaving] = useState(false);
-  const [notesTimer, setNotesTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
+  const notesTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const noteQueue = useRef<Promise<void>>(Promise.resolve());
+  const noteVersion = useRef(0);
+  const [saveError, setSaveError] = useState("");
+  const [notesError, setNotesError] = useState("");
+  const [pendingJob, setPendingJob] = useState<string | null>(null);
+  const jobBusy = useRef(false);
+  useEffect(() => () => { if (notesTimer.current) clearTimeout(notesTimer.current); }, []);
 
   // Geldi/Gelmedi toggle
   async function setArrival(jobId: string, arrived: boolean) {
     const status = arrived ? "active" : "cancelled";
-    setJobs(j => j.map(x => x.id === jobId ? { ...x, status } : x));
-    await fetch(`/api/jobs/${jobId}`, {
+    if (jobBusy.current) return;
+    jobBusy.current = true; setPendingJob(jobId); setSaveError("");
+    try {
+    const response = await fetch(`/api/jobs/${jobId}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status }),
     });
+    if (!response.ok) throw new Error("Save failed");
+    setJobs(j => j.map(x => x.id === jobId ? { ...x, status } : x));
+    } catch { setSaveError("Sefer durumu kaydedilemedi. Tekrar deneyin."); }
+    finally { jobBusy.current = false; setPendingJob(null); }
   }
 
   // Notları kaydet (debounce)
   function handleNotesChange(val: string) {
     setNotes(val);
-    if (notesTimer) clearTimeout(notesTimer);
+    if (notesTimer.current) clearTimeout(notesTimer.current);
+    const version = ++noteVersion.current;
     setNotesSaving(true);
-    const t = setTimeout(async () => {
-      await fetch("/api/notes", {
+    setNotesError("");
+    notesTimer.current = setTimeout(() => {
+      noteQueue.current = noteQueue.current.then(async () => {
+      try {
+      const response = await fetch("/api/notes", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ notes: val }),
       });
-      setNotesSaving(false);
+      if (!response.ok) throw new Error("Save failed");
+      } catch { if (version === noteVersion.current) setNotesError("Not kaydedilemedi. Metniniz burada korunuyor; tekrar deneyin."); }
+      finally { if (version === noteVersion.current) setNotesSaving(false); }
+      });
     }, 1000);
-    setNotesTimer(t);
   }
 
   const nowMin = new Date().getHours() * 60 + new Date().getMinutes();
   const todayStr = new Date().toISOString().slice(0, 10);
 
   return (
-    <div className="flex flex-col h-full">
+    <div className={s.workspace}>
+      <WorkspaceHeader eyebrow="Operasyon merkezi" title="Gününüz kontrol altında." description={today + " · Filonuzun ve günlük operasyonunuzun genel görünümü."} actions={<><Link href="/panel/raporlar" className={s.button}>Raporları incele</Link><Link href="/panel/isler" className={s.button+" "+s.primary}><Plus size={16}/> Seferleri yönet</Link></>} />
+      <div className={s.metrics}>
+        <MetricCard label="Bugünkü sefer" value={stats.plannedToday} detail={jobs.filter(j=>j.status==="active").length+" sefer devam ediyor"} icon={<CalendarDays size={17}/>}/>
+        <MetricCard label="Aktif filo" value={stats.activeVehicles} detail={stats.activeDrivers+" şoför · "+stats.activeRoutes+" güzergâh"} icon={<Truck size={17}/>}/>
+        <MetricCard label="Belge takibi" value={alertDocs.length} detail="Kontrol bekleyen belge uyarıları" icon={<AlertTriangle size={17}/>}/>
+        <MetricCard label="Bu ay yakıt" value={TRY(stats.monthFuel)} detail={stats.monthJobs+" sefer kaydı"} icon={<Fuel size={17}/>}/>
+      </div>
+      {saveError && <div role="alert" className={s.error}>{saveError}</div>}
 
       {/* ═══ ANA ALAN: Harita sol + Panel sağ ═══════════════════════════════ */}
-      <div className="flex flex-col lg:flex-row flex-1 overflow-hidden" style={{ minHeight: 0 }}>
+      <div className={s.board}>
 
         {/* ── Sol: Canlı Harita — sadece desktop ─────────────────────────── */}
-        <div className="hidden lg:flex flex-1 relative bg-[#1B2437] overflow-hidden">
+        <div className={s.mapCard}>
           <CommandCenterMap />
           {/* Harita üstü overlay */}
-          <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-700 shadow">
-            🗺 Canlı Araç Takibi · 30sn
+          <div className={s.mapLabel}>
+            <span><strong>Filo haritası</strong> · Konum görünümü</span>
+            <Link href="/panel/konum" className="font-semibold text-red-700">Haritayı aç →</Link>
           </div>
-          <Link href="/panel/konum" className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm rounded-xl px-3 py-1.5 text-xs font-semibold text-[#DC2626] shadow hover:bg-white">
-            Tam Ekran →
-          </Link>
         </div>
 
         {/* ── Sağ: Panel ─────────────────────────────────────────────────── */}
-        <div className="w-full lg:w-[360px] flex-shrink-0 bg-[#1B2437] flex flex-col overflow-hidden lg:border-l border-white/10">
+        <div className={s.operations}>
           {/* Tarih başlık */}
           <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between gap-2">
             <div>
@@ -193,6 +219,8 @@ export default function CommandCenter({
                           {/* Geldi/Gelmedi butonları */}
                           <div className="flex gap-1 flex-shrink-0">
                             <button
+                              disabled={pendingJob !== null}
+                              aria-label={job.title + " geldi olarak işaretle"}
                               onClick={() => setArrival(job.id, true)}
                               title="Geldi"
                               className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all ${isActive ? "bg-green-500 text-white" : "bg-white/10 text-slate-400 hover:bg-green-500/30 hover:text-green-400"}`}
@@ -200,6 +228,8 @@ export default function CommandCenter({
                               <CheckCircle2 className="w-4 h-4" />
                             </button>
                             <button
+                              disabled={pendingJob !== null}
+                              aria-label={job.title + " gelmedi olarak işaretle"}
                               onClick={() => setArrival(job.id, false)}
                               title="Gelmedi"
                               className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all ${isCancelled ? "bg-red-500 text-white" : "bg-white/10 text-slate-400 hover:bg-red-500/30 hover:text-red-400"}`}
@@ -317,102 +347,21 @@ export default function CommandCenter({
                 {notesSaving && <span className="text-slate-500 text-xs">kaydediliyor...</span>}
               </p>
               <textarea
+                aria-label="Operasyon notları"
                 value={notes}
                 onChange={e => handleNotesChange(e.target.value)}
                 placeholder="Bugünkü notlar, hatırlatıcılar..."
                 rows={4}
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-600 resize-none focus:outline-none focus:border-white/20"
               />
+              {notesError && <div role="alert" className="text-sm text-red-200 mt-2">{notesError}<button className="block underline mt-2" onClick={()=>handleNotesChange(notes)}>Tekrar kaydet</button></div>}
             </section>
 
           </div>{/* end scrollable */}
         </div>{/* end right panel */}
       </div>{/* end flex main */}
 
-      {/* ═══ ALT STAT BAR ══════════════════════════════════════════════════ */}
-      <div className="flex-shrink-0 bg-[#1B2437] border-t border-white/10 relative z-10">
-        <div className="flex items-stretch divide-x divide-white/10 overflow-x-auto">
-
-          {/* Bugün Planlanan */}
-          <div className="flex-1 flex flex-col items-center justify-center py-2.5 px-2 min-w-0">
-            <div className="flex items-center gap-1.5 mb-0.5">
-              <Clock className="w-3.5 h-3.5 text-slate-400" />
-              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Bugün Planlandı</span>
-            </div>
-            <span className="text-xl font-black text-white">{stats.plannedToday}</span>
-          </div>
-
-          {/* Tamamlanan */}
-          <div className="flex-1 flex flex-col items-center justify-center py-2.5 px-2 min-w-0">
-            <div className="flex items-center gap-1.5 mb-0.5">
-              <CheckCircle2 className="w-3.5 h-3.5 text-green-400" />
-              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Tamamlandı</span>
-            </div>
-            <span className="text-xl font-black text-green-400">{stats.completedToday}</span>
-          </div>
-
-          {/* İptal */}
-          <div className="flex-1 flex flex-col items-center justify-center py-2.5 px-2 min-w-0">
-            <div className="flex items-center gap-1.5 mb-0.5">
-              <XCircle className="w-3.5 h-3.5 text-red-400" />
-              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">İptal</span>
-            </div>
-            <span className="text-xl font-black text-red-400">{stats.cancelledToday}</span>
-          </div>
-
-          {/* Divider */}
-          <div className="w-px bg-white/20 self-stretch" />
-
-          {/* Aktif Araç */}
-          <div className="flex-1 flex flex-col items-center justify-center py-2.5 px-2 min-w-0">
-            <div className="flex items-center gap-1.5 mb-0.5">
-              <Truck className="w-3.5 h-3.5 text-blue-400" />
-              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Aktif Araç</span>
-            </div>
-            <span className="text-xl font-black text-white">{stats.activeVehicles}</span>
-          </div>
-
-          {/* Aktif Şöför */}
-          <div className="flex-1 flex flex-col items-center justify-center py-2.5 px-2 min-w-0">
-            <div className="flex items-center gap-1.5 mb-0.5">
-              <Users className="w-3.5 h-3.5 text-purple-400" />
-              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Aktif Şöför</span>
-            </div>
-            <span className="text-xl font-black text-white">{stats.activeDrivers}</span>
-          </div>
-
-          {/* Aktif Güzergah */}
-          <div className="flex-1 flex flex-col items-center justify-center py-2.5 px-2 min-w-0">
-            <div className="flex items-center gap-1.5 mb-0.5">
-              <Route className="w-3.5 h-3.5 text-amber-400" />
-              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Güzergah</span>
-            </div>
-            <span className="text-xl font-black text-white">{stats.activeRoutes}</span>
-          </div>
-
-          {/* Bu ay sefer */}
-          <div className="flex-1 flex flex-col items-center justify-center py-2.5 px-2 min-w-0">
-            <div className="flex items-center gap-1.5 mb-0.5">
-              <FileText className="w-3.5 h-3.5 text-slate-400" />
-              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Bu Ay Sefer</span>
-            </div>
-            <span className="text-xl font-black text-white">{stats.monthJobs}</span>
-          </div>
-
-          {/* Bu ay yakıt */}
-          <div className="flex-1 flex flex-col items-center justify-center py-2.5 px-2 min-w-0">
-            <div className="flex items-center gap-1.5 mb-0.5">
-              <Fuel className="w-3.5 h-3.5 text-orange-400" />
-              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Bu Ay Yakıt</span>
-            </div>
-            <span className="text-xl font-black text-orange-400">
-              {stats.monthFuel > 0 ? stats.monthFuel.toLocaleString("tr-TR") + "₺" : "—"}
-            </span>
-          </div>
-
-        </div>
-      </div>
-
+      <div className={s.footer}><span>Bugün {stats.completedToday} sefer tamamlandı · {jobs.filter(j=>j.status === "cancelled").length} sefer iptal edildi</span><Link href="/panel/isler" className="font-semibold text-red-700">Tüm seferleri görüntüle →</Link></div>
       {/* ═══ ARAÇ DURUM ŞERIDI ══════════════════════════════════════════════ */}
       {vehicles.length > 0 && (
         <div className="flex-shrink-0 bg-[#151e2e] border-t border-white/10 relative z-10">

@@ -8,16 +8,16 @@ import OkulDashboard from "@/components/OkulDashboard";
 import { startOfDay, endOfDay } from "date-fns";
 
 export default async function DashboardPage() {
+  const session = await getServerSession(authOptions);
+  if (!session) redirect("/login");
+  if ((session.user as any)?.role === "admin" && !(session.user as any)?.companyId) redirect("/panel/admin");
   try {
     const today = new Date();
-    const session = await getServerSession(authOptions);
-    if (!session) redirect("/login");
 
     const companyId = (session.user as any)?.companyId ?? null;
     const role = (session.user as any)?.role;
 
     // Superadmin → direkt admin paneline yönlendir
-    if (role === "admin" && !companyId) redirect("/panel/admin");
 
     const cFilter = companyId ? { companyId } : {};
 
@@ -193,7 +193,7 @@ export default async function DashboardPage() {
     const weekDriverJobs = Object.values(driverWeekMap).sort((a, b) => b.count - a.count);
 
     return (
-      <div className="flex-1 flex flex-col min-h-0">
+      <div className="dashboard-workspace flex-1 flex flex-col min-h-0">
         <CommandCenter
           todayJobs={todayJobs}
           vehicles={vehicles.map(v => ({ id: v.id, plate: v.plate, brand: v.brand ?? null, model: v.model ?? null }))}
