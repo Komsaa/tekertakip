@@ -1,10 +1,12 @@
 // Bu dosya Next.js 14 tarafından sunucu başladığında otomatik çalıştırılır.
-// Prisma db push olmadan eksik DB kolonlarını/tablolarını ekler.
+// Eski şema kurulum kodu yalnızca açıkça etkinleştirilen yerel geliştirmede çalışır.
 
 export async function register() {
   if (process.env.NEXT_RUNTIME === "nodejs") await import("../sentry.server.config");
   if (process.env.NEXT_RUNTIME === "edge") await import("../sentry.edge.config");
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
+  // Production startup must never perform schema changes, even if the opt-in is set.
+  if (process.env.NODE_ENV !== "development" || process.env.ALLOW_LOCAL_SCHEMA_SYNC !== "true") return;
 
   try {
     const { prisma } = await import("@/lib/prisma");

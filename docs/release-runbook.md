@@ -9,9 +9,15 @@ Bu belge hazırlıktır; canlı ortamda hiçbir komut uygulanmadı.
 3. Sağlayıcı anlık görüntüsü ve PostgreSQL özel format yedeği al. Yedeği repo dışında, erişimi kısıtlı ve şifreli sakla. Retansiyon ve sorumlu belirle. Depodaki backup.sql dosyasının güncel veya güvenli bir geri dönüş kaynağı olduğunu varsayma.
 4. Yedeği ayrı, boş bir doğrulama veritabanına geri yükle. pg_restore hata kodu, firma/araç/şoför/yolcu sayıları, giriş ve ilişkili örnek kayıtları doğrula. Başarılı yedek alma tek başına geri dönüş kanıtı değildir.
 
-## Şema geçişi — mevcut yayın engeli
+## 3 Ekim 2026 başlangıç güvenliği düzeltmesi
 
-Uygulama başlangıcında src/instrumentation.ts şema değiştiriyor ve bazı SQL hatalarını yutuyor. DemoRequest tablosu bu yolla oluşturuluyor. Bu yüzden yalnızca build sonucuna veya prisma migrate deploy komutuna güvenerek yayın yapılmamalı.
+Docker artık doğrudan node server.js başlatır; otomatik db push ve veri kaybı onayı kaldırılmıştır. instrumentation.ts içindeki eski şema kurulum kodu yalnızca NODE_ENV=development ve ALLOW_LOCAL_SCHEMA_SYNC=true birlikteyken çalışır; üretimde devre dışıdır. Bu değişiklik veritabanını güncellemez ve yeni/eksik şemayı kendiliğinden oluşturmaz.
+
+Canlı şema uyumu ve geri yüklenebilir yedek henüz doğrulanmadı. Bu nedenle bu düzeltmenin varlığı tek başına dağıtım onayı değildir. Önce staging kopyasında mevcut şema ile uygulama uyumunu doğrulayın; gerekiyorsa ayrı incelenmiş geçiş uygulayın. Başlangıç komutunu sağlayıcı panelinde ezerek eski db push komutunu tekrar çalıştırmayın.
+
+## Şema geçişi — doğrulama bekliyor
+
+Önceki sürümlerde src/instrumentation.ts şema değiştiriyor ve bazı SQL hatalarını yutuyordu. DemoRequest tablosu bu yolla oluşturulabiliyordu. Bu yüzden yalnızca build sonucuna veya prisma migrate deploy komutuna güvenerek yayın yapılmamalı.
 
 Üretim şeması ve _prisma_migrations geçmişi önce salt okunur incelenmeli. Mevcut migration dosyaları ile Prisma modelinin ve başlangıç SQL'lerinin farkı staging kopyasında çıkarılmalı. Eksik başlangıç/baseline geçmişi varsa gerçek üretim şemasına göre oluşturulup incelemeye sunulmalı; varsayımla uygulanmış işaretlenmemeli. DemoRequest dahil modeller/geçişler tamamlanmalı. Başlangıçtaki otomatik DDL ancak bu geçiş staging üzerinde doğrulandıktan sonra kaldırılmalı. Veri silen db push --accept-data-loss üretimde kullanılmamalı.
 
