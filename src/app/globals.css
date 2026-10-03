@@ -1,8 +1,9 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 :root {
   --brand-red: #DC2626;
@@ -17,6 +18,10 @@
 html {
   font-family: 'Inter', system-ui, sans-serif;
   scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
 }
 
 body {
@@ -83,6 +88,34 @@ label {
 }
 
 /* Mobil uyum */
+.panel-shell { height: 100vh; height: 100dvh; background: #f4f6fa; }
+.panel-topbar { min-height: 76px; padding: 16px 32px; display: flex; gap: 16px; align-items: center; justify-content: space-between; border-bottom: 1px solid #e4e9f1; background: #fff; flex-shrink: 0; }
+.panel-account { display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 13px; color: #475569; }
+.panel-content { display: flex; flex-direction: column; flex: 1; min-width: 0; width: 100%; }
+.panel-content > div { width: 100%; max-width: 1680px; margin-inline: auto; }
+.panel-content > .dashboard-workspace { max-width: none; padding: 0; min-height: calc(100dvh - 76px); }
+.panel-content h1 { letter-spacing: -.035em; font-weight: 750; line-height: 1.25; }
+.panel-content table { font-variant-numeric: tabular-nums; }
+.panel-content th { font-size: 11px; letter-spacing: .025em; }
+.panel-shell :is(button, a, input, select, textarea):focus-visible { outline: 3px solid #e95757; outline-offset: 3px; }
+.panel-sidebar { background: linear-gradient(165deg, #1b2437, #111a2c); }
+.panel-sidebar nav a { min-height: 40px; }
+.panel-sidebar .text-slate-500 { color: #94a3b8; }
+.panel-sidebar button { min-height: 44px; }
+.panel-skip { position: fixed; top: -100px; left: 16px; z-index: 100; padding: 12px 20px; border-radius: 12px; color: #fff; background: #1b2437; }
+.panel-skip:focus { top: 12px; }
+@media (max-width: 1023px) { .panel-topbar { padding-left: 72px; padding-right: 16px; } }
+@media (max-width: 640px) {
+  .panel-content > div { padding: 20px 16px; }
+  .panel-content input, .panel-content select, .panel-content textarea { font-size: 16px; min-height: 44px; }
+  .panel-content h1 { font-size: 24px; }
+  .panel-topbar nav { font-size: 12px; }
+  .panel-topbar nav > a { display: none; }
+  .panel-topbar nav > svg { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .panel-shell *, .panel-shell *::before, .panel-shell *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
 @media (max-width: 768px) {
   .mobile-hide { display: none; }
 }

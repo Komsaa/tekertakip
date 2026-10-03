@@ -337,7 +337,7 @@ export default function ServisTakipPage() {
     function initMap() {
       if (!mapRef.current || leafletMap.current) return;
       const L = (window as any).L;
-      leafletMap.current = L.map(mapRef.current).setView([38.9, 28.1], 9);
+      leafletMap.current = L.map(mapRef.current).setView([39.0, 35.0], 6);
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         attribution: "© OpenStreetMap", maxZoom: 19,
       }).addTo(leafletMap.current);

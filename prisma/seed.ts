@@ -9,18 +9,18 @@ async function main() {
   // Admin kullanıcıları oluştur
   const admins = [
     {
-      email: process.env.ADMIN_EMAIL_1 || "admin1@merttur.com",
-      password: process.env.ADMIN_PASSWORD_1 || "MertTur2024!",
+      email: process.env.ADMIN_EMAIL_1 || "admin@tekertakip.com",
+      password: process.env.ADMIN_PASSWORD_1 || "Admin2024!",
       name: process.env.ADMIN_NAME_1 || "Admin 1",
     },
     {
-      email: process.env.ADMIN_EMAIL_2 || "admin2@merttur.com",
-      password: process.env.ADMIN_PASSWORD_2 || "MertTur2024!",
+      email: process.env.ADMIN_EMAIL_2 || "admin2@tekertakip.com",
+      password: process.env.ADMIN_PASSWORD_2 || "Admin2024!",
       name: process.env.ADMIN_NAME_2 || "Admin 2",
     },
     {
-      email: process.env.ADMIN_EMAIL_3 || "admin3@merttur.com",
-      password: process.env.ADMIN_PASSWORD_3 || "MertTur2024!",
+      email: process.env.ADMIN_EMAIL_3 || "admin3@tekertakip.com",
+      password: process.env.ADMIN_PASSWORD_3 || "Admin2024!",
       name: process.env.ADMIN_NAME_3 || "Admin 3",
     },
   ];
@@ -53,30 +53,26 @@ async function main() {
     },
   });
 
-  // Örnek araç - fişten aldığımız plaka
+  // Örnek araç
   await prisma.vehicle.upsert({
-    where: { plate: "45 J 9443" },
+    where: { plate: "34 TT 001" },
     update: {},
     create: {
-      plate: "45 J 9443",
+      plate: "34 TT 001",
       brand: "Ford",
       model: "Transit",
       year: 2020,
       capacity: 14,
       color: "Sarı",
       status: "active",
-      inspectionExpiry: new Date("2026-06-01"), // 6 ayda bir!
-      insuranceExpiry: new Date("2026-12-01"),
-      routePermitExpiry: new Date("2026-09-01"),
-      approvalExpiry: new Date("2026-09-01"),
     },
   });
 
   // Ayarlar (superadmin seviyesi — companyId null)
   const seedSettings = [
-    { key: "company_name", value: "Mert Tur" },
-    { key: "company_phone", value: "0506 122 73 63" },
-    { key: "company_city", value: "Gölmarmara / Manisa" },
+    { key: "company_name", value: process.env.COMPANY_NAME || "Firma Adı" },
+    { key: "company_phone", value: process.env.COMPANY_PHONE || "" },
+    { key: "company_city", value: process.env.COMPANY_CITY || "" },
   ];
   for (const s of seedSettings) {
     const existing = await prisma.setting.findFirst({ where: { key: s.key, companyId: null } });

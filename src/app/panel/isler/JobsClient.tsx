@@ -197,7 +197,7 @@ export default function JobsClient({ jobs: initialJobs, drivers, vehicles, clien
   return (
     <div className="p-6 lg:p-8 space-y-6 animate-fade-in">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black text-slate-800">İşler / Seferler</h1>
           <p className="text-slate-500 text-sm mt-1">
@@ -205,7 +205,7 @@ export default function JobsClient({ jobs: initialJobs, drivers, vehicles, clien
             {isToday(selectedDate) && <span className="text-green-600 ml-2">· Bugün</span>}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <div className="flex border border-slate-200 rounded-xl overflow-hidden bg-white">
             <button onClick={() => setOwnerFilter("all")} className={`px-3 py-2 text-sm font-medium transition-colors ${ownerFilter === "all" ? "bg-[#1B2437] text-white" : "text-slate-600 hover:bg-slate-50"}`}>Tümü</button>
             <button onClick={() => setOwnerFilter("ozmal")} className={`px-3 py-2 text-sm font-medium transition-colors ${ownerFilter === "ozmal" ? "bg-green-600 text-white" : "text-slate-600 hover:bg-slate-50"}`}>Özmal</button>

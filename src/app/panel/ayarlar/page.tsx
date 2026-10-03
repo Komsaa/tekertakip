@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Settings, Bot, Database, Users, Phone, Building2, Shield } from "lucide-react";
+import PasswordForm from "./PasswordForm";
 
 export default async function AyarlarPage() {
   const session = await getServerSession(authOptions);
@@ -10,7 +11,7 @@ export default async function AyarlarPage() {
 
   const companyId = (session.user as any)?.companyId;
   const role = (session.user as any)?.role;
-  const isAdmin = !role || role === "admin";
+  const isAdmin = role === "admin" && !companyId;
 
   let company: { name: string; code: string; type: string; isDemo: boolean; demoExpiresAt: Date | null; driverLimit: number; createdAt: Date } | null = null;
   if (companyId) {
@@ -106,6 +107,9 @@ export default async function AyarlarPage() {
             </div>
           </div>
         </div>
+
+        {/* Şifre Değiştir */}
+        {!isAdmin && <PasswordForm />}
 
         {/* Panel Kullanıcıları */}
         <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">

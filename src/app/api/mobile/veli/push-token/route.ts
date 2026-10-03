@@ -1,15 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { headers } from "next/headers";
+import { getActiveParent } from "@/lib/parent-auth";
 
 export async function POST(req: NextRequest) {
   const h = await headers();
   const auth = h.get("authorization") ?? "";
   const token = auth.replace("Bearer ", "").trim();
-  if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const passenger = await getActiveParent(auth);
+  if (!passenger) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { pushToken } = await req.json();
-  if (!pushToken) return NextResponse.json({ error: "pushToken zorunlu" }, { status: 400 });
+  const { pushToken } = await req.json().catch(() => ({}));
+  if (typeof pushToken !== "string" || !/^(ExponentPushToken|ExpoPushToken)\[[A-Za-z0-9_-]+\]$/.test(pushToken) || pushToken.length > 256)
+    return NextResponse.json({ error: "Geçerli pushToken zorunlu" }, { status: 400 });
 
   // Token expiry kontrolü
   const expiresAt = parseInt(token.split("|")[1] ?? "0");

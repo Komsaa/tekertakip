@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { headers } from "next/headers";
+import { getActiveParent } from "@/lib/parent-auth";
 
 async function getPassengerFromToken() {
   const h = await headers();
   const auth = h.get("authorization") ?? "";
   const token = auth.replace("Bearer ", "").trim();
-  if (!token) return null;
+  if (!(await getActiveParent(auth))) return null;
 
   const passenger = await prisma.routePassenger.findUnique({
     where: { veliToken: token },

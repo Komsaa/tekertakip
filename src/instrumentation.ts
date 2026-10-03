@@ -2,6 +2,8 @@
 // Prisma db push olmadan eksik DB kolonlarını/tablolarını ekler.
 
 export async function register() {
+  if (process.env.NEXT_RUNTIME === "nodejs") await import("../sentry.server.config");
+  if (process.env.NEXT_RUNTIME === "edge") await import("../sentry.edge.config");
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
 
   try {
@@ -117,8 +119,26 @@ export async function register() {
       `ALTER TABLE "ContactTransaction" ADD COLUMN IF NOT EXISTS "paymentPriority" INTEGER NOT NULL DEFAULT 2`
     ).catch(() => {});
 
-    console.log("[MertTur] DB schema sync tamamlandı ✓");
+    // ── DemoRequest tablosu ────────────────────────────────────────────────
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "DemoRequest" (
+        "id"           TEXT        NOT NULL,
+        "companyName"  TEXT        NOT NULL,
+        "contactName"  TEXT        NOT NULL,
+        "phone"        TEXT        NOT NULL,
+        "email"        TEXT,
+        "city"         TEXT,
+        "vehicleCount" INTEGER,
+        "serviceType"  TEXT        NOT NULL DEFAULT 'karma',
+        "status"       TEXT        NOT NULL DEFAULT 'pending',
+        "notes"        TEXT,
+        "createdAt"    TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "DemoRequest_pkey" PRIMARY KEY ("id")
+      )
+    `).catch(() => {});
+
+    console.log("[TekerTakip] DB schema sync tamamlandı ✓");
   } catch (e) {
-    console.error("[MertTur] DB schema sync hatası:", e);
+    console.error("[TekerTakip] DB schema sync hatası:", e);
   }
 }

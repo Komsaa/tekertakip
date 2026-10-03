@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { headers } from "next/headers";
+import { getActiveParent } from "@/lib/parent-auth";
 
 export const dynamic = "force-dynamic";
 
 async function getPassenger() {
   const h = await headers();
   const token = (h.get("authorization") ?? "").replace("Bearer ", "").trim();
-  if (!token) return null;
+  if (!(await getActiveParent(h.get("authorization") ?? ""))) return null;
   const expiresAt = parseInt(token.split("|")[1] ?? "0");
   if (expiresAt && Date.now() > expiresAt) return null;
   return prisma.routePassenger.findUnique({

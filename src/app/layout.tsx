@@ -4,18 +4,18 @@ import { Toaster } from "react-hot-toast";
 
 export const metadata: Metadata = {
   title: {
-    default: "Mert Tur - Gölmarmara Okul ve Personel Servisi",
-    template: "%s | Mert Tur",
+    default: "TekerTakip – Filo Yönetim Sistemi",
+    template: "%s | TekerTakip",
   },
   description:
-    "Gölmarmara ve Manisa bölgesinde güvenilir okul ve personel servis hizmetleri. 10+ araç, profesyonel şöförler.",
-  keywords: ["okul servisi", "personel servisi", "Gölmarmara", "Manisa", "Mert Tur"],
+    "Okul ve personel servis firmalarına özel filo yönetim sistemi. Şöför mobil uygulaması, canlı GPS takibi, veli bildirimleri.",
+  keywords: ["filo yönetimi", "okul servisi", "personel servisi", "GPS takip", "TekerTakip"],
   openGraph: {
-    title: "Mert Tur - Gölmarmara Okul ve Personel Servisi",
-    description: "Güvenilir ve profesyonel servis hizmeti",
+    title: "TekerTakip – Filo Yönetim Sistemi",
+    description: "Okul ve personel servis firmalarına özel filo yönetim sistemi.",
     locale: "tr_TR",
     type: "website",
-    url: "https://merttur.com",
+    url: "https://tekertakip.com",
   },
   icons: {
     icon: "/favicon.png",

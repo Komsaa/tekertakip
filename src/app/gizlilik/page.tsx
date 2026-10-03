@@ -1,214 +1,74 @@
 import Link from "next/link";
-import { LogoIcon } from "@/components/Logo";
 
 export const metadata = {
-  title: "Gizlilik Politikası – Teker Takip",
-  description: "Teker Takip uygulaması gizlilik politikası ve kişisel veri işleme bilgilendirmesi.",
+  title: "Gizlilik Politikası | TekerTakip",
+  description: "TekerTakip web ve mobil uygulamalarında kişisel veriler, konum, veri paylaşımı ve silme talepleri hakkında bilgi.",
 };
-
-const LAST_UPDATED = "13 Nisan 2026";
-const COMPANY = "Teker Takip";
-const EMAIL = "destek@tekertakip.com";
-const SITE = "tekertakip.com";
 
 export default function GizlilikPage() {
   return (
-    <div className="min-h-screen bg-white">
-
-      {/* Navbar */}
-      <nav className="bg-[#1B2437] border-b border-white/5">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2.5">
-            <LogoIcon size={30} className="text-white" />
-            <span className="text-white font-black text-lg">
-              teker<span className="text-[#DC2626]">takip</span>
-            </span>
-          </Link>
-          <Link href="/" className="text-slate-400 hover:text-white text-sm transition-colors">
-            ← Ana Sayfa
-          </Link>
+    <main className="min-h-screen bg-slate-50 px-4 py-10 text-slate-800 sm:py-16">
+      <article className="mx-auto max-w-3xl rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-10">
+        <Link href="/" className="text-sm font-semibold text-red-700">← TekerTakip ana sayfa</Link>
+        <h1 className="mt-6 text-3xl font-bold">Gizlilik Politikası</h1>
+        <p className="mt-2 text-sm text-slate-500">Son güncelleme: 28 Eylül 2026</p>
+        <div className="mt-8 space-y-8 text-sm leading-7 [&_h2]:mb-3 [&_h2]:text-lg [&_h2]:font-bold [&_ul]:list-disc [&_ul]:space-y-2 [&_ul]:pl-5 [&_a]:text-red-700 [&_a]:underline">
+          <section>
+            <h2>1. Kapsam ve iletişim</h2>
+            <p>Bu politika, TekerTakip web paneli ve Android paket adı com.tekertakip.driver olan TekerTakip mobil uygulamasının yönetici, şoför ve veli kullanımını kapsar. Servis firmaları, kendi faaliyetleri kapsamında sisteme girdikleri çalışan, yolcu ve veli kayıtlarını yönetir. TekerTakip, bu kayıtları servis ve filo yönetimi hizmetini sağlamak için işler.</p>
+            <p>Gizlilik, erişim ve silme talepleri için <a href="mailto:mertyildirim454@gmail.com">mertyildirim454@gmail.com</a> adresinden ve bağlı olduğunuz servis firmasından destek isteyebilirsiniz.</p>
+          </section>
+          <section>
+            <h2>2. İşlenen veriler ve kullanım amaçları</h2>
+            <ul>
+              <li><strong>Hesap ve iletişim:</strong> Ad soyad, kullanıcı adı, telefon, firma bilgileri, kimlik doğrulama bilgileri ve oturum belirteçleri; giriş, yetkilendirme ve destek için işlenir.</li>
+              <li><strong>Servis ve yolcu kayıtları:</strong> Araç plakası, güzergah, durak, görev, yolcu/öğrenci ve veli bilgileri, biniş ve yoklama kayıtları; servis organizasyonu ve ilgili velinin bilgilendirilmesi için kullanılır.</li>
+              <li><strong>Konum:</strong> Şoför cihazının enlem, boylam ve konum zamanı; canlı servis takibi ve güzergah geçmişi için sunucuya iletilir.</li>
+              <li><strong>Belgeler ve görseller:</strong> Yüklenen ehliyet, SRC, psikoteknik, sağlık raporu, adli sicil, ikamet ve araç belgeleri ile bunlarda yer alan kimlik, belge ve tarih bilgileri; belge yönetimi için işlenir. Bazı belgeler sağlık veya adli sicil gibi hassas bilgiler içerebilir. Hizmet için gerekli olmayan bilgileri yüklemeyin.</li>
+              <li><strong>İşletme kayıtları:</strong> Yakıt fişi ve arıza fotoğrafları, bakım, kilometre, ödeme ve gider kayıtları; işletme takibi ve raporlama için kullanılır.</li>
+              <li><strong>Teknik veriler:</strong> Bildirim belirteçleri, bağlantı ve hata kayıtları; bildirimlerin iletilmesi, güvenlik ve teknik sorunların incelenmesi için işlenebilir.</li>
+            </ul>
+          </section>
+          <section>
+            <h2>3. Konum ve cihaz izinleri</h2>
+            <p>Şoför sefer ekranını kullandığında ve gerekli cihaz izinlerini verdiğinde konum takibi başlatılır. Takip etkin olduğu sürece uygulama arka plandayken veya ekran kilitliyken de konum sunucuya gönderilebilir. Uygulamayı arka plana almak takibi durdurmakla aynı şey değildir. Güncelleme sıklığı hareket, ağ, cihaz ve işletim sistemi koşullarına bağlıdır.</p>
+            <p>Sefer ekranından çıkışta takip durdurma işlemi çağrılır. Konum iznini telefon ayarlarından kaldırarak erişimi engelleyebilirsiniz; bu durumda canlı takip çalışmayabilir. Takibi durdurmak daha önce gönderilmiş konum kayıtlarını silmez.</p>
+            <p>Kamera ve fotoğraf seçimi yakıt fişi veya arıza görsellerini yüklemek için kullanılır; seçmediğiniz fotoğrafların topluca yüklenmesi amaçlanmaz. Bildirim izni sefer ve servis uyarıları içindir. İzinleri cihaz ayarlarından yönetebilirsiniz.</p>
+          </section>
+          <section>
+            <h2>4. Verilerin paylaşıldığı taraflar</h2>
+            <ul>
+              <li><strong>Yetkili kullanıcılar:</strong> Firma yöneticileri iş kayıtlarına ve şoför konumlarına; ilgili veliler kendilerine sunulan servis, konum ve yolcu bilgilerine erişebilir.</li>
+              <li><strong>Barındırma ve dosya depolama:</strong> Uygulamanın sunucu, veritabanı ve dosya depolama altyapısını sağlayan hizmetler, hizmetin işletilmesi için verileri işler.</li>
+              <li><strong>Bildirimler:</strong> Expo ve ilgili platform bildirim altyapıları, bildirim belirteçlerini ve gönderilen bildirim içeriğini işler.</li>
+              <li><strong>Google Gemini:</strong> Yapay zeka ile fiş veya belge okuma işlevi etkin olup kullanıldığında ilgili görsel/PDF içeriği, tutar, tarih ve belge alanlarını çıkarmak için Google Gemini hizmetine gönderilebilir. Bu aktarım dosyanın içindeki kişisel bilgileri de içerebilir; yalnızca çıkarılan tarih ile sınırlı değildir.</li>
+              <li><strong>Harita ve navigasyon:</strong> Harita/navigasyon işlevlerinde ilgili sağlayıcıya hedef koordinatları veya durak bilgileri iletilebilir. Harici hizmetler kendi gizlilik politikalarına tabidir.</li>
+            </ul>
+            <p>Bu hizmetlerin kullanımı verilerin Türkiye dışındaki altyapılarda işlenmesini gerektirebilir. Kişisel veriler reklam amacıyla satılmaz. Hizmet sağlayıcılara yapılan işlevsel aktarımlar, verilerin hiç kimseyle paylaşılmadığı anlamına gelmez.</p>
+          </section>
+          <section>
+            <h2>5. Saklama ve güvenlik</h2>
+            <p>Uygulama sunucuyla HTTPS üzerinden iletişim kurar. Hesap erişimi oturum ve yetkilendirme kontrolleriyle sınırlandırılır. Hiçbir sistem için mutlak güvenlik garantisi verilemez.</p>
+            <p>Hesap, belge ve işletme kayıtlarının saklanması; hizmetin devamına, servis firmasının kayıt ihtiyacına ve varsa geçerli saklama yükümlülüklerine bağlıdır. Tüm kayıtlar için uygulanmış tek bir otomatik silme süresi bulunmamaktadır.</p>
+            <p>Konum geçmişinde, yeni geçmiş kaydı yazılırken ilgili şoförün yedi günden eski geçmiş kayıtlarını temizleyen bir işlem bulunur. Yeni kayıt gelmediğinde bu temizlik çalışmayabileceğinden yedi gün kesin silinme garantisi değildir. Son bilinen konum ayrıca şoför kaydında tutulabilir.</p>
+          </section>
+          <section id="hesap-silme">
+            <h2>6. Mobil erişimi kaldırma ve veri silme talebi</h2>
+            <p>Şoför ve veli ekranlarındaki “Mobil erişimi kaldır” (eski sürümlerde “Hesabı Sil”) işlemi başarılı olduğunda mobil giriş/oturum bilgilerini kaldırır; veli bildirim belirtecini temizler ve şoför için sunucudaki takip durumunu kapatır. Bu işlem şoför/yolcu kaydı, belgeler, konum geçmişi ve işletme kayıtlarının tamamını otomatik silmez. Tam silme talebi için aşağıdaki iletişim yolunu kullanın.</p>
+            <p>Hesabınızın ve ilişkili kişisel verilerinizin silinmesini istemek için uygulamaya giriş yapmadan <a href="mailto:mertyildirim454@gmail.com?subject=TekerTakip%20hesap%20ve%20veri%20silme%20talebi">mertyildirim454@gmail.com adresine hesap ve veri silme talebi</a> gönderebilirsiniz. Talebinizde kullanıcı adınızı, bağlı olduğunuz firmayı ve talebinizin kapsamını belirtin. Şifre, PIN veya kimlik belgesi göndermeyin.</p>
+            <p>Talep, hesap sahipliğinin doğrulanması ve ilgili servis firmasıyla kayıtların değerlendirilmesini gerektirebilir. Silinemeyen kayıtlar için saklama gerekçesi ve süresi hakkında bilgi isteyebilirsiniz. Uygulamadan çıkış yapmak veya uygulamayı telefondan kaldırmak sunucudaki verileri silmez.</p>
+          </section>
+          <section>
+            <h2>7. Bilgi ve düzeltme talepleri</h2>
+            <p>Hakkınızda işlenen veriler, kullanım amaçları, alıcılar ve saklama hakkında bilgi; yanlış kayıtların düzeltilmesini veya verilerinizin silinmesini talep edebilirsiniz. İlgili talepler için yukarıdaki iletişim adresini ve bağlı olduğunuz servis firmasını kullanabilirsiniz.</p>
+          </section>
+          <section>
+            <h2>8. Öğrenci bilgileri ve güncellemeler</h2>
+            <p>Mobil uygulamadaki yönetici, şoför ve veli ekranları yetişkin kullanıcıların servis yönetimi içindir. Bu, öğrenci verisi işlenmediği anlamına gelmez: okul servisi kapsamında öğrenci adı, durak, güzergah ve yoklama bilgileri işlenebilir.</p>
+            <p>Politikanın güncel sürümü bu sayfada yayımlanır. Veri işleme biçimi değiştiğinde metin ve güncelleme tarihi yenilenir.</p>
+          </section>
         </div>
-      </nav>
-
-      {/* İçerik */}
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-16">
-
-        <div className="mb-10">
-          <h1 className="text-3xl font-black text-slate-900 mb-2">Gizlilik Politikası</h1>
-          <p className="text-slate-500 text-sm">Son güncelleme: {LAST_UPDATED}</p>
-        </div>
-
-        <div className="prose prose-slate max-w-none space-y-8 text-slate-700 leading-relaxed">
-
-          <section>
-            <h2 className="text-xl font-bold text-slate-800 mb-3">1. Genel Bilgi</h2>
-            <p>
-              Bu gizlilik politikası, <strong>{COMPANY}</strong> tarafından sunulan web paneli
-              ({SITE}) ve mobil uygulamalar (Teker Takip Şöför, Teker Takip Veli) aracılığıyla
-              toplanan kişisel verilerin nasıl işlendiğini açıklamaktadır.
-            </p>
-            <p className="mt-3">
-              Hizmetlerimizi kullanarak bu politikayı kabul etmiş sayılırsınız.
-              Sorularınız için <a href={`mailto:${EMAIL}`} className="text-[#DC2626] font-medium">{EMAIL}</a> adresine ulaşabilirsiniz.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="text-xl font-bold text-slate-800 mb-3">2. Toplanan Veriler</h2>
-
-            <h3 className="font-semibold text-slate-800 mb-2 mt-4">2.1 Firma ve Yönetici Bilgileri</h3>
-            <ul className="list-disc pl-5 space-y-1 text-sm">
-              <li>Firma adı, yetkili kişi adı soyadı</li>
-              <li>Kullanıcı adı ve şifresi (şifreler bcrypt ile şifrelenerek saklanır, düz metin olarak tutulmaz)</li>
-              <li>Telefon numarası (isteğe bağlı)</li>
-            </ul>
-
-            <h3 className="font-semibold text-slate-800 mb-2 mt-4">2.2 Şöför Bilgileri</h3>
-            <ul className="list-disc pl-5 space-y-1 text-sm">
-              <li>Ad soyad, telefon numarası</li>
-              <li>Araç bilgileri (plaka, marka, model)</li>
-              <li><strong>Konum verisi:</strong> Sefer sırasında 5 saniyede bir GPS koordinatı (enlem/boylam). Konum yalnızca sefer aktifken ve şöförün onayıyla alınır. Geçmiş konum kayıtları sistemde saklanır.</li>
-              <li>Mobil uygulama giriş tokeni (30 günlük geçerlilik)</li>
-              <li>Yakıt girişleri ve fotoğrafları</li>
-              <li>Arıza bildirimleri</li>
-            </ul>
-
-            <h3 className="font-semibold text-slate-800 mb-2 mt-4">2.3 Veli Bilgileri</h3>
-            <ul className="list-disc pl-5 space-y-1 text-sm">
-              <li>Ad soyad, telefon numarası</li>
-              <li>Kullanıcı adı ve şifresi (bcrypt ile şifreli)</li>
-              <li>Expo push bildirimi tokeni (bildirim göndermek için)</li>
-            </ul>
-
-            <h3 className="font-semibold text-slate-800 mb-2 mt-4">2.4 Yolcu (Öğrenci/Personel) Bilgileri</h3>
-            <ul className="list-disc pl-5 space-y-1 text-sm">
-              <li>Ad soyad, telefon numarası (isteğe bağlı)</li>
-              <li>Güzergah ve durak ataması</li>
-              <li>Günlük biniş/inmeme kayıtları (tarih, durum)</li>
-            </ul>
-          </section>
-
-          <section>
-            <h2 className="text-xl font-bold text-slate-800 mb-3">3. Verilerin Kullanım Amaçları</h2>
-            <ul className="list-disc pl-5 space-y-2 text-sm">
-              <li>Filo yönetimi hizmetinin sağlanması (güzergah takibi, yoklama, belge yönetimi)</li>
-              <li>Velilere anlık bildirim gönderilmesi (çocuğunun servise binip binmediği)</li>
-              <li>Yakıt ve bakım maliyet analizleri</li>
-              <li>Süresi dolan belgeler için hatırlatma bildirimleri</li>
-              <li>Teknik destek ve hizmet iyileştirme</li>
-            </ul>
-          </section>
-
-          <section>
-            <h2 className="text-xl font-bold text-slate-800 mb-3">4. Konum Verisi</h2>
-            <p className="text-sm">
-              Teker Takip Şöför uygulaması, yalnızca aktif sefer süresince arka planda konum verisi toplar.
-              Konum verisi;
-            </p>
-            <ul className="list-disc pl-5 space-y-1 text-sm mt-2">
-              <li>Şöförün uygulamaya girip sefer başlatmasıyla aktif olur</li>
-              <li>Sefer bitirildiğinde veya uygulama kapatıldığında durur</li>
-              <li>Yalnızca firma yöneticileri ve ilgili velilerle paylaşılır</li>
-              <li>Üçüncü taraf reklam şirketleriyle kesinlikle paylaşılmaz</li>
-            </ul>
-            <p className="text-sm mt-3">
-              Android kullanıcıları için arka plan konum izni sefer takibinin sağlıklı çalışması
-              için gereklidir. Bu izin, yalnızca uygulama aktifken kullanılır.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="text-xl font-bold text-slate-800 mb-3">5. Veri Saklama ve Güvenlik</h2>
-            <ul className="list-disc pl-5 space-y-2 text-sm">
-              <li>Tüm veriler güvenli sunucularda (PostgreSQL veritabanı) şifreli bağlantıyla saklanır</li>
-              <li>Şifreler ve PIN'ler bcrypt algoritmasıyla tek yönlü şifrelenir; düz metin olarak tutulmaz</li>
-              <li>Her firma yalnızca kendi verilerine erişebilir (çok kiracılı izolasyon)</li>
-              <li>Oturum tokenları 30 gün sonra otomatik geçersiz olur</li>
-              <li>Demo hesapları 30 gün sonra silinir</li>
-            </ul>
-          </section>
-
-          <section>
-            <h2 className="text-xl font-bold text-slate-800 mb-3">6. Üçüncü Taraf Hizmetler</h2>
-            <ul className="list-disc pl-5 space-y-2 text-sm">
-              <li><strong>Expo Push Notifications:</strong> Mobil bildirim gönderimi için Expo'nun altyapısı kullanılır. Bildirim tokenleri yalnızca bildirim amacıyla işlenir.</li>
-              <li><strong>Yandex / Google Maps:</strong> Navigasyon yönlendirmesi için cihazda kurulu harita uygulaması açılır. Konum verisi bu hizmetlerle ayrıca paylaşılmaz.</li>
-            </ul>
-          </section>
-
-          <section>
-            <h2 className="text-xl font-bold text-slate-800 mb-3">7. Haklarınız</h2>
-            <p className="text-sm">
-              6698 sayılı Kişisel Verilerin Korunması Kanunu (KVKK) kapsamında;
-            </p>
-            <ul className="list-disc pl-5 space-y-1 text-sm mt-2">
-              <li>Kişisel verilerinizin işlenip işlenmediğini öğrenme</li>
-              <li>Verilerinizin düzeltilmesini veya silinmesini talep etme</li>
-              <li>Verilerinizin aktarıldığı üçüncü kişiler hakkında bilgi isteme</li>
-              <li>İşlemeye itiraz etme</li>
-            </ul>
-            <p className="text-sm mt-3">
-              Bu haklarınızı kullanmak için <a href={`mailto:${EMAIL}`} className="text-[#DC2626] font-medium">{EMAIL}</a> adresine yazabilirsiniz.
-              Talepler 30 gün içinde yanıtlanır.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="text-xl font-bold text-slate-800 mb-3">8. Hesap Silme</h2>
-            <p className="text-sm">
-              Hesabınızın ve tüm ilişkili verilerin silinmesini talep etmek için
-              <a href={`mailto:${EMAIL}`} className="text-[#DC2626] font-medium mx-1">{EMAIL}</a>
-              adresine "Hesap Silme Talebi" konusuyla e-posta gönderin.
-              Verileriniz 30 gün içinde kalıcı olarak silinir.
-            </p>
-            <p className="text-sm mt-2 text-slate-500">
-              Not: Google Play Store politikası gereği bu seçenek uygulama içinden de sunulacaktır.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="text-xl font-bold text-slate-800 mb-3">9. Çocukların Gizliliği</h2>
-            <p className="text-sm">
-              Uygulamamız 13 yaşın altındaki çocuklara doğrudan hizmet vermez. Okul servisi
-              kapsamındaki öğrenci bilgileri (ad, durak) firma yöneticisi tarafından sisteme girilir
-              ve yalnızca servis takibi amacıyla işlenir.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="text-xl font-bold text-slate-800 mb-3">10. Politika Değişiklikleri</h2>
-            <p className="text-sm">
-              Bu politikada yapılan önemli değişiklikler uygulama içi bildirim veya e-posta
-              ile duyurulur. Güncel politika her zaman {SITE}/gizlilik adresinde yayımlanır.
-            </p>
-          </section>
-
-          <section className="bg-slate-50 rounded-2xl p-6 mt-8">
-            <h2 className="text-lg font-bold text-slate-800 mb-2">İletişim</h2>
-            <p className="text-sm text-slate-600">
-              Gizlilik politikasına ilişkin sorularınız için:
-            </p>
-            <div className="mt-3 space-y-1 text-sm">
-              <p><span className="font-medium">E-posta:</span> <a href={`mailto:${EMAIL}`} className="text-[#DC2626]">{EMAIL}</a></p>
-              <p><span className="font-medium">Web:</span> <a href={`https://${SITE}`} className="text-[#DC2626]">{SITE}</a></p>
-            </div>
-          </section>
-
-        </div>
-      </div>
-
-      {/* Footer */}
-      <footer className="bg-slate-50 border-t border-slate-200 py-8 mt-8">
-        <div className="max-w-4xl mx-auto px-4 text-center text-sm text-slate-400 space-y-2">
-          <p>© {new Date().getFullYear()} Teker Takip · Tüm hakları saklıdır</p>
-          <p>
-            <Link href="/" className="hover:text-slate-600 transition-colors">Ana Sayfa</Link>
-            {" · "}
-            <Link href="/gizlilik" className="hover:text-slate-600 transition-colors">Gizlilik Politikası</Link>
-          </p>
-        </div>
-      </footer>
-
-    </div>
+      </article>
+    </main>
   );
 }

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyManagerTokenFull } from "@/lib/manager-token";
+import { getActiveManager } from "@/lib/manager-access";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -7,53 +7,74 @@ export const dynamic = "force-dynamic";
 function getManager(req: NextRequest) {
   const auth = req.headers.get("Authorization");
   if (!auth?.startsWith("Bearer ")) return null;
-  return verifyManagerTokenFull(auth.slice(7));
+  return getActiveManager(auth.slice(7).trim());
 }
 
 export async function GET(req: NextRequest) {
-  const manager = getManager(req);
-  if (!manager) return NextResponse.json({ error: "Yetkisiz" }, { status: 401 });
+  const manager = await getManager(req);
+  if (!manager)
+    return NextResponse.json({ error: "Yetkisiz" }, { status: 401 });
 
-  const companyFilter = manager.companyId ? { companyId: manager.companyId } : {};
+  const companyFilter = manager.companyId
+    ? { companyId: manager.companyId }
+    : {};
 
   const now = new Date();
-  const todayStart = new Date(now); todayStart.setHours(0, 0, 0, 0);
-  const todayEnd = new Date(now); todayEnd.setHours(23, 59, 59, 999);
+  const todayStart = new Date(now);
+  todayStart.setHours(0, 0, 0, 0);
+  const todayEnd = new Date(now);
+  todayEnd.setHours(23, 59, 59, 999);
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
-  const [todayJobs, monthFuel, activeDrivers, openReports, recentFuel] = await Promise.all([
-    prisma.job.findMany({
-      where: { ...companyFilter, date: { gte: todayStart, lte: todayEnd }, status: { not: "cancelled" } },
-      include: { driver: { select: { name: true } }, vehicle: { select: { plate: true } } },
-      orderBy: { startTime: "asc" },
-    }),
-    prisma.fuelEntry.aggregate({
-      _sum: { totalAmount: true, liters: true },
-      where: { ...companyFilter, date: { gte: monthStart } },
-    }),
-    prisma.driver.count({ where: { ...companyFilter, status: "active", isTracking: true } }),
-    prisma.vehicleReport.findMany({
-      where: { ...companyFilter, status: "open" },
-      include: {
-        driver: { select: { name: true } },
-        vehicle: { select: { plate: true } },
-      },
-      orderBy: { createdAt: "desc" },
-    }).catch(() => []),
-    prisma.fuelEntry.findMany({
-      take: 10,
-      where: { ...companyFilter },
-      orderBy: { createdAt: "desc" },
-      include: {
-        driver: { select: { name: true } },
-        vehicle: { select: { plate: true } },
-      },
-    }),
-  ]);
+  const [todayJobs, monthFuel, activeDrivers, openReports, recentFuel] =
+    await Promise.all([
+      prisma.job.findMany({
+        where: {
+          ...companyFilter,
+          date: { gte: todayStart, lte: todayEnd },
+          status: { not: "cancelled" },
+        },
+        include: {
+          driver: { select: { name: true } },
+          vehicle: { select: { plate: true } },
+        },
+        orderBy: { startTime: "asc" },
+      }),
+      prisma.fuelEntry.aggregate({
+        _sum: { totalAmount: true, liters: true },
+        where: { ...companyFilter, date: { gte: monthStart } },
+      }),
+      prisma.driver.count({
+        where: { ...companyFilter, status: "active", isTracking: true },
+      }),
+      prisma.vehicleReport
+        .findMany({
+          where: { ...companyFilter, status: "open" },
+          include: {
+            driver: { select: { name: true } },
+            vehicle: { select: { plate: true } },
+          },
+          orderBy: { createdAt: "desc" },
+        })
+        .catch(() => []),
+      prisma.fuelEntry.findMany({
+        take: 10,
+        where: { ...companyFilter },
+        orderBy: { createdAt: "desc" },
+        include: {
+          driver: { select: { name: true } },
+          vehicle: { select: { plate: true } },
+        },
+      }),
+    ]);
 
   return NextResponse.json({
     today: {
-      date: now.toLocaleDateString("tr-TR", { weekday: "long", day: "numeric", month: "long" }),
+      date: now.toLocaleDateString("tr-TR", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+      }),
       jobCount: todayJobs.length,
       jobs: todayJobs.map((j) => ({
         id: j.id,

@@ -41,6 +41,9 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     await logAction({ userEmail: session.user?.email ?? "admin", action: "UPDATE", entity: "Vehicle", entityId: params.id, entityName: vehicle.plate });
     return NextResponse.json(vehicle);
   } catch (e) {
+    if (e && typeof e === "object" && "code" in e && e.code === "P2025") {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
     console.error(e);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
