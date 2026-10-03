@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { motion, useInView, useMotionValue, useSpring } from "framer-motion";
 import { LogoIcon } from "@/components/Logo";
+import GpsFeaturePreview from "@/components/GpsFeaturePreview";
 import {
   MapPin, Bell, ClipboardList, Fuel, FileText, Banknote,
   Check, ChevronRight, Menu, X, MessageCircle, Truck,
@@ -478,21 +479,7 @@ export default function HomeClient() {
                     <p className="text-slate-500 leading-relaxed">Araçlarınızın konumunu Türkiye haritasında anlık izleyin. 30 saniyede bir güncelleme. Hangi araç nerede, ne hızda, kaç dakikada varır — hepsi tek ekranda.</p>
                   </div>
                 </div>
-                <div className="mt-6 bg-[#1B2437] rounded-2xl h-32 flex items-center justify-center overflow-hidden relative">
-                  <div className="absolute inset-0 opacity-30" style={{ backgroundImage: "radial-gradient(circle, #334155 1px, transparent 1px)", backgroundSize: "20px 20px" }} />
-                  {[
-                    { top: "30%", left: "25%", color: "#10B981", label: "45 J 9443" },
-                    { top: "55%", left: "60%", color: "#F59E0B", label: "34 ABC" },
-                    { top: "20%", left: "70%", color: "#10B981", label: "35 XYZ" },
-                  ].map((pin) => (
-                    <div key={pin.label} className="absolute flex flex-col items-center" style={{ top: pin.top, left: pin.left }}>
-                      <div className="w-8 h-8 rounded-full border-2 border-white flex items-center justify-center text-xs font-bold" style={{ background: pin.color }}>
-                        <Truck className="w-3.5 h-3.5 text-white" />
-                      </div>
-                      <div className="mt-1 bg-white/90 rounded px-1 text-[8px] font-bold text-slate-700 whitespace-nowrap">{pin.label}</div>
-                    </div>
-                  ))}
-                </div>
+                <GpsFeaturePreview />
               </div>
             </FadeIn>
 
