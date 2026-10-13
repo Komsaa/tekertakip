@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { roadRoute, validPoint } from "@/lib/road-route";
 
 export interface Stop {
   id?: string;
@@ -23,6 +24,7 @@ export default function RouteMap({ stops, currentStopIndex, interactive, onMapCl
   const mapRef = useRef<HTMLDivElement>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const mapInstanceRef = useRef<any>(null);
+  const [routeError, setRouteError] = useState("");
 
   useEffect(() => {
     if (!mapRef.current) return;
@@ -41,10 +43,12 @@ export default function RouteMap({ stops, currentStopIndex, interactive, onMapCl
     }
 
     const container = mapRef.current;
+    const controller = new AbortController();
+    setRouteError("");
 
     // Dynamic import — SSR bundle'a dahil edilmez
     import("leaflet").then((mod) => {
-      if (!container) return;
+      if (!container || controller.signal.aborted) return;
       const L = mod.default;
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -55,7 +59,7 @@ export default function RouteMap({ stops, currentStopIndex, interactive, onMapCl
         shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
       });
 
-      const validStops = stops.filter((s) => s.lat != null && s.lng != null);
+      const validStops = [...stops].sort((a, b) => a.order - b.order).filter(validPoint);
 
       const center: [number, number] =
         validStops.length > 0
@@ -73,29 +77,13 @@ export default function RouteMap({ stops, currentStopIndex, interactive, onMapCl
       }).addTo(map);
 
       if (validStops.length > 1) {
-        const coords = validStops.map((s) => [s.lng!, s.lat!].join(",")).join(";");
-        const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson`;
-
-        fetch(osrmUrl)
-          .then((r) => r.json())
-          .then((data) => {
-            if (data.routes?.[0]?.geometry?.coordinates) {
-              const latlngs: [number, number][] = data.routes[0].geometry.coordinates.map(
-                ([lng, lat]: [number, number]) => [lat, lng]
-              );
-              L.polyline(latlngs, { color: "#DC2626", weight: 4, opacity: 0.8 }).addTo(map);
-              map.fitBounds(L.latLngBounds(latlngs).pad(0.1));
-            } else {
-              // OSRM başarısız olursa düz çizgi yedek
-              const fallback: [number, number][] = validStops.map((s) => [s.lat!, s.lng!]);
-              L.polyline(fallback, { color: "#DC2626", weight: 4, opacity: 0.8 }).addTo(map);
-              map.fitBounds(L.latLngBounds(fallback).pad(0.1));
-            }
+        map.fitBounds(L.latLngBounds(validStops.map(s => [s.lat!, s.lng!] as [number, number])).pad(0.1));
+        roadRoute(validStops, controller.signal)
+          .then((latlngs) => {
+            if (!controller.signal.aborted) L.polyline(latlngs, { color: "#DC2626", weight: 4, opacity: 0.8 }).addTo(map);
           })
           .catch(() => {
-            const fallback: [number, number][] = validStops.map((s) => [s.lat!, s.lng!]);
-            L.polyline(fallback, { color: "#DC2626", weight: 4, opacity: 0.8 }).addTo(map);
-            map.fitBounds(L.latLngBounds(fallback).pad(0.1));
+            if (!controller.signal.aborted) setRouteError("Yol hesaplanamadı; yalnızca duraklar gösteriliyor.");
           });
       }
 
@@ -113,15 +101,9 @@ export default function RouteMap({ stops, currentStopIndex, interactive, onMapCl
           iconAnchor: [size / 2, size / 2],
         });
 
-        L.marker([stop.lat!, stop.lng!], { icon })
-          .addTo(map)
-          .bindPopup(
-            `<div style="font-family:sans-serif;min-width:120px">
-              <strong>${stop.name}</strong><br/>
-              <span style="color:#6B7280;font-size:12px">${stop.estimatedTime}</span>
-              ${isCurrent ? '<br/><span style="color:#10B981;font-size:11px;font-weight:bold">● Şu an burada</span>' : ""}
-            </div>`
-          );
+        const popup = document.createElement("div");
+        popup.textContent = `${stop.name} · ${stop.estimatedTime}${isCurrent ? " · Şu an burada" : ""}`;
+        L.marker([stop.lat!, stop.lng!], { icon }).addTo(map).bindPopup(popup);
       });
 
       if (interactive && onMapClick) {
@@ -132,6 +114,7 @@ export default function RouteMap({ stops, currentStopIndex, interactive, onMapCl
     });
 
     return () => {
+      controller.abort();
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
@@ -141,10 +124,13 @@ export default function RouteMap({ stops, currentStopIndex, interactive, onMapCl
   }, [stops, currentStopIndex]);
 
   return (
+    <div>
+    {routeError && <p role="status" className="text-sm text-amber-700 p-2">{routeError}</p>}
     <div
       ref={mapRef}
       style={{ height, width: "100%", borderRadius: 12, zIndex: 0 }}
       className="overflow-hidden"
     />
+    </div>
   );
 }

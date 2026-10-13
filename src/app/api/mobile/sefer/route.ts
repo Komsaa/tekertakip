@@ -24,9 +24,11 @@ export async function GET() {
             passengers: {
               where: { active: true },
               orderBy: { order: "asc" },
-              include: {
+              select: {
+                id: true, name: true, phone: true, parentName: true, parentPhone: true,
                 attendances: {
                   where: { date: today },
+                  select: { status: true },
                 },
               },
             },

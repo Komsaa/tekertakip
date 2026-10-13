@@ -13,6 +13,7 @@ interface Stop {
 }
 
 interface Passenger {
+  phone: string | null;
   id: string;
   name: string;
   parentName: string | null;
@@ -34,6 +35,7 @@ interface Payment {
 }
 
 interface Route {
+  type: string;
   id: string;
   name: string;
   stops: (Stop & { passengers: Omit<Passenger, "stop">[] })[];
@@ -53,6 +55,8 @@ interface AttendanceRecord { passengerId: string; date: string; status: string; 
 const MONTHS = ["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"];
 
 export default function OgrencilerClient({ route }: { route: Route }) {
+  const personnel = route.type === "personel";
+  const singular = personnel ? "Personel" : "Öğrenci";
   const router = useRouter();
   const now = new Date();
 
@@ -134,7 +138,7 @@ export default function OgrencilerClient({ route }: { route: Route }) {
     setEditingPassenger(p);
     setEditName(p.name);
     setEditParentName(p.parentName ?? "");
-    setEditParentPhone(p.parentPhone ?? "");
+    setEditParentPhone((personnel ? p.phone : p.parentPhone) ?? "");
     setEditFee(p.monthlyFee != null ? String(p.monthlyFee) : "");
   }
 
@@ -148,8 +152,8 @@ export default function OgrencilerClient({ route }: { route: Route }) {
         body: JSON.stringify({
           id: editingPassenger.id,
           name: editName.trim(),
-          parentName: editParentName.trim() || null,
-          parentPhone: editParentPhone.trim() || null,
+          ...(!personnel && { parentName: editParentName.trim() || null }),
+          [personnel ? "phone" : "parentPhone"]: editParentPhone.trim() || null,
           monthlyFee: editFee,
         }),
       });
@@ -172,8 +176,8 @@ export default function OgrencilerClient({ route }: { route: Route }) {
         body: JSON.stringify({
           stopId: newStopId,
           name: newName.trim(),
-          parentName: newParentName.trim() || null,
-          parentPhone: newParentPhone.trim() || null,
+          ...(!personnel && { parentName: newParentName.trim() || null }),
+          [personnel ? "phone" : "parentPhone"]: newParentPhone.trim() || null,
           monthlyFee: newMonthlyFee ? parseFloat(newMonthlyFee) : null,
         }),
       });
@@ -313,7 +317,7 @@ export default function OgrencilerClient({ route }: { route: Route }) {
         <div>
           <h1 className="text-2xl font-black text-slate-800">{route.name}</h1>
           <p className="text-slate-500 text-sm mt-0.5">
-            {total} öğrenci &middot; {withAccount} veli hesabı aktif
+            {total} {singular.toLocaleLowerCase("tr-TR")} {!personnel && <>· {withAccount} veli hesabı aktif</>}
           </p>
         </div>
       </div>
@@ -325,7 +329,7 @@ export default function OgrencilerClient({ route }: { route: Route }) {
           className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${tab === "ogrenciler" ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
         >
           <Users className="w-4 h-4" />
-          Öğrenciler
+          {personnel ? "Personeller" : "Öğrenciler"}
         </button>
         <button
           onClick={() => setTab("odemeler")}
@@ -350,11 +354,11 @@ export default function OgrencilerClient({ route }: { route: Route }) {
           <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
             <h2 className="font-bold text-slate-700 text-sm mb-3 flex items-center gap-2">
               <Plus className="w-4 h-4 text-[#DC2626]" />
-              Yeni Öğrenci Ekle
+              Yeni {singular} Ekle
             </h2>
             <div className="flex gap-2 flex-wrap">
               <input
-                placeholder="Öğrenci adı soyadı *"
+                placeholder={`${singular} adı soyadı *`}
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && addPassenger()}
@@ -362,12 +366,13 @@ export default function OgrencilerClient({ route }: { route: Route }) {
               />
               <input
                 placeholder="Veli adı soyadı"
+                hidden={personnel}
                 value={newParentName}
                 onChange={(e) => setNewParentName(e.target.value)}
                 className="flex-1 min-w-36 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#DC2626]"
               />
               <input
-                placeholder="Veli telefonu (WhatsApp)"
+                placeholder={personnel ? "Personel telefonu" : "Veli telefonu (WhatsApp)"}
                 value={newParentPhone}
                 onChange={(e) => setNewParentPhone(e.target.value)}
                 className="w-44 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#DC2626]"
@@ -402,7 +407,7 @@ export default function OgrencilerClient({ route }: { route: Route }) {
           {total === 0 ? (
             <div className="bg-white rounded-2xl border border-dashed border-slate-200 p-12 text-center">
               <Users className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-              <p className="text-slate-500 font-medium">Henüz öğrenci eklenmedi</p>
+              <p className="text-slate-500 font-medium">Henüz {singular.toLocaleLowerCase("tr-TR")} eklenmedi</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -416,7 +421,7 @@ export default function OgrencilerClient({ route }: { route: Route }) {
                       </div>
                       <span className="font-bold text-slate-700 text-sm">{stop.name}</span>
                       <span className="text-xs text-slate-400 font-mono">{stop.estimatedTime}</span>
-                      <span className="ml-auto text-xs text-slate-400">{stopPassengers.length} öğrenci</span>
+                      <span className="ml-auto text-xs text-slate-400">{stopPassengers.length} {singular.toLocaleLowerCase("tr-TR")}</span>
                     </div>
                     <div className="divide-y divide-slate-50">
                       {stopPassengers.map((p) => (
@@ -426,7 +431,7 @@ export default function OgrencilerClient({ route }: { route: Route }) {
                             {p.parentName && <div className="text-xs text-slate-400">{p.parentName}</div>}
                           </div>
                           <div className="text-sm text-slate-500 w-36">
-                            {p.parentPhone ?? <span className="text-slate-300 italic">tel yok</span>}
+                            {(personnel ? p.phone : p.parentPhone) ?? <span className="text-slate-300 italic">tel yok</span>}
                           </div>
                           {/* Aylık ücret */}
                           <div className="flex items-center gap-1">
@@ -464,7 +469,7 @@ export default function OgrencilerClient({ route }: { route: Route }) {
                             >
                               <Edit2 className="w-3.5 h-3.5" />
                             </button>
-                            {p.parentPhone && p.veliUsername && (
+                            {!personnel && p.parentPhone && p.veliUsername && (
                               <button
                                 onClick={() => openWhatsApp(p.parentPhone!, p.name, p.veliUsername!, "••••••")}
                                 className="p-1.5 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 transition-colors"
@@ -475,6 +480,7 @@ export default function OgrencilerClient({ route }: { route: Route }) {
                             )}
                             <button
                               onClick={() => generateCredentials(p.id, p.name, p.parentPhone)}
+                              hidden={personnel}
                               disabled={credLoading === p.id}
                               className="p-1.5 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors disabled:opacity-40"
                               title="Yeni şifre oluştur"
@@ -558,8 +564,8 @@ export default function OgrencilerClient({ route }: { route: Route }) {
           ) : (
             <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
               <div className="px-5 py-3 bg-slate-50 border-b border-slate-100 grid grid-cols-12 text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                <span className="col-span-4">Öğrenci</span>
-                <span className="col-span-3">Veli</span>
+                <span className="col-span-4">{singular}</span>
+                <span className="col-span-3">{personnel ? "Telefon" : "Veli"}</span>
                 <span className="col-span-2 text-right">Ücret</span>
                 <span className="col-span-3 text-right">Durum</span>
               </div>
@@ -575,7 +581,7 @@ export default function OgrencilerClient({ route }: { route: Route }) {
                         <div className="text-xs text-slate-400">{p.stop.name}</div>
                       </div>
                       <div className="col-span-3 text-sm text-slate-500 truncate">
-                        {p.parentName ?? <span className="italic text-slate-300">—</span>}
+                        {(personnel ? p.phone : p.parentName) ?? <span className="italic text-slate-300">—</span>}
                       </div>
                       <div className="col-span-2 text-right">
                         {p.monthlyFee ? (
@@ -612,7 +618,7 @@ export default function OgrencilerClient({ route }: { route: Route }) {
           )}
 
           {/* Ödemeyenler WhatsApp toplu hatırlatma */}
-          {unpaidPassengers.filter(p => p.parentPhone).length > 0 && (
+          {!personnel && unpaidPassengers.filter(p => p.parentPhone).length > 0 && (
             <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-center justify-between gap-4">
               <div>
                 <p className="text-sm font-semibold text-amber-800">
@@ -697,7 +703,7 @@ export default function OgrencilerClient({ route }: { route: Route }) {
                   <table className="w-full text-sm min-w-max">
                     <thead>
                       <tr className="bg-slate-50 border-b border-slate-100">
-                        <th className="text-left px-4 py-3 font-semibold text-slate-600 sticky left-0 bg-slate-50 min-w-40">Öğrenci</th>
+                        <th className="text-left px-4 py-3 font-semibold text-slate-600 sticky left-0 bg-slate-50 min-w-40">{singular}</th>
                         {days.map(d => (
                           <th key={d} className="px-2 py-3 font-medium text-slate-500 text-xs whitespace-nowrap">
                             {d.slice(8)}/{d.slice(5, 7)}
@@ -753,10 +759,10 @@ export default function OgrencilerClient({ route }: { route: Route }) {
       {editingPassenger && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4">
-            <h3 className="font-bold text-slate-800 text-lg">Öğrenci Düzenle</h3>
+            <h3 className="font-bold text-slate-800 text-lg">{singular} Düzenle</h3>
             <div className="space-y-3">
               <div>
-                <label className="text-xs font-semibold text-slate-500 mb-1 block">Öğrenci Adı Soyadı *</label>
+                <label className="text-xs font-semibold text-slate-500 mb-1 block">{singular} Adı Soyadı *</label>
                 <input
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
@@ -764,15 +770,16 @@ export default function OgrencilerClient({ route }: { route: Route }) {
                 />
               </div>
               <div>
-                <label className="text-xs font-semibold text-slate-500 mb-1 block">Veli Adı Soyadı</label>
+                <label hidden={personnel} className="text-xs font-semibold text-slate-500 mb-1 block">{personnel ? "" : "Veli Adı Soyadı"}</label>
                 <input
+                  hidden={personnel}
                   value={editParentName}
                   onChange={(e) => setEditParentName(e.target.value)}
                   className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#DC2626]"
                 />
               </div>
               <div>
-                <label className="text-xs font-semibold text-slate-500 mb-1 block">Veli Telefonu (WhatsApp)</label>
+                <label className="text-xs font-semibold text-slate-500 mb-1 block">{personnel ? "Personel Telefonu" : "Veli Telefonu (WhatsApp)"}</label>
                 <input
                   value={editParentPhone}
                   onChange={(e) => setEditParentPhone(e.target.value)}

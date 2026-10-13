@@ -147,6 +147,7 @@ model Driver {
   routes            Route[]
   vehicleReports    VehicleReport[]
   locationHistory   DriverLocationHistory[]
+  learningSessions  LearningSession[]
   routeProposals    RouteProposal[]
 
   createdAt DateTime @default(now())
@@ -575,6 +576,8 @@ model RouteProposal {
   company   Company? @relation(fields: [companyId], references: [id])
   name      String?
   status    String   @default("pending") // pending, approved, rejected
+  learningKey String? @unique
+  learnedPath Json?
   stops     Json     // [{name, lat, lng, timestamp}]
   notes     String?
   createdAt DateTime @default(now())
@@ -789,4 +792,30 @@ model PaymentCalendar {
   company       Company? @relation(fields: [companyId], references: [id])
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+}
+
+
+// Explicit opt-in service recordings; never collected outside a session.
+model LearningSession {
+  id String @id @default(cuid())
+  driverId String
+  driver Driver @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  companyId String
+  vehicleId String
+  startedAt DateTime @default(now())
+  expiresAt DateTime
+  endedAt DateTime?
+  points LearningPoint[]
+  @@index([driverId, companyId, startedAt])
+}
+
+model LearningPoint {
+  id String @id @default(cuid())
+  sessionId String
+  session LearningSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  latitude Float
+  longitude Float
+  accuracy Float
+  timestamp DateTime
+  @@unique([sessionId, timestamp])
 }

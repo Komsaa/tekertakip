@@ -70,7 +70,9 @@ export default function GuzergahlarClient({
     name: string | null;
     status: string;
     createdAt: string;
-    stops: { name: string; lat: number; lng: number; timestamp: string }[];
+    notes?: string | null;
+    learnedPath?: number[][] | null;
+    stops: { name: string; lat: number; lng: number; timestamp: string; estimatedTime?: string }[];
     driver: { id: string; name: string };
   }
   const [proposals, setProposals] = useState<Proposal[]>([]);
@@ -94,7 +96,7 @@ export default function GuzergahlarClient({
     setPropType("okul");
     setPropStops(p.stops.map((s) => ({
       ...s,
-      estimatedTime: new Date(s.timestamp).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" }),
+      estimatedTime: s.estimatedTime || new Date(s.timestamp).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Istanbul" }),
     })));
   }
 
@@ -145,6 +147,7 @@ export default function GuzergahlarClient({
   }
 
   async function addPassenger(stopId: string) {
+    const personnel = routes.find(r => r.stops.some(s => s.id === stopId))?.type === "personel";
     if (!newPassengerName.trim()) return;
     setPassengerSaving(true);
     const res = await fetch("/api/routes/passengers", {
@@ -153,8 +156,8 @@ export default function GuzergahlarClient({
       body: JSON.stringify({
         stopId,
         name: newPassengerName,
-        parentName: newPassengerParentName,
-        parentPhone: newPassengerParentPhone,
+        ...(!personnel && { parentName: newPassengerParentName }),
+        [personnel ? "phone" : "parentPhone"]: newPassengerParentPhone,
       }),
     });
     setPassengerSaving(false);
@@ -498,10 +501,10 @@ export default function GuzergahlarClient({
                   <button
                     onClick={() => router.push(`/panel/guzergahlar/${r.id}/ogrenciler`)}
                     className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 font-medium transition-colors"
-                    title="Öğrenci listesi"
+                    title={r.type === "personel" ? "Personel listesi" : "Öğrenci listesi"}
                   >
                     <Users className="w-3.5 h-3.5" />
-                    Öğrenciler
+                    {r.type === "personel" ? "Personeller" : "Öğrenciler"}
                   </button>
                   <button onClick={() => setExpandedId(isExpanded ? null : r.id)} className="p-2 text-slate-400 hover:text-slate-600">
                     {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -613,6 +616,7 @@ export default function GuzergahlarClient({
                                       }
                                       <button
                                         onClick={() => generateCredentials(stopId, p.id, p.name)}
+                                        hidden={r.type === "personel"}
                                         disabled={credLoading === p.id}
                                         className="text-xs px-2 py-0.5 rounded bg-indigo-50 text-indigo-600 hover:bg-indigo-100 font-medium disabled:opacity-40"
                                         title="Veli giriş bilgisi oluştur / yenile"
@@ -625,7 +629,7 @@ export default function GuzergahlarClient({
                                 </div>
                                 <div className="flex gap-1.5 flex-wrap">
                                   <input
-                                    placeholder="Öğrenci adı *"
+                                    placeholder={r.type === "personel" ? "Personel adı *" : "Öğrenci adı *"}
                                     value={newPassengerName}
                                     onChange={(e) => setNewPassengerName(e.target.value)}
                                     className="flex-1 min-w-24 border border-slate-200 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400"
@@ -633,12 +637,13 @@ export default function GuzergahlarClient({
                                   />
                                   <input
                                     placeholder="Veli adı soyadı"
+                                    hidden={r.type === "personel"}
                                     value={newPassengerParentName}
                                     onChange={(e) => setNewPassengerParentName(e.target.value)}
                                     className="w-36 border border-slate-200 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400"
                                   />
                                   <input
-                                    placeholder="Veli tel. (WA)"
+                                    placeholder={r.type === "personel" ? "Personel telefonu" : "Veli tel. (WA)"}
                                     value={newPassengerParentPhone}
                                     onChange={(e) => setNewPassengerParentPhone(e.target.value)}
                                     className="w-32 border border-slate-200 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400"
@@ -691,7 +696,7 @@ export default function GuzergahlarClient({
             </div>
 
             <div className="p-6 space-y-5">
-              {/* Temel bilgiler */}
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="sm:col-span-2">
                   <label className="block text-sm font-medium text-slate-700 mb-1">Güzergah Adı *</label>
@@ -890,6 +895,18 @@ export default function GuzergahlarClient({
               <button onClick={() => setReviewProposal(null)} className="p-2 text-slate-400 hover:text-slate-600"><X className="w-5 h-5" /></button>
             </div>
             <div className="p-6 space-y-5">
+              {reviewProposal.notes && <p className="text-sm text-amber-700">{reviewProposal.notes}</p>}
+              {reviewProposal.learnedPath && <svg viewBox="0 0 600 260" role="img" aria-label="Kaydedilen güzergâh izi" className="w-full rounded-xl bg-slate-50">
+                <polyline fill="none" stroke="#DC2626" strokeWidth="3" points={(() => {
+                  const path = reviewProposal.learnedPath!;
+                  const xs = path.map(p => p[1]), ys = path.map(p => p[0]);
+                  const minX = Math.min(...xs), minY = Math.min(...ys);
+                  const scale = Math.min(560 / Math.max(Math.max(...xs) - minX, 0.001), 220 / Math.max(Math.max(...ys) - minY, 0.001));
+                  return path.map(p => `${20 + (p[1] - minX) * scale},${240 - (p[0] - minY) * scale}`).join(" ");
+                })()} />
+              </svg>}
+              {reviewProposal.learnedPath && <p className="text-xs text-slate-500">Kaydedilen yol izi; harita veya navigasyon tarifi değildir.</p>}
+              {/* Temel bilgiler */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2">
                   <label className="block text-sm font-medium text-slate-700 mb-1">Güzergah Adı</label>

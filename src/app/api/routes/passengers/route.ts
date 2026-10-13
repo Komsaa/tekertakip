@@ -2,20 +2,23 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getCompanyId } from "@/lib/tenant";
+import { getCompanyId, requireTenant, tenantWhere } from "@/lib/tenant";
 import bcrypt from "bcryptjs";
 import { randomBytes } from "crypto";
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const denied = requireTenant(session);
+  if (denied) return denied;
+  const scope = tenantWhere(getCompanyId(session));
 
   const stopId = req.nextUrl.searchParams.get("stopId");
   const routeId = req.nextUrl.searchParams.get("routeId");
 
   if (stopId) {
     const passengers = await prisma.routePassenger.findMany({
-      where: { stopId },
+      where: { stopId, stop: { route: scope } },
       orderBy: { order: "asc" },
     });
     return NextResponse.json(passengers);
@@ -23,7 +26,7 @@ export async function GET(req: NextRequest) {
 
   if (routeId) {
     const passengers = await prisma.routePassenger.findMany({
-      where: { stop: { routeId } },
+      where: { stop: { routeId, route: scope } },
       include: { stop: { select: { id: true, name: true, order: true } } },
       orderBy: [{ stop: { order: "asc" } }, { order: "asc" }],
     });
@@ -58,12 +61,25 @@ export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const companyId = getCompanyId(session);
+  const denied = requireTenant(session);
+  if (denied) return denied;
 
   const { stopId, name, phone, parentPhone, parentName } = await req.json();
   if (!stopId || !name) return NextResponse.json({ error: "stopId ve name zorunlu" }, { status: 400 });
+  const targetStop = await prisma.routeStop.findFirst({ where: { id: stopId, route: tenantWhere(companyId) }, include: { route: { select: { type: true } } } });
+  if (!targetStop) return NextResponse.json({ error: "Durak bulunamadı" }, { status: 404 });
+  if (typeof name !== "string" || !name.trim() || (phone != null && typeof phone !== "string")) {
+    return NextResponse.json({ error: "Geçersiz yolcu bilgisi" }, { status: 400 });
+  }
 
   // Sıra numarası
   const count = await prisma.routePassenger.count({ where: { stopId } });
+  if (targetStop.route.type === "personel") {
+    const passenger = await prisma.routePassenger.create({
+      data: { stopId, name: name.trim(), phone: phone?.trim() || null, order: count },
+    });
+    return NextResponse.json(passenger, { status: 201 });
+  }
 
   // Otomatik veli hesabı oluştur
   const base = slugify(parentName?.trim() || name.trim());
@@ -121,13 +137,22 @@ export async function POST(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const { id, stopId, name, parentName, parentPhone, monthlyFee } = await req.json();
+  const denied = requireTenant(session);
+  if (denied) return denied;
+  const scope = tenantWhere(getCompanyId(session));
+  const { id, stopId, name, phone, parentName, parentPhone, monthlyFee } = await req.json();
   if (!id) return NextResponse.json({ error: "id zorunlu" }, { status: 400 });
+  const existing = await prisma.routePassenger.findFirst({ where: { id, stop: { route: scope } }, select: { stop: { select: { routeId: true } } } });
+  if (!existing) return NextResponse.json({ error: "Yolcu bulunamadı" }, { status: 404 });
+  if (stopId && !await prisma.routeStop.findFirst({ where: { id: stopId, routeId: existing.stop.routeId, route: scope } })) {
+    return NextResponse.json({ error: "Durak bu güzergaha ait değil" }, { status: 400 });
+  }
   const updated = await prisma.routePassenger.update({
     where: { id },
     data: {
       ...(stopId && { stopId }),
       ...(name !== undefined && { name }),
+      ...(phone !== undefined && { phone: typeof phone === "string" ? phone.trim() || null : null }),
       ...(parentName !== undefined && { parentName }),
       ...(parentPhone !== undefined && { parentPhone }),
       ...(monthlyFee !== undefined && { monthlyFee: monthlyFee === "" ? null : parseFloat(monthlyFee) }),
@@ -139,8 +164,10 @@ export async function PATCH(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const denied = requireTenant(session);
+  if (denied) return denied;
   const { id } = await req.json();
   if (!id) return NextResponse.json({ error: "id zorunlu" }, { status: 400 });
-  await prisma.routePassenger.delete({ where: { id } });
+  await prisma.routePassenger.deleteMany({ where: { id, stop: { route: tenantWhere(getCompanyId(session)) } } });
   return NextResponse.json({ success: true });
 }
