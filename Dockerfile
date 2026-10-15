@@ -42,4 +42,5 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-CMD ["/bin/sh", "-c", "sleep 5 && node_modules/.bin/prisma db push --skip-generate --accept-data-loss && echo 'DB migration OK' && node server.js || (echo 'DB push failed, retrying in 10s...' && sleep 10 && node_modules/.bin/prisma db push --skip-generate --accept-data-loss; node server.js)"]
+# Schema changes must be reviewed and applied separately after backup validation.
+CMD ["node", "server.js"]

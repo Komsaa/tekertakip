@@ -14,7 +14,7 @@ async function geocode(query: string): Promise<{ lat: number; lng: number } | nu
       `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&countrycodes=tr`,
       {
         headers: {
-          "User-Agent": "MertTur Fleet Management App",
+          "User-Agent": "TekerTakip Fleet Management App",
           "Accept-Language": "tr",
         },
       }

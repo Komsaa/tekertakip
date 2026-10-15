@@ -6,6 +6,7 @@ import Sidebar from "@/components/Sidebar";
 import RouteAlerts from "@/components/RouteAlerts";
 import DemoBanner from "@/components/DemoBanner";
 import ImpersonationBanner from "@/components/ImpersonationBanner";
+import PanelTopbar from "@/components/PanelTopbar";
 
 export default async function PanelLayout({
   children,
@@ -39,16 +40,18 @@ export default async function PanelLayout({
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-100">
-      <Sidebar userName={session.user?.name || "Admin"} role={(session.user as any)?.role} companyType={companyType} />
+    <div className="panel-shell flex overflow-hidden">
+      <a href="#panel-content" className="panel-skip">İçeriğe geç</a>
+      <Sidebar userName={session.user?.name || "Kullanıcı"} role={(session.user as any)?.role} companyType={companyType} companyId={companyId} />
 
       {/* Ana içerik */}
-      <main className="flex-1 overflow-y-auto flex flex-col pt-14 lg:pt-0">
+      <main id="panel-main" className="flex-1 min-w-0 overflow-y-auto flex flex-col">
+        <PanelTopbar userName={session.user?.name || "Hesabım"} />
         {isImpersonating && impersonatedCompanyName && (
           <ImpersonationBanner companyName={impersonatedCompanyName} />
         )}
         {demoBanner && <DemoBanner daysLeft={demoBanner.daysLeft} expired={demoBanner.expired} />}
-        {children}
+        <div id="panel-content" tabIndex={-1} className="panel-content">{children}</div>
       </main>
 
       {/* Gecikme bildirimleri */}

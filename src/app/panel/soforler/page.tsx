@@ -17,13 +17,14 @@ import {
 } from "lucide-react";
 import AddDriverModal from "./AddDriverModal";
 import ExcelImportButton from "./ExcelImportButton";
+import { WorkspaceHeader, MetricCard, workspaceStyles as s } from "@/components/workspace/Workspace";
 
 async function getDrivers(companyId: string | null) {
   return prisma.driver.findMany({
     where: { ...tenantWhere(companyId), NOT: { status: "deleted" } },
     orderBy: { name: "asc" },
     include: { vehicles: { include: { vehicle: { select: { id: true, plate: true } } } }, company: { select: { id: true, name: true } }, _count: { select: { jobs: true } } },
-  }).catch(() => []);
+  });
 }
 
 async function getCompanies(companyId: string | null) {
@@ -31,7 +32,7 @@ async function getCompanies(companyId: string | null) {
     where: companyId ? { id: companyId, active: true } : { active: true },
     orderBy: { name: "asc" },
     select: { id: true, name: true, code: true },
-  }).catch(() => []);
+  });
 }
 
 function DocBadge({
@@ -79,18 +80,9 @@ export default async function DriversPage() {
   }).length;
 
   return (
-    <div className="p-6 lg:p-8 space-y-6 animate-fade-in">
+    <div className={s.workspace}>
       {/* Başlık */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-black text-slate-800">Şöförler</h1>
-          <p className="text-slate-500 text-sm mt-1">
-            {activeCount} aktif şöför
-            {hasAlertCount > 0 && (
-              <span className="text-amber-600 ml-2">· {hasAlertCount} belgede uyarı</span>
-            )}
-          </p>
-        </div>
+      <WorkspaceHeader eyebrow="Ekip yönetimi" title="Ekibiniz, yola hazır." description="Şoförlerinizi, araç atamalarını ve ehliyet tarihlerini tek yerden takip edin." actions={
         <div className="flex items-center gap-2 flex-wrap">
           <a
             href="/api/excel/template?type=drivers"
@@ -107,13 +99,19 @@ export default async function DriversPage() {
           <ExcelImportButton type="drivers" />
           <AddDriverModal companies={companies} />
         </div>
+      } />
+      <div className={s.metrics}>
+        <MetricCard label="Toplam şoför" value={drivers.length} detail="Kayıtlı ekip üyeleri" icon={<User size={17}/>} />
+        <MetricCard label="Aktif şoför" value={activeCount} detail="Aktif durumdaki kayıtlar" icon={<CheckCircle size={17}/>} />
+        <MetricCard label="Ehliyet takibi" value={hasAlertCount} detail="Yaklaşan veya geçen tarihler" icon={<AlertTriangle size={17}/>} />
+        <MetricCard label="Araç atanmamış" value={drivers.filter(d => d.vehicles.length === 0).length} detail="Araç bağlantısı olmayan şoförler" icon={<User size={17}/>} />
       </div>
 
       {/* Şöför Kartları */}
       {drivers.length === 0 ? (
         <div className="bg-white rounded-2xl p-16 text-center shadow-sm border border-slate-100">
           <User className="w-16 h-16 text-slate-200 mx-auto mb-4" />
-          <h3 className="text-lg font-bold text-slate-600 mb-2">Henüz şöför eklenmedi</h3>
+          <h3 className="text-lg font-bold text-slate-600 mb-2">Henüz şoför eklenmedi</h3>
           <p className="text-slate-400 text-sm mb-6">İlk şöförünüzü ekleyin</p>
           <AddDriverModal companies={companies} />
         </div>
@@ -133,8 +131,8 @@ export default async function DriversPage() {
                 href={`/panel/soforler/${driver.id}`}
                 className="bg-white rounded-2xl shadow-sm border border-slate-100 hover:shadow-md hover:border-slate-200 transition-all p-6 group"
               >
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center gap-3">
+                <div className="flex items-start justify-between mb-4 gap-3 flex-wrap">
+                  <div className="flex items-center gap-3 min-w-0">
                     {/* Avatar */}
                     <div
                       className={`w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg flex-shrink-0 ${
@@ -147,8 +145,8 @@ export default async function DriversPage() {
                     >
                       {driver.name.charAt(0).toUpperCase()}
                     </div>
-                    <div>
-                      <div className="font-bold text-slate-800">{driver.name}</div>
+                    <div className="min-w-0">
+                      <div className="font-bold text-slate-800 break-words">{driver.name}</div>
                       {driver.phone && (
                         <div className="flex items-center gap-1 text-xs text-slate-500">
                           <Phone className="w-3 h-3" />
@@ -158,7 +156,7 @@ export default async function DriversPage() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span
                       className={`text-xs px-2 py-1 rounded-full font-medium ${
                         driver.status === "active"

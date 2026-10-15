@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyManagerTokenFull } from "@/lib/manager-token";
+import { getActiveManager } from "@/lib/manager-access";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -7,14 +7,17 @@ export const dynamic = "force-dynamic";
 function getManager(req: NextRequest) {
   const auth = req.headers.get("Authorization");
   if (!auth?.startsWith("Bearer ")) return null;
-  return verifyManagerTokenFull(auth.slice(7));
+  return getActiveManager(auth.slice(7).trim());
 }
 
 export async function GET(req: NextRequest) {
-  const manager = getManager(req);
-  if (!manager) return NextResponse.json({ error: "Yetkisiz" }, { status: 401 });
+  const manager = await getManager(req);
+  if (!manager)
+    return NextResponse.json({ error: "Yetkisiz" }, { status: 401 });
 
-  const companyFilter = manager.companyId ? { companyId: manager.companyId } : {};
+  const companyFilter = manager.companyId
+    ? { companyId: manager.companyId }
+    : {};
 
   const [vehicles, records] = await Promise.all([
     prisma.vehicle.findMany({
@@ -47,20 +50,28 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const manager = getManager(req);
-  if (!manager) return NextResponse.json({ error: "Yetkisiz" }, { status: 401 });
+  const manager = await getManager(req);
+  if (!manager)
+    return NextResponse.json({ error: "Yetkisiz" }, { status: 401 });
 
-  const { vehicleId, date, type, description, cost, odometer, nextDate } = await req.json();
+  const { vehicleId, date, type, description, cost, odometer, nextDate } =
+    await req.json();
   if (!vehicleId || !date || !type || !description) {
-    return NextResponse.json({ error: "vehicleId, date, type ve description zorunlu" }, { status: 400 });
+    return NextResponse.json(
+      { error: "vehicleId, date, type ve description zorunlu" },
+      { status: 400 },
+    );
   }
 
-  const companyFilter = manager.companyId ? { companyId: manager.companyId } : {};
+  const companyFilter = manager.companyId
+    ? { companyId: manager.companyId }
+    : {};
   const vehicle = await prisma.vehicle.findFirst({
     where: { id: vehicleId, ...companyFilter },
     select: { id: true, plate: true },
   });
-  if (!vehicle) return NextResponse.json({ error: "Araç bulunamadı" }, { status: 404 });
+  if (!vehicle)
+    return NextResponse.json({ error: "Araç bulunamadı" }, { status: 404 });
 
   const record = await prisma.vehicleMaintenance.create({
     data: {
@@ -75,5 +86,9 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  return NextResponse.json({ success: true, id: record.id, plate: vehicle.plate });
+  return NextResponse.json({
+    success: true,
+    id: record.id,
+    plate: vehicle.plate,
+  });
 }

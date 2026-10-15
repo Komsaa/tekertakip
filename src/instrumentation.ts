@@ -1,8 +1,12 @@
 // Bu dosya Next.js 14 tarafından sunucu başladığında otomatik çalıştırılır.
-// Prisma db push olmadan eksik DB kolonlarını/tablolarını ekler.
+// Eski şema kurulum kodu yalnızca açıkça etkinleştirilen yerel geliştirmede çalışır.
 
 export async function register() {
+  if (process.env.NEXT_RUNTIME === "nodejs") await import("../sentry.server.config");
+  if (process.env.NEXT_RUNTIME === "edge") await import("../sentry.edge.config");
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
+  // Production startup must never perform schema changes, even if the opt-in is set.
+  if (process.env.NODE_ENV !== "development" || process.env.ALLOW_LOCAL_SCHEMA_SYNC !== "true") return;
 
   try {
     const { prisma } = await import("@/lib/prisma");
@@ -117,8 +121,26 @@ export async function register() {
       `ALTER TABLE "ContactTransaction" ADD COLUMN IF NOT EXISTS "paymentPriority" INTEGER NOT NULL DEFAULT 2`
     ).catch(() => {});
 
-    console.log("[MertTur] DB schema sync tamamlandı ✓");
+    // ── DemoRequest tablosu ────────────────────────────────────────────────
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "DemoRequest" (
+        "id"           TEXT        NOT NULL,
+        "companyName"  TEXT        NOT NULL,
+        "contactName"  TEXT        NOT NULL,
+        "phone"        TEXT        NOT NULL,
+        "email"        TEXT,
+        "city"         TEXT,
+        "vehicleCount" INTEGER,
+        "serviceType"  TEXT        NOT NULL DEFAULT 'karma',
+        "status"       TEXT        NOT NULL DEFAULT 'pending',
+        "notes"        TEXT,
+        "createdAt"    TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "DemoRequest_pkey" PRIMARY KEY ("id")
+      )
+    `).catch(() => {});
+
+    console.log("[TekerTakip] DB schema sync tamamlandı ✓");
   } catch (e) {
-    console.error("[MertTur] DB schema sync hatası:", e);
+    console.error("[TekerTakip] DB schema sync hatası:", e);
   }
 }

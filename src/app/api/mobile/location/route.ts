@@ -9,8 +9,8 @@ export async function POST(req: NextRequest) {
   const driver = await getDriverFromRequest(req);
   if (!driver) return NextResponse.json({ error: "Yetkisiz" }, { status: 401 });
 
-  const { latitude, longitude } = await req.json();
-  if (latitude == null || longitude == null || typeof latitude !== "number" || typeof longitude !== "number")
+  const { latitude, longitude } = await req.json().catch(() => ({}));
+  if (typeof latitude !== "number" || typeof longitude !== "number" || !Number.isFinite(latitude) || !Number.isFinite(longitude) || Math.abs(latitude) > 90 || Math.abs(longitude) > 180)
     return NextResponse.json({ error: "Konum gerekli" }, { status: 400 });
 
   const now = new Date();

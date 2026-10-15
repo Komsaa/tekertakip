@@ -2,21 +2,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
-
-async function getPassengerFromRequest(req: NextRequest) {
-  const token = req.headers.get("authorization")?.replace("Bearer ", "");
-  if (!token) return null;
-  const [, expiresStr] = token.split("|");
-  if (Date.now() > parseInt(expiresStr ?? "0")) return null;
-  return prisma.routePassenger.findFirst({ where: { veliToken: token } });
-}
+import { getActiveParent } from "@/lib/parent-auth";
 
 export async function POST(req: NextRequest) {
-  const passenger = await getPassengerFromRequest(req);
+  const passenger = await getActiveParent(req.headers.get("authorization") ?? "");
   if (!passenger) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { currentPassword, newPassword } = await req.json();
-  if (!currentPassword || !newPassword) {
+  const { currentPassword, newPassword } = await req.json().catch(() => ({}));
+  if (typeof currentPassword !== "string" || typeof newPassword !== "string" || !currentPassword || !newPassword || currentPassword.length > 1024 || Buffer.byteLength(newPassword, "utf8") > 72) {
     return NextResponse.json({ error: "Mevcut ve yeni şifre zorunlu" }, { status: 400 });
   }
   if (newPassword.length < 4) {
@@ -28,7 +21,8 @@ export async function POST(req: NextRequest) {
   if (!valid) return NextResponse.json({ error: "Mevcut şifre hatalı" }, { status: 401 });
 
   const hash = await bcrypt.hash(newPassword, 10);
-  await prisma.routePassenger.update({ where: { id: passenger.id }, data: { veliPasswordHash: hash } });
+  const changed = await prisma.routePassenger.updateMany({ where: { id: passenger.id, active: true, veliPasswordHash: passenger.veliPasswordHash, veliToken: passenger.veliToken }, data: { veliPasswordHash: hash } });
+  if (changed.count !== 1) return NextResponse.json({ error: "Hesap değişti; tekrar giriş yapın" }, { status: 409 });
 
   return NextResponse.json({ ok: true });
 }

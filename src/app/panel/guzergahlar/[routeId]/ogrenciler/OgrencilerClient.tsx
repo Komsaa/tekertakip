@@ -319,7 +319,7 @@ export default function OgrencilerClient({ route }: { route: Route }) {
       </div>
 
       {/* Sekmeler */}
-      <div className="flex gap-1 bg-slate-100 p-1 rounded-xl w-fit">
+      <div className="flex gap-1 bg-slate-100 p-1 rounded-xl max-w-full overflow-x-auto [&>button]:shrink-0">
         <button
           onClick={() => setTab("ogrenciler")}
           className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${tab === "ogrenciler" ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}

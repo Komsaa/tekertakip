@@ -11,7 +11,6 @@ export default async function GuzergahlarPage() {
 
   const companyId = getCompanyId(session);
 
-  try {
     const [routes, drivers, vehicles] = await Promise.all([
       prisma.route.findMany({
         where: tenantWhere(companyId),
@@ -21,14 +20,10 @@ export default async function GuzergahlarPage() {
           vehicle: true,
           stops: { orderBy: { order: "asc" } },
         },
-      }).catch(() => []),
-      prisma.driver.findMany({ where: { status: "active", ...tenantWhere(companyId) }, orderBy: { name: "asc" } }).catch(() => []),
-      prisma.vehicle.findMany({ where: { status: "active", ...tenantWhere(companyId) }, orderBy: { plate: "asc" } }).catch(() => []),
+      }),
+      prisma.driver.findMany({ where: { status: "active", ...tenantWhere(companyId) }, orderBy: { name: "asc" } }),
+      prisma.vehicle.findMany({ where: { status: "active", ...tenantWhere(companyId) }, orderBy: { plate: "asc" } }),
     ]);
 
     return <GuzergahlarClient initialRoutes={routes} drivers={drivers} vehicles={vehicles} />;
-  } catch (e) {
-    console.error("Guzergahlar sayfa hatası:", e);
-    return <GuzergahlarClient initialRoutes={[]} drivers={[]} vehicles={[]} />;
-  }
 }

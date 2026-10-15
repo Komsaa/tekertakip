@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getDriverFromHeaders } from "@/lib/mobile-auth";
+import { getDriverFromRequest } from "@/lib/mobile-auth";
 
 async function sendPushNotifications(tokens: string[], title: string, body: string) {
   const messages = tokens.map((to) => ({ to, title, body, sound: "default" }));
@@ -16,23 +16,30 @@ async function sendPushNotifications(tokens: string[], title: string, body: stri
 // Bir duraktaki tüm yolcuların yoklamasını kaydet
 // nextStopId varsa o durağın velilerine bildirim gönderir
 export async function POST(req: NextRequest) {
-  const driver = await getDriverFromHeaders();
+  const driver = await getDriverFromRequest(req);
   if (!driver) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { routeId, date, attendances, nextStopId, isFirst } = await req.json();
+  const { routeId, date, attendances, nextStopId, isFirst } = await req.json().catch(() => ({}));
   // attendances: [{ passengerId, status }]
 
-  if (!routeId || !date || !Array.isArray(attendances)) {
+  if (typeof routeId !== "string" || !routeId || typeof date !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isFinite(Date.parse(date)) || new Date(date).toISOString().slice(0,10) !== date || !Array.isArray(attendances) || attendances.length > 500 || attendances.some(a => !a || typeof a.passengerId !== "string" || !["boarded", "absent"].includes(a.status)) || (nextStopId != null && typeof nextStopId !== "string") || (isFirst != null && typeof isFirst !== "boolean")) {
     return NextResponse.json({ error: "routeId, date, attendances zorunlu" }, { status: 400 });
   }
 
-  for (const a of attendances) {
-    await prisma.tripAttendance.upsert({
+  const allowedRoute = await prisma.route.findFirst({
+    where: { id: routeId, driverId: driver.id, companyId: driver.companyId, active: true },
+    include: { stops: { include: { passengers: { where: { active: true }, select: { id: true } } } } },
+  });
+  if (!allowedRoute) return NextResponse.json({ error: "Güzergah bulunamadı" }, { status: 404 });
+  const allowedPassengers = new Set(allowedRoute.stops.flatMap(s => s.passengers.map(p => p.id)));
+  if (attendances.some(a => !allowedPassengers.has(a.passengerId)) || new Set(attendances.map(a => a.passengerId)).size !== attendances.length || (nextStopId && !allowedRoute.stops.some(s => s.id === nextStopId))) {
+    return NextResponse.json({ error: "Yolcu veya durak bu güzergaha ait değil" }, { status: 400 });
+  }
+  await prisma.$transaction(attendances.map(a => prisma.tripAttendance.upsert({
       where: { passengerId_routeId_date: { passengerId: a.passengerId, routeId, date } },
       create: { passengerId: a.passengerId, routeId, driverId: driver.id, date, status: a.status },
       update: { status: a.status },
-    });
-  }
+    })));
 
   // Sefer ilk kez başlıyorsa tüm velilere bildirim
   if (isFirst) {

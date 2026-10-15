@@ -23,7 +23,7 @@ export function tenantData(companyId: string | null) {
 
 // Yalnızca admin rolü gerekiyorsa — 403 döner
 export function requireAdmin(session: Session): NextResponse | null {
-  if (getRole(session) !== "admin") {
+  if (getRole(session) !== "admin" || getCompanyId(session)) {
     return NextResponse.json({ error: "Yetkisiz: yalnızca admin erişebilir" }, { status: 403 });
   }
   return null;

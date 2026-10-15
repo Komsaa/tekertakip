@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getToken, encode } from "next-auth/jwt";
 import { prisma } from "@/lib/prisma";
-import { getRole } from "@/lib/tenant";
+import { getRole, requireAdmin } from "@/lib/tenant";
 
 const isSecure = process.env.NEXTAUTH_URL?.startsWith("https://");
 const SESSION_COOKIE = isSecure
@@ -16,7 +16,7 @@ const MAX_AGE = 30 * 24 * 60 * 60;
 // POST /api/admin/impersonate — bir şirketin oturumuna gir
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!session || getRole(session) !== "admin") {
+  if (!session || requireAdmin(session)) {
     return NextResponse.json({ error: "Yetkisiz" }, { status: 403 });
   }
 

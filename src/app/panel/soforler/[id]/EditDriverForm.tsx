@@ -13,7 +13,6 @@ interface Props {
     licenseClass?: string | null;
     licenseNumber?: string | null;
     licenseExpiry?: Date | null;
-    srcExpiry?: Date | null;
     psychotechExpiry?: Date | null;
     criminalRecordExpiry?: Date | null;
     healthReportExpiry?: Date | null;
@@ -36,7 +35,6 @@ export default function EditDriverForm({ driver }: Props) {
     licenseClass: driver.licenseClass ?? "D",
     licenseNumber: driver.licenseNumber ?? "",
     licenseExpiry: toDate(driver.licenseExpiry),
-    srcExpiry: toDate(driver.srcExpiry),
     psychotechExpiry: toDate(driver.psychotechExpiry),
     criminalRecordExpiry: toDate(driver.criminalRecordExpiry),
     healthReportExpiry: toDate(driver.healthReportExpiry),
@@ -155,10 +153,6 @@ export default function EditDriverForm({ driver }: Props) {
                 <div>
                   <label>Ehliyet Son Geçerlilik</label>
                   <input type="date" value={form.licenseExpiry} onChange={(e) => set("licenseExpiry", e.target.value)} />
-                </div>
-                <div>
-                  <label>SRC-2 Son Geçerlilik</label>
-                  <input type="date" value={form.srcExpiry} onChange={(e) => set("srcExpiry", e.target.value)} />
                 </div>
                 <div>
                   <label>Psikoteknik Son Geçerlilik</label>

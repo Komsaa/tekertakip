@@ -6,6 +6,7 @@ import { Plus, MapPin, Trash2, Edit2, CheckCircle, Clock, ChevronDown, ChevronUp
 import toast from "react-hot-toast";
 import { computeLiveStatus, type RouteStop } from "@/lib/routeStatus";
 import RouteMap from "@/components/RouteMap";
+import { WorkspaceHeader, MetricCard, workspaceStyles as s } from "@/components/workspace/Workspace";
 
 interface Driver { id: string; name: string }
 interface Vehicle { id: string; plate: string; brand?: string | null; model?: string | null }
@@ -343,13 +344,9 @@ export default function GuzergahlarClient({
   const personelCount = routes.filter((r) => r.type === "personel").length;
 
   return (
-    <div className="p-6 lg:p-8 space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-black text-slate-800">Güzergahlar</h1>
-          <p className="text-slate-500 text-sm mt-1">Sabit güzergahları bir kez tanımla, canlı olarak takip et</p>
-        </div>
-        <div className="flex items-center gap-2">
+    <div className={s.workspace}>
+      <WorkspaceHeader eyebrow="Hat yönetimi" title="Her güzergâh, planlı." description="Durakları, araçları ve şoför atamalarını aynı çalışma alanından yönetin." actions={
+        <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={() => { setShowProposals(!showProposals); if (!proposalsLoaded) loadProposals(); }}
             className="flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-all"
@@ -368,6 +365,12 @@ export default function GuzergahlarClient({
             Yeni Güzergah
           </button>
         </div>
+      } />
+      <div className={s.metrics}>
+        <MetricCard label="Toplam güzergâh" value={routes.length} detail="Tanımlı servis hatları" icon={<MapPin size={17}/>} />
+        <MetricCard label="Aktif hat" value={routes.filter(r => r.active).length} detail="Aktif durumdaki güzergâhlar" icon={<CheckCircle size={17}/>} />
+        <MetricCard label="Toplam durak" value={routes.reduce((n,r) => n + r.stops.length, 0)} detail="Tüm hatlardaki durak kayıtları" icon={<MapPin size={17}/>} />
+        <MetricCard label="Eksik atama" value={routes.filter(r => !r.driverId || !r.vehicleId).length} detail="Şoför veya araç atanmamış hatlar" icon={<Users size={17}/>} />
       </div>
 
       {/* Şöför teklifleri paneli */}
@@ -411,7 +414,7 @@ export default function GuzergahlarClient({
 
       {/* Tip filtresi */}
       {routes.length > 0 && (
-        <div className="flex gap-1 bg-slate-100 p-1 rounded-xl w-fit">
+        <div className={s.filters} aria-label="Güzergâh türü">
           {([
             { key: "tumu", label: "Tümü", count: routes.length },
             { key: "okul", label: "Okul Servisi", count: okulCount },
@@ -421,6 +424,7 @@ export default function GuzergahlarClient({
             .map(({ key, label, count }) => (
               <button
                 key={key}
+                aria-pressed={filterType === key}
                 onClick={() => setFilterType(key)}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${filterType === key ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
               >
@@ -454,7 +458,7 @@ export default function GuzergahlarClient({
           const isExpanded = expandedId === r.id;
           return (
             <div key={r.id} className={`bg-white rounded-2xl shadow-sm border transition-all ${r.active ? "border-slate-100" : "border-slate-200 opacity-60"}`}>
-              <div className="p-5 flex items-center gap-4">
+              <div className="p-5 flex items-center gap-4 flex-wrap sm:flex-nowrap">
                 {/* Durum göstergesi */}
                 <div className={`w-3 h-3 rounded-full flex-shrink-0 ${
                   !r.active ? "bg-slate-300" :
@@ -490,7 +494,7 @@ export default function GuzergahlarClient({
                   )}
                 </div>
 
-                <div className="flex items-center gap-2 flex-shrink-0">
+                <div className="flex items-center gap-2 flex-shrink-0 w-full sm:w-auto justify-end border-t border-slate-100 pt-3 sm:border-0 sm:pt-0">
                   <button
                     onClick={() => router.push(`/panel/guzergahlar/${r.id}/ogrenciler`)}
                     className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 font-medium transition-colors"
@@ -505,10 +509,10 @@ export default function GuzergahlarClient({
                   <button onClick={() => toggleActive(r)} className={`text-xs px-2 py-1 rounded-lg font-medium transition-colors ${r.active ? "bg-green-100 text-green-700 hover:bg-green-200" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}>
                     {r.active ? <CheckCircle className="w-4 h-4" /> : <Clock className="w-4 h-4" />}
                   </button>
-                  <button onClick={() => openEdit(r)} className="p-2 text-slate-400 hover:text-blue-600">
+                  <button aria-label={`${r.name} güzergahını düzenle`} onClick={() => openEdit(r)} className="p-2 text-slate-400 hover:text-blue-600">
                     <Edit2 className="w-4 h-4" />
                   </button>
-                  <button onClick={() => handleDelete(r.id)} className="p-2 text-slate-400 hover:text-red-500">
+                  <button aria-label={`${r.name} güzergahını sil`} onClick={() => handleDelete(r.id)} className="p-2 text-slate-400 hover:text-red-500">
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>

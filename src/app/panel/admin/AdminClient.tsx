@@ -45,8 +45,24 @@ function expiryStatus(raw: string | null | undefined): { label: string; color: s
 }
 
 // ─── Ana bileşen ──────────────────────────────────────────────────────────────
+type DemoRequest = {
+  id: string; companyName: string; contactName: string; phone: string;
+  email: string | null; city: string | null; vehicleCount: number | null;
+  serviceType: string; status: string; notes: string | null; createdAt: string;
+};
+
+const STATUS_LABELS: Record<string, { label: string; color: string }> = {
+  pending:       { label: "Bekliyor",       color: "bg-amber-100 text-amber-700" },
+  contacted:     { label: "Arandı",         color: "bg-blue-100 text-blue-700" },
+  demo_created:  { label: "Demo Açıldı",    color: "bg-green-100 text-green-700" },
+  rejected:      { label: "Uygun Değil",    color: "bg-red-100 text-red-700" },
+};
+
 export default function AdminClient() {
-  const [tab, setTab] = useState<"companies" | "users" | "drivers" | "logs">("companies");
+  const [tab, setTab] = useState<"companies" | "users" | "drivers" | "logs" | "requests">("companies");
+  const [requests, setRequests] = useState<DemoRequest[]>([]);
+  const [requestsLoading, setRequestsLoading] = useState(false);
+  const [updatingReq, setUpdatingReq] = useState<string | null>(null);
 
   // Şirketler
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -78,6 +94,11 @@ export default function AdminClient() {
   const [editingMobile, setEditingMobile] = useState<string | null>(null);
   const [editMobileForm, setEditMobileForm] = useState({ mobileUsername: "", mobilePin: "" });
   const [mobileSaving, setMobileSaving] = useState(false);
+  const [showMobileCreate, setShowMobileCreate] = useState(false);
+  const [mobileError, setMobileError] = useState("");
+  const [mobileSuccess, setMobileSuccess] = useState("");
+  const [mobileCreating, setMobileCreating] = useState(false);
+  const [mobileCreateForm, setMobileCreateForm] = useState({ role: "driver", companyId: "", name: "", phone: "", mobileUsername: "", mobilePin: "" });
 
   // Loglar
   const [logs, setLogs] = useState<AuditLog[]>([]);
@@ -95,7 +116,26 @@ export default function AdminClient() {
   useEffect(() => {
     if (tab === "drivers") fetchMobileUsers();
     if (tab === "logs") fetchLogs(1);
+    if (tab === "requests") fetchRequests();
   }, [tab]);
+
+  async function fetchRequests() {
+    setRequestsLoading(true);
+    const res = await fetch("/api/admin/demo-requests");
+    if (res.ok) setRequests(await res.json());
+    setRequestsLoading(false);
+  }
+
+  async function updateRequestStatus(id: string, status: string) {
+    setUpdatingReq(id);
+    await fetch("/api/admin/demo-requests", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, status }),
+    });
+    setRequests((prev) => prev.map((r) => r.id === id ? { ...r, status } : r));
+    setUpdatingReq(null);
+  }
 
   async function fetchCompanies() {
     setCompaniesLoading(true);
@@ -112,6 +152,13 @@ export default function AdminClient() {
   async function fetchMobileUsers() {
     const res = await fetch("/api/admin/users");
     if (res.ok) setMobileUsers(await res.json());
+  }
+
+  async function cleanupDemo() {
+    if (!confirm("Test şöförler (testsofor/test) silinecek. Devam?")) return;
+    const res = await fetch("/api/admin/cleanup-demo", { method: "POST" });
+    const d = await res.json();
+    alert(`Silinen test şöförler: ${d.deletedTestDrivers?.join(", ") || "yok"}\nSüresi dolan demolar: ${d.expiredDemoCompanies?.join(", ") || "yok"}`);
   }
 
   async function enterCompany(companyId: string) {
@@ -245,10 +292,29 @@ export default function AdminClient() {
   }
 
   // ── Mobil kullanıcı işlemleri ─────────────────────────────────────────────
+  async function createMobileUser(e: React.FormEvent) {
+    e.preventDefault();
+    if (mobileCreating) return;
+    setMobileCreating(true); setMobileError(""); setMobileSuccess("");
+    try {
+      const response = await fetch("/api/admin/users", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(mobileCreateForm) });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Hesap oluşturulamadı");
+      setMobileSuccess(`${data.mobileUsername} hesabı oluşturuldu.${data.role === "manager" ? " Patron hesabı Panel Kullanıcıları bölümünden yönetilir." : " Şoföre araç ve güzergah atamayı unutmayın."}`);
+      setMobileCreateForm({ role: "driver", companyId: "", name: "", phone: "", mobileUsername: "", mobilePin: "" });
+      setShowMobileCreate(false); fetchMobileUsers(); fetchPanelUsers(); fetchCompanies();
+    } catch (e) { setMobileError(e instanceof Error ? e.message : "Bağlantı hatası"); }
+    finally { setMobileCreating(false); }
+  }
   async function saveMobileUser(id: string) {
     setMobileSaving(true);
-    await fetch("/api/admin/users", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, ...editMobileForm }) });
-    setEditingMobile(null); setMobileSaving(false); fetchMobileUsers();
+    setMobileError("");
+    try {
+      const response = await fetch("/api/admin/users", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, ...editMobileForm }) });
+      if (!response.ok) throw new Error("Değişiklik kaydedilemedi");
+      setEditingMobile(null); fetchMobileUsers();
+    } catch (e) { setMobileError(e instanceof Error ? e.message : "Bağlantı hatası"); }
+    finally { setMobileSaving(false); }
   }
 
   // ── Özet istatistikler ─────────────────────────────────────────────────────
@@ -260,11 +326,14 @@ export default function AdminClient() {
     return new Date(c.demoExpiresAt) < new Date();
   }).length;
 
+  const pendingCount = requests.filter((r) => r.status === "pending").length;
+
   const TABS = [
     { key: "companies" as const, label: "🏢 Şirketler" },
     { key: "users" as const, label: "👤 Panel Kullanıcıları" },
     { key: "drivers" as const, label: "📱 Mobil Kullanıcılar" },
     { key: "logs" as const, label: "📋 Aktivite Günlüğü" },
+    { key: "requests" as const, label: `📬 Başvurular${pendingCount > 0 ? ` (${pendingCount})` : ""}` },
   ];
 
   return (
@@ -308,6 +377,10 @@ export default function AdminClient() {
               className="bg-[#DC2626] hover:bg-[#B91C1C] text-white px-4 py-2 rounded-xl text-sm font-semibold transition-colors">
               + Yeni Şirket Ekle
             </button>
+            <button onClick={cleanupDemo}
+              className="bg-slate-100 hover:bg-slate-200 text-slate-600 px-4 py-2 rounded-xl text-sm font-semibold transition-colors">
+              🧹 Demo Verisi Temizle
+            </button>
             <div className="flex gap-2 items-center ml-auto">
               <select className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-700" value={fixCompanyId} onChange={(e) => setFixCompanyId(e.target.value)}>
                 <option value="">— Eski veriyi şirkete bağla —</option>
@@ -327,7 +400,7 @@ export default function AdminClient() {
               <h3 className="text-sm font-bold text-slate-700 mb-4">Yeni Şirket</h3>
               <div className="grid grid-cols-3 gap-3">
                 <input placeholder="Şirket Adı *" className="border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#DC2626]" value={newCompanyForm.name} onChange={(e) => setNewCompanyForm((f) => ({ ...f, name: e.target.value }))} />
-                <input placeholder="Kod (örn: MERTTUR)" className="border border-slate-200 rounded-xl px-3 py-2 text-sm font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#DC2626]" value={newCompanyForm.code} onChange={(e) => setNewCompanyForm((f) => ({ ...f, code: e.target.value }))} />
+                <input placeholder="Kod (örn: ABCFIRMA)" className="border border-slate-200 rounded-xl px-3 py-2 text-sm font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#DC2626]" value={newCompanyForm.code} onChange={(e) => setNewCompanyForm((f) => ({ ...f, code: e.target.value }))} />
                 <select className="border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#DC2626]" value={newCompanyForm.type} onChange={(e) => setNewCompanyForm((f) => ({ ...f, type: e.target.value }))}>
                   <option value="firma">Servis Firması</option>
                   <option value="okul">Okul</option>
@@ -581,7 +654,20 @@ export default function AdminClient() {
       {/* ── MOBİL KULLANICILAR (Şöförler) ── */}
       {tab === "drivers" && (
         <div>
-          <p className="text-sm text-slate-500 mb-4">Mobil uygulamaya giriş yapan şöförler. Kullanıcı adı veya PIN sıfırlayabilirsiniz.</p>
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <p className="text-sm text-slate-500">Şoför mobil hesaplarını yönetin veya firmaya bağlı yeni şoför/patron hesabı oluşturun.</p>
+            <button type="button" onClick={() => setShowMobileCreate(true)} className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white">+ Mobil hesap oluştur</button>
+          </div>
+          {mobileError && <p role="alert" className="mb-4 text-sm text-red-700">{mobileError}</p>}
+          {mobileSuccess && <p role="status" className="mb-4 text-sm text-green-700">{mobileSuccess}</p>}
+          {showMobileCreate && <form onSubmit={createMobileUser} className="mb-6 rounded-2xl border bg-white p-5 space-y-4">
+            <h2 className="font-bold">Yeni mobil hesap</h2>
+            <label className="block text-sm">Hesap türü<select className="block w-full rounded-lg border p-2" value={mobileCreateForm.role} onChange={e => setMobileCreateForm(f => ({ ...f, role: e.target.value }))}><option value="driver">Şoför</option><option value="manager">Patron / firma yöneticisi</option></select></label>
+            <label className="block text-sm">Firma<select required className="block w-full rounded-lg border p-2" value={mobileCreateForm.companyId} onChange={e => setMobileCreateForm(f => ({ ...f, companyId: e.target.value }))}><option value="">Firma seçin</option>{companies.filter(c => c.active).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
+            {([['name','Ad soyad'],['phone','Telefon (isteğe bağlı)'],['mobileUsername','Mobil kullanıcı adı'],['mobilePin','Şifre (en az 8 karakter)']] as const).map(([key,label]) => <label key={key} className="block text-sm">{label}<input required={key !== 'phone'} type={key === 'mobilePin' ? 'password' : 'text'} autoComplete={key === 'mobilePin' ? 'new-password' : 'off'} minLength={key === 'mobilePin' ? 8 : undefined} maxLength={key === 'mobileUsername' ? 60 : key === 'phone' ? 30 : key === 'mobilePin' ? 72 : 100} className="block w-full rounded-lg border p-2" value={mobileCreateForm[key]} onChange={e => setMobileCreateForm(f => ({ ...f, [key]: e.target.value }))}/></label>)}
+            <p className="text-xs text-slate-500">Patron hesabı aynı bilgilerle web paneline de girer, yalnızca seçilen firmanın verilerini görür. Veli hesabı için önce ilgili güzergah ve yolcu kaydı oluşturulmalıdır. Şifre daha sonra görüntülenemez.</p>
+            <div className="flex gap-3"><button disabled={mobileCreating} className="rounded-lg bg-red-600 px-4 py-2 text-white disabled:opacity-50">{mobileCreating ? "Oluşturuluyor…" : "Hesap oluştur"}</button><button type="button" disabled={mobileCreating} onClick={() => { setShowMobileCreate(false); setMobileCreateForm(f => ({ ...f, mobilePin: "" })); }}>İptal</button></div>
+          </form>}
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
             <table className="w-full text-sm">
               <thead>
@@ -623,6 +709,65 @@ export default function AdminClient() {
               </tbody>
             </table>
           </div>
+        </div>
+      )}
+
+      {/* ── DEMO BAŞVURULARI ── */}
+      {tab === "requests" && (
+        <div>
+          <p className="text-sm text-slate-500 mb-4">
+            /kayit sayfasından gelen demo talepleri. Durumu güncelleyerek takip edin.
+          </p>
+          {requestsLoading ? (
+            <div className="text-center py-8 text-slate-400">Yükleniyor...</div>
+          ) : requests.length === 0 ? (
+            <div className="text-center py-12 text-slate-400">Henüz başvuru yok</div>
+          ) : (
+            <div className="space-y-3">
+              {requests.map((r) => {
+                const st = STATUS_LABELS[r.status] ?? { label: r.status, color: "bg-slate-100 text-slate-600" };
+                return (
+                  <div key={r.id} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+                    <div className="flex items-start justify-between gap-4 flex-wrap">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-bold text-slate-800 text-base">{r.companyName}</span>
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${st.color}`}>{st.label}</span>
+                          {r.serviceType && <span className="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">{r.serviceType}</span>}
+                        </div>
+                        <div className="text-sm text-slate-600">
+                          <span className="font-semibold">{r.contactName}</span>
+                          {r.city && <span className="text-slate-400"> · {r.city}</span>}
+                          {r.vehicleCount && <span className="text-slate-400"> · {r.vehicleCount} araç</span>}
+                        </div>
+                        <div className="flex items-center gap-3 text-sm">
+                          <a href={`tel:${r.phone}`} className="text-[#DC2626] font-semibold hover:underline">{r.phone}</a>
+                          {r.email && <a href={`mailto:${r.email}`} className="text-blue-500 hover:underline text-xs">{r.email}</a>}
+                        </div>
+                        <div className="text-xs text-slate-400">
+                          {new Date(r.createdAt).toLocaleString("tr-TR")}
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-2 flex-shrink-0">
+                        {Object.entries(STATUS_LABELS).map(([key, val]) => (
+                          <button
+                            key={key}
+                            disabled={r.status === key || updatingReq === r.id}
+                            onClick={() => updateRequestStatus(r.id, key)}
+                            className={`text-xs px-3 py-1.5 rounded-lg font-semibold transition-colors disabled:opacity-40 ${
+                              r.status === key ? val.color : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                            }`}
+                          >
+                            {val.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 

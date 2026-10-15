@@ -1,5 +1,5 @@
 /**
- * MertTur WhatsApp Bot - Baileys tabanlı
+ * TekerTakip WhatsApp Bot - Baileys tabanlı
  *
  * Kurulum:
  * 1. npm install @whiskeysockets/baileys qrcode-terminal
@@ -21,7 +21,7 @@
 // Baileys'i kurmak için: npm install @whiskeysockets/baileys
 // Bu dosya ayrı bir process olarak çalışır
 
-const GROUP_NAME = process.env.WHATSAPP_GROUP_NAME ?? "Mert Tur Yakıt";
+const GROUP_NAME = process.env.WHATSAPP_GROUP_NAME ?? "Yakıt Grubu";
 const REPORT_GROUP = process.env.WHATSAPP_REPORT_GROUP ?? GROUP_NAME; // rapor gönderilecek grup (varsayılan aynı grup)
 const API_BASE = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
 
@@ -171,7 +171,7 @@ async function startBot() {
       "@whiskeysockets/baileys" as string
     );
 
-    console.log("🤖 MertTur WhatsApp Bot başlatılıyor...");
+    console.log("🤖 TekerTakip WhatsApp Bot başlatılıyor...");
     console.log(`📱 Grup: "${GROUP_NAME}"`);
 
     const { state, saveCreds } = await useMultiFileAuthState("./bot-auth");

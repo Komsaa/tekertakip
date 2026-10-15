@@ -152,7 +152,7 @@ export default function KonumPage() {
     function initMap() {
       if (!mapRef.current || leafletMap.current) return;
       const L = (window as any).L;
-      leafletMap.current = L.map(mapRef.current).setView([38.7, 28.0], 10);
+      leafletMap.current = L.map(mapRef.current).setView([39.0, 35.0], 6);
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         attribution: "© OpenStreetMap",
         maxZoom: 19,
