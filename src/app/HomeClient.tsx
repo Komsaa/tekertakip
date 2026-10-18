@@ -206,7 +206,7 @@ function DashboardPreview() {
 
 export default function HomeClient() {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [annual, setAnnual] = useState(false);
+  const [annual, setAnnual] = useState(true);
   const menuButton = useRef<HTMLButtonElement>(null);
   return (
     <div className={s.page}>
@@ -482,13 +482,17 @@ export default function HomeClient() {
                   aria-pressed={annual}
                   onClick={() => setAnnual(true)}
                 >
-                  Yıllık <span>2 ay avantaj</span>
+                  Yıllık <span>2 ay ücretsiz</span>
                 </button>
               </div>
             </div>
             <div className={s.priceCard}>
               <span className={s.eyebrow}>TEKERTAKİP · TÜM ÖZELLİKLER</span>
               <div aria-live="polite" aria-atomic="true">
+                {annual && <div className={s.annualOffer}>
+                  <span className={s.savingsBadge}>2 AY ÜCRETSİZ · ₺12.000 TASARRUF</span>
+                  <div className={s.referencePrice}><del>₺72.000</del><span>12 aylık ödemenin toplamı</span></div>
+                </div>}
                 <div className={s.price}>
                   {annual ? "₺60.000" : "₺6.000"}
                   <span>/ {annual ? "yıl" : "ay"}</span>
