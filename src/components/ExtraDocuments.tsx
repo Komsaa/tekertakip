@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { Plus, X, Trash2, ExternalLink, Upload, Loader2, FileText, AlertTriangle, CheckCircle } from "lucide-react";
@@ -18,16 +18,34 @@ interface Props {
   entityType: "driver" | "vehicle";
   entityId: string;
   initialDocs: Doc[];
+  title?: string;
+  requiredName?: string;
 }
 
-export default function ExtraDocuments({ entityType, entityId, initialDocs }: Props) {
+export default function ExtraDocuments({ entityType, entityId, initialDocs, title = "Ek Belgeler", requiredName }: Props) {
   const router = useRouter();
   const [docs, setDocs] = useState(initialDocs);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name: "", expiry: "", notes: "" });
+  const [form, setForm] = useState({ name: requiredName ?? "", expiry: "", notes: "" });
   const [formFile, setFormFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploadingId, setUploadingId] = useState<string | null>(null);
+
+  const [preview, setPreview] = useState<{url:string;name:string;type:string} | null>(null);
+  const [viewingId, setViewingId] = useState<string | null>(null);
+  useEffect(() => () => { if (preview) URL.revokeObjectURL(preview.url); }, [preview]);
+  async function viewDocument(doc: Doc) {
+    if (!doc.fileUrl || viewingId) return;
+    setViewingId(doc.id);
+    try {
+      const response = await fetch(doc.fileUrl, { cache: "no-store" });
+      if (!response.ok) throw new Error(response.status === 404 ? "Dosya depoda bulunamadı. Dosyayı Güncelle ile yeniden yükleyin." : "Belge açılamadı. Oturumunuzu ve bağlantınızı kontrol edin.");
+      const blob = await response.blob();
+      if (!blob.type.startsWith("image/") && blob.type !== "application/pdf") throw new Error("Dosya önizlenemedi. PDF, JPG veya PNG olarak yeniden yükleyin.");
+      setPreview({url:URL.createObjectURL(blob),name:doc.name,type:blob.type});
+    } catch (error) { toast.error(error instanceof Error ? error.message : "Belge açılamadı"); }
+    finally { setViewingId(null); }
+  }
 
   function set(f: string, v: string) { setForm((p) => ({ ...p, [f]: v })); }
 
@@ -52,30 +70,41 @@ export default function ExtraDocuments({ entityType, entityId, initialDocs }: Pr
         fd.append("entityId", entityId);
         fd.append("docType", `extra_${doc.id}`);
         const upRes = await fetch("/api/upload", { method: "POST", body: fd });
-        if (upRes.ok) {
+        if (!upRes.ok) {
+          setDocs((prev) => [doc, ...prev]);
+          setShowForm(false);
+          throw new Error("Belge kaydı oluşturuldu ancak dosya yüklenemedi. Belgenin yanındaki Yükle ile tekrar deneyin.");
+        }
+        {
           const { url } = await upRes.json();
-          await fetch(`/api/documents/${doc.id}`, {
+          const saved = await fetch(`/api/documents/${doc.id}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ fileUrl: url }),
           });
+          if (!saved.ok) {
+            setDocs((prev) => [doc, ...prev]);
+            setShowForm(false);
+            throw new Error("Dosya bağlantısı kaydedilemedi. Belgenin yanındaki Yükle ile tekrar deneyin.");
+          }
           doc.fileUrl = url;
         }
       }
 
       setDocs((prev) => [doc, ...prev]);
-      setForm({ name: "", expiry: "", notes: "" });
+      setForm({ name: requiredName ?? "", expiry: "", notes: "" });
       setFormFile(null);
       setShowForm(false);
       toast.success("Belge eklendi!");
-    } catch { toast.error("Eklenemedi"); }
+    } catch (error) { toast.error(error instanceof Error ? error.message : "Eklenemedi"); }
     finally { setSaving(false); }
   }
 
   async function handleDelete(id: string) {
     if (!confirm("Bu belge silinsin mi?")) return;
     try {
-      await fetch(`/api/documents/${id}`, { method: "DELETE" });
+      const response = await fetch(`/api/documents/${id}`, { method: "DELETE" });
+      if (!response.ok) throw new Error("Silinemedi");
       setDocs((prev) => prev.filter((d) => d.id !== id));
       toast.success("Silindi");
     } catch { toast.error("Silinemedi"); }
@@ -84,14 +113,6 @@ export default function ExtraDocuments({ entityType, entityId, initialDocs }: Pr
   async function handleUpload(docId: string, file: File) {
     setUploadingId(docId);
     try {
-      const fd = new FormData();
-      fd.append("file", file);
-      fd.append("entityType", "document");
-      fd.append("entityId", docId);
-      fd.append("docType", "file");
-
-      // Direkt dosya yolu hesapla ve yükle
-      const ext = (file.name.split(".").pop() || "pdf").toLowerCase();
       const formData2 = new FormData();
       formData2.append("file", file);
       formData2.append("entityType", entityType);
@@ -103,12 +124,13 @@ export default function ExtraDocuments({ entityType, entityId, initialDocs }: Pr
       const { url } = await res.json();
 
       // Document kaydını güncelle
-      await fetch(`/api/documents/${docId}`, {
+      const saved = await fetch(`/api/documents/${docId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ fileUrl: url }),
       });
 
+      if (!saved.ok) throw new Error("Dosya bağlantısı kaydedilemedi");
       setDocs((prev) => prev.map((d) => d.id === docId ? { ...d, fileUrl: url } : d));
       toast.success("Dosya yüklendi!");
     } catch { toast.error("Yükleme hatası"); }
@@ -120,7 +142,7 @@ export default function ExtraDocuments({ entityType, entityId, initialDocs }: Pr
       <div className="flex items-center justify-between mb-4">
         <h2 className="font-bold text-slate-800 flex items-center gap-2">
           <FileText className="w-5 h-5 text-slate-400" />
-          Ek Belgeler
+          {title}
         </h2>
         <button
           onClick={() => setShowForm((v) => !v)}
@@ -138,6 +160,7 @@ export default function ExtraDocuments({ entityType, entityId, initialDocs }: Pr
             <input
               type="text"
               value={form.name}
+              readOnly={Boolean(requiredName)}
               onChange={(e) => set("name", e.target.value)}
               placeholder="Sabıka kaydı, Taşıt kartı, Trafik cezası makbuzu..."
               className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-400"
@@ -187,7 +210,7 @@ export default function ExtraDocuments({ entityType, entityId, initialDocs }: Pr
       )}
 
       {docs.length === 0 && !showForm ? (
-        <p className="text-sm text-slate-400 text-center py-4">Henüz ek belge yok</p>
+        <p className="text-sm text-slate-400 text-center py-4">{requiredName ? "Zorunlu belge eksik. Koltuk sigortası poliçesini ekleyin." : "Henüz ek belge yok"}</p>
       ) : (
         <div className="space-y-2">
           {docs.map((doc) => {
@@ -227,20 +250,14 @@ export default function ExtraDocuments({ entityType, entityId, initialDocs }: Pr
                       {getDocStatusLabel(status)}
                     </span>
                   )}
-                  {doc.fileUrl ? (
-                    <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer"
-                      className="flex items-center gap-1 text-xs text-blue-600 hover:underline">
-                      <ExternalLink className="w-3 h-3" />
-                      Görüntüle
-                    </a>
-                  ) : (
-                    <label className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-100 px-2 py-1 rounded-lg cursor-pointer">
-                      {uploadingId === doc.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
-                      Yükle
-                      <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden"
-                        onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUpload(doc.id, f); }} />
-                    </label>
-                  )}
+                  {doc.fileUrl && <button type="button" disabled={viewingId === doc.id} onClick={() => void viewDocument(doc)} className="flex items-center gap-1 text-xs text-blue-600 hover:underline">
+                    <ExternalLink className="w-3 h-3" />{viewingId === doc.id ? "Açılıyor…" : "Görüntüle"}
+                  </button>}
+                  <label className="flex items-center gap-1 text-xs text-slate-500 hover:bg-slate-100 px-2 py-1 rounded-lg cursor-pointer">
+                    {uploadingId === doc.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
+                    {doc.fileUrl ? "Güncelle" : "Yükle"}
+                    <input type="file" accept=".pdf,.jpg,.jpeg,.png" disabled={uploadingId === doc.id} className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) void handleUpload(doc.id, f); e.target.value = ""; }} />
+                  </label>
                   <button onClick={() => handleDelete(doc.id)} className="p-1 text-red-400 hover:text-red-600 hover:bg-red-50 rounded">
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
@@ -250,6 +267,13 @@ export default function ExtraDocuments({ entityType, entityId, initialDocs }: Pr
           })}
         </div>
       )}
+      {preview && <div className="fixed inset-0 z-50 bg-black/60 p-3 sm:p-8 flex items-center justify-center" role="dialog" aria-modal="true" aria-label={preview.name} onKeyDown={e=>{if(e.key==="Escape")setPreview(null);}}>
+        <div className="bg-white rounded-xl w-full max-w-5xl h-[85vh] flex flex-col overflow-hidden">
+          <div className="flex items-center justify-between gap-3 p-4 border-b"><h3 className="font-semibold truncate">{preview.name}</h3><div className="flex items-center gap-4 shrink-0"><a href={preview.url} download={`${preview.name}.${preview.type==='application/pdf'?'pdf':preview.type==='image/png'?'png':'jpg'}`} className="text-blue-700 text-sm">İndir</a><button autoFocus aria-label="Belgeyi kapat" onClick={()=>setPreview(null)}><X size={22}/></button></div></div>
+          {preview.type === "application/pdf" ? <iframe title={preview.name} src={preview.url} className="w-full flex-1 border-0"/> : <img src={preview.url} alt={preview.name} className="w-full min-h-0 flex-1 object-contain"/>}
+          <p className="text-xs text-slate-500 p-3">Önizleme cihazınızda açılmazsa İndir ile dosyayı açabilirsiniz.</p>
+        </div>
+      </div>}
     </div>
   );
 }
