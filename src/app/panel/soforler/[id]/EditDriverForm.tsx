@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Edit, X, Save, Trash2, Smartphone } from "lucide-react";
+import { Edit, X, Save, Smartphone } from "lucide-react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 interface Props {
@@ -26,7 +26,6 @@ export default function EditDriverForm({ driver }: Props) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  function toDate(d?: Date | null) { return d ? new Date(d).toISOString().split("T")[0] : ""; }
 
   const [form, setForm] = useState({
     name: driver.name,
@@ -34,10 +33,6 @@ export default function EditDriverForm({ driver }: Props) {
     status: driver.status,
     licenseClass: driver.licenseClass ?? "D",
     licenseNumber: driver.licenseNumber ?? "",
-    licenseExpiry: toDate(driver.licenseExpiry),
-    psychotechExpiry: toDate(driver.psychotechExpiry),
-    criminalRecordExpiry: toDate(driver.criminalRecordExpiry),
-    healthReportExpiry: toDate(driver.healthReportExpiry),
     address: driver.address ?? "",
     notes: driver.notes ?? "",
     mobilePin: "",
@@ -71,18 +66,6 @@ export default function EditDriverForm({ driver }: Props) {
     }
   }
 
-  async function handleDelete() {
-    if (!confirm(`${driver.name} silinsin mi?`)) return;
-    try {
-      const res = await fetch(`/api/drivers/${driver.id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error();
-      toast.success("Şöför silindi");
-      router.push("/panel/soforler");
-    } catch {
-      toast.error("Silinemedi");
-    }
-  }
-
   return (
     <>
       <button
@@ -100,12 +83,6 @@ export default function EditDriverForm({ driver }: Props) {
             <div className="flex items-center justify-between p-6 border-b border-slate-100">
               <h2 className="text-lg font-bold text-slate-800">Şöför Düzenle</h2>
               <div className="flex items-center gap-2">
-                <button
-                  onClick={handleDelete}
-                  className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
                 <button
                   onClick={() => setOpen(false)}
                   className="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100"
@@ -144,31 +121,17 @@ export default function EditDriverForm({ driver }: Props) {
                     <option value="B">B</option>
                     <option value="D">D</option>
                     <option value="E">E</option>
+                    <option value="BD">B+D</option>
                   </select>
                 </div>
                 <div>
                   <label>Ehliyet No</label>
                   <input type="text" value={form.licenseNumber} onChange={(e) => set("licenseNumber", e.target.value)} />
                 </div>
-                <div>
-                  <label>Ehliyet Son Geçerlilik</label>
-                  <input type="date" value={form.licenseExpiry} onChange={(e) => set("licenseExpiry", e.target.value)} />
-                </div>
-                <div>
-                  <label>Psikoteknik Son Geçerlilik</label>
-                  <input type="date" value={form.psychotechExpiry} onChange={(e) => set("psychotechExpiry", e.target.value)} />
-                </div>
-                <div>
-                  <label>Adli Sicil Son Geçerlilik</label>
-                  <input type="date" value={form.criminalRecordExpiry} onChange={(e) => set("criminalRecordExpiry", e.target.value)} />
-                </div>
-                <div>
-                  <label>Sağlık Raporu Son Geçerlilik</label>
-                  <input type="date" value={form.healthReportExpiry} onChange={(e) => set("healthReportExpiry", e.target.value)} />
-                </div>
               </div>
 
-              <div className="border-t border-slate-100 pt-4">
+              <p className="text-sm text-slate-500">Belge tarihlerini şoför sayfasındaki ilgili evrak kartından düzenleyebilirsiniz.</p>
+              <details className="border-t border-slate-100 pt-4"><summary className="cursor-pointer text-sm text-slate-600">Mobil uygulama girişi</summary>
                 <div className="flex items-center gap-2 mb-3">
                   <Smartphone className="w-4 h-4 text-slate-400" />
                   <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Mobil Uygulama</p>
@@ -195,7 +158,7 @@ export default function EditDriverForm({ driver }: Props) {
                     <p className="text-xs text-slate-400 mt-1">Uygulamaya giriş şifresi</p>
                   </div>
                 </div>
-              </div>
+              </details>
 
               <div>
                 <label>Adres / İkametgah</label>
