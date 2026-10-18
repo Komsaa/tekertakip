@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, MapPin, Trash2, Edit2, CheckCircle, Clock, ChevronDown, ChevronUp, Search, X, GripVertical, Link2, Sparkles, Users, Bell } from "lucide-react";
 import toast from "react-hot-toast";
@@ -58,6 +58,9 @@ export default function GuzergahlarClient({
   // Google Maps import
   const [gmapsUrl, setGmapsUrl] = useState("");
   const [gmapsLoading, setGmapsLoading] = useState(false);
+
+  const formMapRef = useRef<HTMLDivElement>(null);
+  const [mapAdding, setMapAdding] = useState(true);
 
   // Harita stop ekleme
   const [pendingStopIdx, setPendingStopIdx] = useState<number | null>(null);
@@ -216,6 +219,7 @@ export default function GuzergahlarClient({
     setName(""); setType("okul"); setDriverId(""); setVehicleId("");
     setWeekdaysOnly(true); setActive(true); setNotes("");
     setStops([{ ...emptyStop(), order: 0, estimatedTime: "07:30" }]);
+    setPendingStopIdx(null); setGeoSearch({}); setGeoLoading({}); setGmapsUrl(""); setMapAdding(true);
     setShowForm(true);
   }
 
@@ -226,6 +230,7 @@ export default function GuzergahlarClient({
     setWeekdaysOnly(r.weekdaysOnly); setActive(r.active);
     setNotes(r.notes ?? "");
     setStops(r.stops.map((s) => ({ ...s })));
+    setPendingStopIdx(null); setGeoSearch({}); setGeoLoading({}); setGmapsUrl(""); setMapAdding(true);
     setShowForm(true);
   }
 
@@ -237,14 +242,16 @@ export default function GuzergahlarClient({
   }
 
   function removeStop(i: number) {
+    setPendingStopIdx(null); setGeoSearch({});
     setStops(stops.filter((_, idx) => idx !== i).map((s, idx) => ({ ...s, order: idx })));
   }
 
   function updateStop(i: number, field: keyof Stop, value: string | number | null) {
-    setStops(stops.map((s, idx) => idx === i ? { ...s, [field]: value } : s));
+    setStops(prev => prev.map((s, idx) => idx === i ? { ...s, [field]: value } : s));
   }
 
   function moveStop(i: number, dir: -1 | 1) {
+    setPendingStopIdx(null); setGeoSearch({});
     const j = i + dir;
     if (j < 0 || j >= stops.length) return;
     const next = [...stops];
@@ -270,7 +277,8 @@ export default function GuzergahlarClient({
         lng: s.lng,
         estimatedTime: "",
       }));
-      setStops(imported);
+      setStops(prev => [...prev.filter(s => s.id || s.name.trim() || s.lat !== null || s.lng !== null), ...imported].map((s, order) => ({ ...s, order })));
+      setPendingStopIdx(null);
       setGmapsUrl("");
       alert(`${imported.length} durak aktarıldı! Şimdi saatleri gir.`);
     } catch {
@@ -291,8 +299,7 @@ export default function GuzergahlarClient({
       );
       const data = await res.json();
       if (data[0]) {
-        updateStop(i, "lat", parseFloat(data[0].lat));
-        updateStop(i, "lng", parseFloat(data[0].lon));
+        setStops(prev => prev.map((stop, idx) => idx === i ? { ...stop, lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) } : stop));
       } else {
         alert("Adres bulunamadı");
       }
@@ -306,6 +313,7 @@ export default function GuzergahlarClient({
       alert("Güzergah adı ve en az 1 durak gerekli");
       return;
     }
+    if (stops.some(stop => !stop.name.trim())) { toast.error("Her durağa bir ad verin."); return; }
     setSaving(true);
     try {
       const body = { name, type, driverId: driverId || null, vehicleId: vehicleId || null, weekdaysOnly, active, notes: notes || null, stops };
@@ -737,6 +745,27 @@ export default function GuzergahlarClient({
                 </div>
               </div>
 
+              <div ref={formMapRef} className="space-y-2 scroll-mt-4">
+                <div className="flex items-center justify-between gap-3">
+                  <h3 className="font-bold text-slate-700">Haritadan durak ekle · {stops.length} durak</h3>
+                  <button onClick={() => { setMapAdding(!mapAdding); setPendingStopIdx(null); }} className="text-sm text-red-600 font-semibold">
+                    {mapAdding ? "Eklemeyi durdur" : "Durak eklemeyi aç"}
+                  </button>
+                </div>
+                <p role="status" className="text-sm text-slate-600">
+                  {pendingStopIdx !== null ? `${pendingStopIdx + 1}. durağın yeni konumuna tıklayın.` : mapAdding ? "Haritaya sırayla tıklayın; her nokta yeni bir durak olur. 10 durak sınırı yok." : "Haritayı inceleyebilir, aşağıdan durak sırasını ve saatlerini değiştirebilirsiniz."}
+                </p>
+                <RouteMap stops={stops} interactive={mapAdding || pendingStopIdx !== null} height={380} onMapClick={(lat, lng) => {
+                  setStops(prev => {
+                    if (pendingStopIdx !== null) return prev.map((stop, idx) => idx === pendingStopIdx ? { ...stop, lat, lng } : stop);
+                    const blank = prev.findIndex(stop => !stop.id && !stop.name.trim() && stop.lat === null && stop.lng === null);
+                    if (blank >= 0) return prev.map((stop, idx) => idx === blank ? { ...stop, name: `Durak ${idx + 1}`, lat, lng } : stop);
+                    return [...prev, { ...emptyStop(), order: prev.length, name: `Durak ${prev.length + 1}`, lat, lng }];
+                  });
+                  setPendingStopIdx(null);
+                }} />
+              </div>
+
               {/* Google Maps'ten yükle */}
               <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
                 <div className="flex items-center gap-2 mb-2">
@@ -783,24 +812,26 @@ export default function GuzergahlarClient({
                     <div key={i} className="border border-slate-200 rounded-xl p-3 space-y-2">
                       <div className="flex items-center gap-2">
                         <div className="flex flex-col gap-0.5">
-                          <button onClick={() => moveStop(i, -1)} disabled={i === 0} className="p-0.5 text-slate-300 hover:text-slate-600 disabled:opacity-30"><ChevronUp className="w-3 h-3" /></button>
+                          <button aria-label={`${i + 1}. durağı yukarı taşı`} onClick={() => moveStop(i, -1)} disabled={i === 0} className="p-0.5 text-slate-300 hover:text-slate-600 disabled:opacity-30"><ChevronUp className="w-3 h-3" /></button>
                           <GripVertical className="w-4 h-4 text-slate-300" />
-                          <button onClick={() => moveStop(i, 1)} disabled={i === stops.length - 1} className="p-0.5 text-slate-300 hover:text-slate-600 disabled:opacity-30"><ChevronDown className="w-3 h-3" /></button>
+                          <button aria-label={`${i + 1}. durağı aşağı taşı`} onClick={() => moveStop(i, 1)} disabled={i === stops.length - 1} className="p-0.5 text-slate-300 hover:text-slate-600 disabled:opacity-30"><ChevronDown className="w-3 h-3" /></button>
                         </div>
                         <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0 ${i === 0 ? "bg-blue-500" : i === stops.length - 1 ? "bg-red-500" : "bg-slate-400"}`}>{i + 1}</div>
                         <input
+                          aria-label={`${i + 1}. durak adı`}
                           value={s.name}
                           onChange={(e) => updateStop(i, "name", e.target.value)}
                           placeholder="Durak adı (Örn: Okul Girişi)"
                           className="flex-1 border border-slate-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#DC2626]"
                         />
                         <input
+                          aria-label={`${i + 1}. durak saati`}
                           type="time"
                           value={s.estimatedTime}
                           onChange={(e) => updateStop(i, "estimatedTime", e.target.value)}
                           className="w-24 border border-slate-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#DC2626]"
                         />
-                        <button onClick={() => removeStop(i)} className="p-1 text-slate-300 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
+                        <button aria-label={`${i + 1}. durağı sil`} onClick={() => removeStop(i)} className="p-1 text-slate-300 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
                       </div>
 
                       {/* Konum */}
@@ -821,12 +852,12 @@ export default function GuzergahlarClient({
                             {geoLoading[i] ? <div className="w-3 h-3 border border-slate-400 border-t-transparent rounded-full animate-spin" /> : <Search className="w-3 h-3" />}
                           </button>
                         </div>
-                        {s.lat && (
+                        {s.lat !== null && s.lng !== null && (
                           <span className="text-xs text-green-600 font-medium whitespace-nowrap">
                             ✓ {s.lat.toFixed(4)}, {s.lng?.toFixed(4)}
                           </span>
                         )}
-                        {!s.lat && (
+                        {(s.lat === null || s.lng === null) && (
                           <span className="text-xs text-slate-400 whitespace-nowrap">Koordinat yok</span>
                         )}
                       </div>
@@ -834,7 +865,7 @@ export default function GuzergahlarClient({
                       {/* Haritadan seç butonu */}
                       <div className="pl-10">
                         <button
-                          onClick={() => setPendingStopIdx(pendingStopIdx === i ? null : i)}
+                          onClick={() => { setPendingStopIdx(pendingStopIdx === i ? null : i); formMapRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }); }}
                           className={`text-xs px-2 py-1 rounded-lg transition-colors ${pendingStopIdx === i ? "bg-[#DC2626] text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
                         >
                           <MapPin className="w-3 h-3 inline mr-1" />
@@ -845,29 +876,6 @@ export default function GuzergahlarClient({
                   ))}
                 </div>
               </div>
-
-              {/* Form haritası */}
-              {stops.length > 0 && (
-                <div>
-                  <p className="text-xs text-slate-500 mb-2">
-                    {pendingStopIdx !== null
-                      ? `📍 Haritaya tıklayarak "${stops[pendingStopIdx]?.name || `Durak ${pendingStopIdx + 1}`}" konumunu belirle`
-                      : "Güzergah önizlemesi"}
-                  </p>
-                  <RouteMap
-                    stops={stops}
-                    interactive={pendingStopIdx !== null}
-                    height={300}
-                    onMapClick={(lat, lng) => {
-                      if (pendingStopIdx !== null) {
-                        const updated = stops.map((s, idx) => idx === pendingStopIdx ? { ...s, lat, lng } : s);
-                        setStops(updated);
-                        setPendingStopIdx(null);
-                      }
-                    }}
-                  />
-                </div>
-              )}
 
               {/* Notlar */}
               <div>
