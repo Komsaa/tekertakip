@@ -177,6 +177,7 @@ export default function Sidebar({ userName, role, companyType, companyId }: Side
 
       {/* Nav */}
       <nav className="flex-1 py-3 px-3 overflow-y-auto sidebar-scroll space-y-1">
+        <Link href="/panel/ogrenciler" onClick={()=>setMobileOpen(false)} aria-current={pathname.startsWith("/panel/ogrenciler")?"page":undefined} className={cn("flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold",pathname.startsWith("/panel/ogrenciler")?"bg-[#DC2626] text-white":"text-slate-300 hover:bg-white/10 hover:text-white")}><Users className="w-4 h-4"/>Öğrenciler</Link>
         {visibleGroups.map((group) => {
           const isOpen    = openGroups.has(group.label);
           const hasActive = groupHasActive(group);
