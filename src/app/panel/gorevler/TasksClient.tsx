@@ -450,6 +450,7 @@ export default function TasksClient({ tasks: initialTasks, vehicles, drivers, su
                 </div>
               </div>
 
+              <details className="border-t border-slate-100 pt-4" open={Boolean(form.recurrence !== "none" || form.vehicleId || form.driverId || form.description)}><summary className="cursor-pointer text-sm text-slate-600">Tekrar, araç/şoför ve not (isteğe bağlı)</summary><div className="space-y-4 mt-4">
               {/* Tekrar */}
               <div>
                 <label>Tekrar</label>
@@ -494,6 +495,8 @@ export default function TasksClient({ tasks: initialTasks, vehicles, drivers, su
                   className="resize-none"
                 />
               </div>
+
+              </div></details>
 
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => setShowModal(false)} className="flex-1 py-2.5 border border-slate-200 text-slate-600 rounded-xl text-sm font-medium hover:bg-slate-50">
