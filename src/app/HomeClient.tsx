@@ -109,7 +109,22 @@ function ProductScreens() {
   return <section id="gercek-ekranlar" className={s.productSection} aria-labelledby="product-title">
     <div className={s.sectionHeading}><div><span className={s.eyebrow}>UYGULAMANIN İÇİNDEN</span><h2 id="product-title">Günlük işlerinize<br/>daha net bir bakış.</h2></div><p>Gerçek TekerTakip ekranları. Gösterilen firma, şoför ve plakalar tanıtım amaçlı örnek verilerdir.</p></div>
     <div className={s.productChoices} role="group" aria-label="Ürün ekranı seçimi">{screens.map((screen,index)=><button type="button" key={screen.key} aria-pressed={selected===index} onClick={()=>setSelected(index)}>{screen.label}</button>)}</div>
-    <figure className={s.productFigure}><Image unoptimized key={current.key} src={`/product/${current.key}.jpg`} alt={`TekerTakip ${current.label} ekranı, örnek firma verileri`} width={1440} height={1000} sizes="(max-width: 768px) 100vw, 1200px"/><figcaption><span aria-live="polite">{current.text}</span><a href={`/product/${current.key}.jpg`} target="_blank" rel="noopener noreferrer">Tam boy görüntüle <span className="sr-only">(yeni sekme)</span><ArrowUpRight size={16}/></a></figcaption></figure>
+    <figure className={s.productFigure}>
+      {current.key === "araclar" ? (
+        <>
+          <div className={s.productToolbar}><span><Truck size={17} /> Araç yönetimi</span><span>Örnek firma verileri</span></div>
+          <div className={s.vehicleViewport} tabIndex={0} role="region" aria-label="Araç yönetimi ekranı, tüm sütunları görmek için yatay kaydırın">
+            <div className={s.vehicleCrop}>
+              <Image unoptimized src="/product/araclar.jpg" alt="Araç yönetimi: toplam ve aktif araç sayıları, plaka, şoför, muayene tarihi ve belge durumu" width={1440} height={1000} sizes="(max-width: 768px) 850px, 1200px" />
+            </div>
+          </div>
+          <p className={s.productScrollHint}>Tüm sütunları görmek için yana kaydırın <ArrowRight size={15} /></p>
+        </>
+      ) : (
+        <Image unoptimized key={current.key} src={`/product/${current.key}.jpg`} alt={`TekerTakip ${current.label} ekranı, örnek firma verileri`} width={1440} height={1000} sizes="(max-width: 768px) 100vw, 1200px" />
+      )}
+      <figcaption><span aria-live="polite">{current.text}</span><a href={`/product/${current.key}.jpg`} target="_blank" rel="noopener noreferrer">Tam boy görüntüle <span className="sr-only">(yeni sekme)</span><ArrowUpRight size={16}/></a></figcaption>
+    </figure>
   </section>;
 }
 
