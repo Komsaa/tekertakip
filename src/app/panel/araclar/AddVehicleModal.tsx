@@ -16,12 +16,6 @@ export default function AddVehicleModal() {
     year: "",
     capacity: "14",
     color: "Sarı",
-    inspectionExpiry: "",
-    insuranceExpiry: "",
-    routePermitExpiry: "",
-    approvalExpiry: "",
-    kaskoExpiry: "",
-    plateAuthExpiry: "",
     notes: "",
   });
 
@@ -43,8 +37,10 @@ export default function AddVehicleModal() {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error || "Sunucu hatası");
       }
+      const created = await res.json();
       toast.success("Araç eklendi!");
       setOpen(false);
+      router.push(`/panel/araclar/${created.id}`);
       router.refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Hata oluştu");
@@ -102,7 +98,7 @@ export default function AddVehicleModal() {
                 </div>
                 <div>
                   <label>Yıl</label>
-                  <input type="number" value={form.year} onChange={(e) => set("year", e.target.value)} placeholder="2020" min="2000" max="2030" />
+                  <input type="number" value={form.year} onChange={(e) => set("year", e.target.value)} placeholder="2020" min="2000" max={new Date().getFullYear() + 1} />
                 </div>
                 <div>
                   <label>Kapasite (kişi)</label>
@@ -110,38 +106,12 @@ export default function AddVehicleModal() {
                 </div>
               </div>
 
-              <div className="border-t border-slate-100 pt-4">
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">
-                  Belge Son Tarihleri
-                </p>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-amber-700 font-semibold">⚠️ Muayene Bitiş (yılda bir)</label>
-                    <input type="date" value={form.inspectionExpiry} onChange={(e) => set("inspectionExpiry", e.target.value)} className="border-amber-200 focus:ring-amber-400" />
-                  </div>
-                  <div>
-                    <label>Trafik Sigortası Bitiş</label>
-                    <input type="date" value={form.insuranceExpiry} onChange={(e) => set("insuranceExpiry", e.target.value)} />
-                  </div>
-                  <div>
-                    <label>Güzergah İzni Bitiş</label>
-                    <input type="date" value={form.routePermitExpiry} onChange={(e) => set("routePermitExpiry", e.target.value)} />
-                  </div>
-                  <div>
-                    <label>Uygunluk Belgesi / J Plaka</label>
-                    <input type="date" value={form.approvalExpiry} onChange={(e) => set("approvalExpiry", e.target.value)} />
-                  </div>
-                  <div>
-                    <label>Kasko Bitiş</label>
-                    <input type="date" value={form.kaskoExpiry} onChange={(e) => set("kaskoExpiry", e.target.value)} />
-                  </div>
-                </div>
-              </div>
+              <p className="text-sm text-slate-500">Evrakları ve geçerlilik tarihlerini kayıt sonrası araç sayfasından ekleyebilirsiniz.</p>
 
-              <div>
+              <details><summary className="cursor-pointer text-sm text-slate-600">Not ekle (isteğe bağlı)</summary><div className="mt-3">
                 <label>Notlar</label>
                 <textarea value={form.notes} onChange={(e) => set("notes", e.target.value)} rows={2} className="resize-none" />
-              </div>
+              </div></details>
 
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => setOpen(false)} className="flex-1 py-2.5 border border-slate-200 text-slate-600 rounded-xl text-sm font-medium hover:bg-slate-50">
