@@ -1452,3 +1452,5 @@
  .mapInfo strong { font-size:11px; }
  .mapInfo div > span { font-size:10px; }
 }
+
+@media(max-width:760px) { .routeList { grid-template-columns:1fr; } .routeList > button { min-height:70px; } }
