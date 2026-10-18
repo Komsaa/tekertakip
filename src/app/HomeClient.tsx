@@ -31,35 +31,16 @@ const links = [
   ["#nasil-calisir", "Nasıl çalışır?"],
   ["#fiyatlandirma", "Fiyatlandırma"],
 ];
-const routes = [
-  {
-    name: "Kadıköy · Okul servisi",
-    plate: "34 AB 001",
-    passengers: "12 / 16",
-    status: "Seferde",
-    x: 320,
-    y: 220,
-    path: "M300 80 C312 112 337 132 350 160 L320 220 L435 250 L470 135",
-  },
-  {
-    name: "Ataşehir · Personel servisi",
-    plate: "34 CD 002",
-    passengers: "18 / 20",
-    status: "Seferde",
-    x: 470,
-    y: 135,
-    path: "M320 280 L435 250 L470 135 L520 95",
-  },
-  {
-    name: "Üsküdar · Okul servisi",
-    plate: "34 EF 003",
-    passengers: "0 / 16",
-    status: "Hazırlanıyor",
-    x: 300,
-    y: 80,
-    path: "M300 80 C312 112 337 132 350 160 L320 220",
-  },
-];
+const routes = [{
+  name: "Şeyh İsa Anadolu Lisesi",
+  plate: "45 J 9458",
+  passengers: "15 durak",
+  status: "Kayıtlı güzergâh",
+}];
+const pilotStops = Array.from({ length: 15 }, (_, i) => ({
+  x: i < 8 ? 65 + i * 67 : 534 - (i - 8) * 67,
+  y: i < 8 ? 120 : 235,
+}));
 const features = [
   {
     icon: Route,
@@ -125,7 +106,7 @@ function DashboardPreview() {
         <span>
           <i className={s.dot} /> Operasyon merkezi
         </span>
-        <span>Örnek verilerle ürün önizlemesi</span>
+        <span>Kayıtlı hat · Şematik önizleme</span>
       </div>
       <div className={s.dashBody}>
         <aside className={s.dashSide} aria-hidden="true">
@@ -139,18 +120,18 @@ function DashboardPreview() {
         <div className={s.dashContent}>
           <div className={s.dashHeading}>
             <div>
-              <span className={s.eyebrow}>FİLONUZUN BUGÜNÜ</span>
-              <h3>Her şey yolunda.</h3>
+              <span className={s.eyebrow}>PİLOT GÜZERGÂH</span>
+              <h3>Okula uzanan yol.</h3>
             </div>
             <span className={s.live}>
-              <i className={s.dot} /> Servis takibi
+              <i className={s.dot} /> Güzergâh planı
             </span>
           </div>
           <div className={s.dashStats}>
             {[
-              ["Toplam araç", "24", "Filoya kayıtlı"],
-              ["Aktif sefer", "18", "Yolculuk devam ediyor"],
-              ["Tamamlanan", "06", "Varış noktasına ulaştı"],
+              ["Araç", "01", "45 J 9458"],
+              ["Durak", "15", "Kayıtlı durak"],
+              ["Son durak", "Okul", "Şeyh İsa Anadolu Lisesi"],
             ].map(([label, value, hint]) => (
               <div key={label}>
                 <span>{label}</span>
@@ -162,7 +143,7 @@ function DashboardPreview() {
           <div className={s.mapLayout}>
             <div className={s.routeList}>
               <div className={s.listTitle}>
-                Güzergâhlar <span>03</span>
+                Güzergâhlar <span>01</span>
               </div>
               {routes.map((route, i) => (
                 <button
@@ -183,50 +164,26 @@ function DashboardPreview() {
                   </small>
                 </button>
               ))}
-              <p>Haritadaki aracı görmek için bir güzergâh seçin.</p>
+              <p>14 yolcu durağı ve okul varışı. Çizim şematiktir; canlı araç konumu göstermez.</p>
             </div>
             <div
               className={s.map}
               aria-label={`${current.name}, ${current.plate}, ${current.status}`}
             >
               <div className={s.mapCanvas}>
-                <svg viewBox="0 0 600 340" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+                <svg viewBox="0 0 600 340" preserveAspectRatio="xMidYMid meet" role="img" aria-label="45 J 9458 okul servisi: 14 yolcu durağı, ardından Şeyh İsa Anadolu Lisesi. Şematik güzergâh.">
                   <rect width="600" height="340" fill="#edf1f4" />
-                  <path d="M0 0 H205 C232 55 193 94 204 140 C215 183 258 195 242 239 C228 278 210 300 220 340 H0Z" fill="#c8e2e9" />
-                  <path d="M205 0 C232 55 193 94 204 140 C215 183 258 195 242 239 C228 278 210 300 220 340" fill="none" stroke="#f9fcfd" strokeWidth="8" />
-                  <g fill="#dce8dc">
-                    <path d="M255 20 H335 L325 65 H265Z" />
-                    <path d="M480 195 H565 V300 H505Z" />
-                    <path d="M280 265 L338 280 L320 325 H260Z" />
-                  </g>
-                  <g fill="none" stroke="#dce2e7" strokeWidth="16" strokeLinejoin="round">
-                    <path d="M280 -10 L300 80 C312 112 337 132 350 160 L320 220 L320 350" />
-                    <path d="M510 -10 L470 135 L435 250 L400 350" />
-                    <path d="M215 90 L520 95 L610 65 M225 192 L320 220 L435 250 L610 280" />
-                  </g>
-                  <g fill="none" stroke="#fff" strokeWidth="10" strokeLinejoin="round">
-                    <path d="M280 -10 L300 80 C312 112 337 132 350 160 L320 220 L320 350" />
-                    <path d="M510 -10 L470 135 L435 250 L400 350" />
-                    <path d="M215 90 L520 95 L610 65 M225 192 L320 220 L435 250 L610 280" />
-                  </g>
-                  <g fill="none" stroke="#fff" strokeWidth="4">
-                    <path d="M250 0 L270 340 M385 0 L375 340 M550 0 L560 340 M225 35 L600 40 M220 145 L600 165 M240 300 L600 320" />
-                  </g>
-                  <g fill="#738390" fontSize="12" fontFamily="Arial, sans-serif" letterSpacing="1.5">
-                    <text x="345" y="54">ÜSKÜDAR</text>
-                    <text x="465" y="213">ATAŞEHİR</text>
-                    <text x="340" y="308">KADIKÖY</text>
-                    <text x="70" y="184" fill="#6d9ba8" fontSize="16" fontStyle="italic">İstanbul</text>
-                  </g>
-                  <path d={current.path} fill="none" stroke="#fff" strokeWidth="10" strokeLinecap="round" strokeLinejoin="round" />
-                  <path d={current.path} fill="none" stroke="#d23b36" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
-                  <g transform={`translate(${current.x} ${current.y})`}>
-                    <circle r="29" fill="#d23b36" opacity=".12" />
-                    <circle r="19" fill="#d23b36" stroke="white" strokeWidth="4" />
-                    <path d="M-8 -3 L10 -9 L3 10 L0 1Z" fill="white" />
-                    <rect x="-43" y="26" width="86" height="25" rx="7" fill="white" stroke="#dce2e7" />
-                    <text y="43" textAnchor="middle" fill="#1b2437" fontFamily="Arial, sans-serif" fontSize="12" fontWeight="700">{current.plate}</text>
-                  </g>
+                  <text x="30" y="35" fill="#52636d" fontSize="13" fontWeight="700">45 J 9458 · OKUL SERVİSİ</text>
+                  <text x="30" y="56" fill="#738390" fontSize="11">Kayıtlı durak sırası · Şematik gösterim</text>
+                  <path d="M65 120 H534 Q575 120 575 177 Q575 235 534 235 H132" fill="none" stroke="white" strokeWidth="14" strokeLinejoin="round" />
+                  <path d="M65 120 H534 Q575 120 575 177 Q575 235 534 235 H132" fill="none" stroke="#d23b36" strokeWidth="5" strokeLinejoin="round" />
+                  {pilotStops.map((stop,i)=><g key={i} transform={`translate(${stop.x} ${stop.y})`}>
+                    <circle r={i===14?20:15} fill={i===14?'#243f42':'white'} stroke={i===14?'white':'#d23b36'} strokeWidth="3" />
+                    <text y="4" textAnchor="middle" fill={i===14?'white':'#243f42'} fontSize="12" fontWeight="700">{i+1}</text>
+                  </g>)}
+                  <text x="65" y="91" textAnchor="middle" fill="#52636d" fontSize="11">İlk durak</text>
+                  <text x="132" y="278" fill="#243f42" fontSize="16" fontWeight="700">Şeyh İsa Anadolu Lisesi</text>
+                  <text x="132" y="299" fill="#738390" fontSize="12">15. durak · Okul önü</text>
                 </svg>
               </div>
               <div className={s.mapInfo} aria-live="polite">
@@ -234,7 +191,7 @@ function DashboardPreview() {
                 <div>
                   <strong>{current.name}</strong>
                   <span>
-                    {current.passengers} yolcu · {current.status}
+                    {current.passengers} · {current.status}
                   </span>
                 </div>
                 <i className={s.dot} />
@@ -432,9 +389,9 @@ export default function HomeClient() {
                 </div>
                 <div className={s.phoneTrip}>
                   <span>BUGÜNKÜ GÜZERGÂH</span>
-                  <h3>Kadıköy → Okul</h3>
+                  <h3>Şeyh İsa Anadolu Lisesi</h3>
                   <p>
-                    34 AB 001 <span>Seferde</span>
+                    45 J 9458 <span>Seferde</span>
                   </p>
                 </div>
                 <div className={s.attendance}>
