@@ -19,9 +19,9 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       where: { id: params.id },
       data: {
         ...(b.name && { name: b.name }),
-        expiry: b.expiry ? new Date(b.expiry) : null,
-        fileUrl: b.fileUrl || null,
-        notes: b.notes || null,
+        ...(Object.hasOwn(b, "expiry") && { expiry: b.expiry ? new Date(b.expiry) : null }),
+        ...(Object.hasOwn(b, "fileUrl") && { fileUrl: b.fileUrl || null }),
+        ...(Object.hasOwn(b, "notes") && { notes: b.notes || null }),
       },
     });
     return NextResponse.json(doc);
