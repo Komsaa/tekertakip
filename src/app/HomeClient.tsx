@@ -37,24 +37,27 @@ const routes = [
     plate: "34 AB 001",
     passengers: "12 / 16",
     status: "Seferde",
-    x: 43,
-    y: 48,
+    x: 320,
+    y: 220,
+    path: "M300 80 C312 112 337 132 350 160 L320 220 L435 250 L470 135",
   },
   {
     name: "Ataşehir · Personel servisi",
     plate: "34 CD 002",
     passengers: "18 / 20",
     status: "Seferde",
-    x: 72,
-    y: 32,
+    x: 470,
+    y: 135,
+    path: "M320 280 L435 250 L470 135 L520 95",
   },
   {
     name: "Üsküdar · Okul servisi",
     plate: "34 EF 003",
     passengers: "0 / 16",
     status: "Hazırlanıyor",
-    x: 51,
-    y: 23,
+    x: 300,
+    y: 80,
+    path: "M300 80 C312 112 337 132 350 160 L320 220",
   },
 ];
 const features = [
@@ -109,22 +112,7 @@ function ProductScreens() {
   return <section id="gercek-ekranlar" className={s.productSection} aria-labelledby="product-title">
     <div className={s.sectionHeading}><div><span className={s.eyebrow}>UYGULAMANIN İÇİNDEN</span><h2 id="product-title">Günlük işlerinize<br/>daha net bir bakış.</h2></div><p>Gerçek TekerTakip ekranları. Gösterilen firma, şoför ve plakalar tanıtım amaçlı örnek verilerdir.</p></div>
     <div className={s.productChoices} role="group" aria-label="Ürün ekranı seçimi">{screens.map((screen,index)=><button type="button" key={screen.key} aria-pressed={selected===index} onClick={()=>setSelected(index)}>{screen.label}</button>)}</div>
-    <figure className={s.productFigure}>
-      {current.key === "araclar" ? (
-        <>
-          <div className={s.productToolbar}><span><Truck size={17} /> Araç yönetimi</span><span>Örnek firma verileri</span></div>
-          <div className={s.vehicleViewport} tabIndex={0} role="region" aria-label="Araç yönetimi ekranı, tüm sütunları görmek için yatay kaydırın">
-            <div className={s.vehicleCrop}>
-              <Image unoptimized src="/product/araclar.jpg" alt="Araç yönetimi: toplam ve aktif araç sayıları, plaka, şoför, muayene tarihi ve belge durumu" width={1440} height={1000} sizes="(max-width: 768px) 850px, 1200px" />
-            </div>
-          </div>
-          <p className={s.productScrollHint}>Tüm sütunları görmek için yana kaydırın <ArrowRight size={15} /></p>
-        </>
-      ) : (
-        <Image unoptimized key={current.key} src={`/product/${current.key}.jpg`} alt={`TekerTakip ${current.label} ekranı, örnek firma verileri`} width={1440} height={1000} sizes="(max-width: 768px) 100vw, 1200px" />
-      )}
-      <figcaption><span aria-live="polite">{current.text}</span><a href={`/product/${current.key}.jpg`} target="_blank" rel="noopener noreferrer">Tam boy görüntüle <span className="sr-only">(yeni sekme)</span><ArrowUpRight size={16}/></a></figcaption>
-    </figure>
+    <figure className={s.productFigure}><Image unoptimized key={current.key} src={`/product/${current.key}.jpg`} alt={`TekerTakip ${current.label} ekranı, örnek firma verileri`} width={1440} height={1000} sizes="(max-width: 768px) 100vw, 1200px"/><figcaption><span aria-live="polite">{current.text}</span><a href={`/product/${current.key}.jpg`} target="_blank" rel="noopener noreferrer">Tam boy görüntüle <span className="sr-only">(yeni sekme)</span><ArrowUpRight size={16}/></a></figcaption></figure>
   </section>;
 }
 
@@ -201,51 +189,45 @@ function DashboardPreview() {
               className={s.map}
               aria-label={`${current.name}, ${current.plate}, ${current.status}`}
             >
-              <svg
-                viewBox="0 0 600 380"
-                preserveAspectRatio="xMidYMid slice"
-                aria-hidden="true"
-              >
-                <rect width="600" height="380" fill="#eef0e8" />
-                <path
-                  d="M0 0H210C300 90 90 170 240 230S280 340 240 380H0Z"
-                  fill="#bdd8d9"
-                />
-                <g fill="#dbe5d1">
-                  <path d="M300 20h90l-20 75-70-15z" />
-                  <path d="M420 235l110-20 50 115-140 20z" />
-                  <path d="M255 270l70 20-30 65-55-25z" />
-                </g>
-                <g fill="none" stroke="#fff" strokeWidth="10">
-                  <path d="M230 0L360 380M440 0L290 380M580 0L400 380M180 130L600 210M200 300L600 50M280 20L590 350" />
-                  <path d="M250 70L600 110M230 240L600 300" strokeWidth="5" />
-                </g>
-                <path
-                  d="M300 75L350 160 290 215 410 245 455 120"
-                  fill="none"
-                  stroke="#d23b36"
-                  strokeWidth="4"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeDasharray="8 5"
-                />
-              </svg>
-              <span className={s.district} style={{ left: "44%", top: "13%" }}>
-                ÜSKÜDAR
-              </span>
-              <span className={s.district} style={{ left: "65%", top: "63%" }}>
-                ATAŞEHİR
-              </span>
-              <span className={s.district} style={{ left: "38%", top: "74%" }}>
-                KADIKÖY
-              </span>
-              <span className={s.sea}>İstanbul</span>
-              <div
-                className={s.mapPin}
-                style={{ left: `${current.x}%`, top: `${current.y}%` }}
-              >
-                <Navigation size={18} fill="currentColor" />
-                <span>{current.plate}</span>
+              <div className={s.mapCanvas}>
+                <svg viewBox="0 0 600 340" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+                  <rect width="600" height="340" fill="#edf1f4" />
+                  <path d="M0 0 H205 C232 55 193 94 204 140 C215 183 258 195 242 239 C228 278 210 300 220 340 H0Z" fill="#c8e2e9" />
+                  <path d="M205 0 C232 55 193 94 204 140 C215 183 258 195 242 239 C228 278 210 300 220 340" fill="none" stroke="#f9fcfd" strokeWidth="8" />
+                  <g fill="#dce8dc">
+                    <path d="M255 20 H335 L325 65 H265Z" />
+                    <path d="M480 195 H565 V300 H505Z" />
+                    <path d="M280 265 L338 280 L320 325 H260Z" />
+                  </g>
+                  <g fill="none" stroke="#dce2e7" strokeWidth="16" strokeLinejoin="round">
+                    <path d="M280 -10 L300 80 C312 112 337 132 350 160 L320 220 L320 350" />
+                    <path d="M510 -10 L470 135 L435 250 L400 350" />
+                    <path d="M215 90 L520 95 L610 65 M225 192 L320 220 L435 250 L610 280" />
+                  </g>
+                  <g fill="none" stroke="#fff" strokeWidth="10" strokeLinejoin="round">
+                    <path d="M280 -10 L300 80 C312 112 337 132 350 160 L320 220 L320 350" />
+                    <path d="M510 -10 L470 135 L435 250 L400 350" />
+                    <path d="M215 90 L520 95 L610 65 M225 192 L320 220 L435 250 L610 280" />
+                  </g>
+                  <g fill="none" stroke="#fff" strokeWidth="4">
+                    <path d="M250 0 L270 340 M385 0 L375 340 M550 0 L560 340 M225 35 L600 40 M220 145 L600 165 M240 300 L600 320" />
+                  </g>
+                  <g fill="#738390" fontSize="12" fontFamily="Arial, sans-serif" letterSpacing="1.5">
+                    <text x="345" y="54">ÜSKÜDAR</text>
+                    <text x="465" y="213">ATAŞEHİR</text>
+                    <text x="340" y="308">KADIKÖY</text>
+                    <text x="70" y="184" fill="#6d9ba8" fontSize="16" fontStyle="italic">İstanbul</text>
+                  </g>
+                  <path d={current.path} fill="none" stroke="#fff" strokeWidth="10" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d={current.path} fill="none" stroke="#d23b36" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
+                  <g transform={`translate(${current.x} ${current.y})`}>
+                    <circle r="29" fill="#d23b36" opacity=".12" />
+                    <circle r="19" fill="#d23b36" stroke="white" strokeWidth="4" />
+                    <path d="M-8 -3 L10 -9 L3 10 L0 1Z" fill="white" />
+                    <rect x="-43" y="26" width="86" height="25" rx="7" fill="white" stroke="#dce2e7" />
+                    <text y="43" textAnchor="middle" fill="#1b2437" fontFamily="Arial, sans-serif" fontSize="12" fontWeight="700">{current.plate}</text>
+                  </g>
+                </svg>
               </div>
               <div className={s.mapInfo} aria-live="polite">
                 <Truck size={22} />
