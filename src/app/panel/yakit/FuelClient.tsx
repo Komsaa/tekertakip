@@ -431,10 +431,10 @@ export default function FuelClient({ fuelEntries, vehicles, drivers, monthStats,
                 <input type="text" value={form.station} onChange={(e) => set("station", e.target.value)} placeholder="Erkan Pamuk Çırçır" />
               </div>
 
-              <div>
+              <details><summary className="cursor-pointer text-sm text-slate-600">Not ekle (isteğe bağlı)</summary><div className="mt-3">
                 <label>Notlar</label>
                 <textarea value={form.notes} onChange={(e) => set("notes", e.target.value)} rows={2} className="resize-none" />
-              </div>
+              </div></details>
 
               {/* Fotoğraflar */}
               <div className="border-t border-slate-100 pt-4 space-y-3">
