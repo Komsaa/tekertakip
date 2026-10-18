@@ -1454,3 +1454,10 @@
 }
 
 @media(max-width:760px) { .routeList { grid-template-columns:1fr; } .routeList > button { min-height:70px; } }
+
+.annualOffer { margin-top:22px; display:grid; gap:15px; }
+.savingsBadge { width:fit-content; padding:8px 12px; border-radius:7px; background:#e9f3e6; color:#385e32; font-size:11px; font-weight:700; letter-spacing:.3px; }
+.referencePrice { display:flex; align-items:center; flex-wrap:wrap; gap:9px; color:var(--muted); }
+.referencePrice del { font-size:24px; text-decoration-thickness:2px; }
+.referencePrice span { font-size:11px; }
+.annualOffer + .price { margin-top:4px; color:#be3832; }
