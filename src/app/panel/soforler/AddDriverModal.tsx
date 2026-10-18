@@ -39,7 +39,8 @@ export default function AddDriverModal({ companies = [] }: { companies?: Company
         body: JSON.stringify(form),
       });
       if (!res.ok) throw new Error();
-      toast.success("Şöför eklendi!");
+      const created = await res.json();
+      toast.success("Şoför eklendi!");
       setOpen(false);
       setForm({
         name: "",
@@ -50,6 +51,7 @@ export default function AddDriverModal({ companies = [] }: { companies?: Company
         mobileUsername: "",
         mobilePin: "",
       });
+      router.push(`/panel/soforler/${created.id}`);
       router.refresh();
     } catch {
       toast.error("Hata oluştu");
@@ -127,8 +129,8 @@ export default function AddDriverModal({ companies = [] }: { companies?: Company
                 </div>
               </div>
 
-              <div className="border-t border-slate-100 pt-4">
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">Mobil Uygulama Girişi</p>
+              <p className="text-sm text-slate-500">Evrakları ve tarihlerini kayıt sonrası şoför sayfasından ekleyebilirsiniz.</p>
+              <details className="border-t border-slate-100 pt-4"><summary className="cursor-pointer text-sm text-slate-600">Mobil giriş oluştur (isteğe bağlı)</summary>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label>Kullanıcı Adı</label>
@@ -149,7 +151,7 @@ export default function AddDriverModal({ companies = [] }: { companies?: Company
                     />
                   </div>
                 </div>
-              </div>
+              </details>
 
               <div>
                 <label>Notlar</label>
