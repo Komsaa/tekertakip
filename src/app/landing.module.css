@@ -1422,3 +1422,18 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* Focus the vehicle preview on the workspace; preserve readable columns on phones. */
+.productToolbar { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:18px 24px; border-bottom:1px solid #e1e7f0; background:#fff; }
+.productToolbar > span:first-child { display:flex; align-items:center; gap:9px; font-size:14px; font-weight:600; color:#1b2437; }
+.productToolbar > span:first-child > svg { color:#ce3b32; }
+.productToolbar > span:last-child { font-size:12px; color:#64748b; }
+.vehicleViewport { overflow-x:auto; overscroll-behavior-x:contain; background:#f5f6fb; scrollbar-color:#9ba8ba #edf0f5; }
+.vehicleViewport:focus-visible { outline:3px solid #ce3b32; outline-offset:-3px; }
+.vehicleCrop { position:relative; min-width:850px; aspect-ratio:1184 / 784; overflow:hidden; }
+.productFigure .vehicleCrop img { position:absolute; width:121.621622%; max-width:none; height:auto; left:-21.621622%; top:-9.693878%; }
+.productScrollHint { display:none; }
+@media(max-width:900px) {
+  .productToolbar { padding:14px 16px; flex-wrap:wrap; gap:8px; }
+  .productScrollHint { display:flex; align-items:center; justify-content:center; gap:8px; margin:0; padding:12px 16px; font-size:12px; color:#526176; background:#f8fafc; border-top:1px solid #e1e7f0; }
+}
