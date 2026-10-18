@@ -141,7 +141,8 @@ export default async function VehicleDetailPage({ params }: Props) {
             <DocRow label="Kasko" expiry={vehicle.kaskoExpiry} entityType="vehicle" entityId={vehicle.id} docType="kasko" fileUrl={vehicle.kaskoFile} />
           </div>
 
-          <ExtraDocuments entityType="vehicle" entityId={vehicle.id} initialDocs={extraDocs} />
+          <ExtraDocuments title="Koltuk Sigortası · Zorunlu Belge" requiredName="Koltuk Ferdi Kaza Sigortası" entityType="vehicle" entityId={vehicle.id} initialDocs={extraDocs.filter(doc => /koltuk/i.test(doc.name))} />
+          <ExtraDocuments entityType="vehicle" entityId={vehicle.id} initialDocs={extraDocs.filter(doc => !/koltuk/i.test(doc.name))} />
 
           {/* Bakım Geçmişi */}
           <VehicleMaintenanceSection
