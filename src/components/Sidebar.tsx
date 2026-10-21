@@ -163,14 +163,14 @@ export default function Sidebar({ userName, role, companyType, companyId }: Side
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
       {/* Logo */}
-      <div className="p-5 border-b border-white/10">
+      <div className="sidebar-brand p-5 border-b border-white/10">
         <Link href="/panel" className="flex items-center gap-3" onClick={() => setMobileOpen(false)}>
           <LogoIcon size={36} className="text-white" />
           <div>
-            <div className="text-white font-black text-base leading-tight">
+            <div className="sidebar-brand-name text-white font-black text-base leading-tight">
               teker<span className="text-[#DC2626]">takip</span>
             </div>
-            <div className="text-slate-500 text-xs">tekertakip.com</div>
+            <div className="sidebar-caption text-slate-500 text-xs">Filo yönetim platformu</div>
           </div>
         </Link>
       </div>

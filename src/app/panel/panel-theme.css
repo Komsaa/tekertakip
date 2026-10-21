@@ -1,0 +1,59 @@
+/* Shared with the public landing page; scoped to authenticated screens. */
+.panel-shell {
+  --panel-paper: #faf9f6;
+  --panel-ink: #192b32;
+  --panel-muted: #607076;
+  --panel-line: #e2e5db;
+  --panel-red: #ce3b32;
+  --panel-soft: #f5f6ef;
+  --brand-red: var(--panel-red);
+  --brand-navy: var(--panel-ink);
+  background: var(--panel-paper);
+  color: var(--panel-ink);
+}
+.panel-shell .panel-sidebar {
+  background: var(--panel-paper);
+  border-right: 1px solid var(--panel-line);
+}
+.panel-sidebar .sidebar-brand { padding: 26px 24px; }
+.panel-sidebar .sidebar-brand-name { font-size: 19px; letter-spacing: -.04em; }
+.panel-sidebar .sidebar-caption { margin-top: 4px; font-size: 10px; letter-spacing: .1em; text-transform: uppercase; }
+.panel-sidebar :is(.text-white, .text-slate-300) { color: var(--panel-ink); }
+.panel-sidebar :is(.text-slate-400, .text-slate-500) { color: var(--panel-muted); }
+.panel-sidebar [class*="border-white/"] { border-color: var(--panel-line); }
+.panel-sidebar :is([class~="bg-white/10"], [class~="bg-white/5"]) { background: #eef0e7; }
+.panel-sidebar nav { padding: 20px 14px; }
+.panel-sidebar nav :is(a, button) { border-radius: 7px; box-shadow: none; font-size: 13px; }
+.panel-sidebar nav a { min-height: 42px; }
+.panel-sidebar :is(a, button):hover { background: #e9ebe2; color: var(--panel-ink); }
+.panel-sidebar nav a[aria-current="page"] { background: #f8e9e4; color: #a52f28; box-shadow: inset 3px 0 var(--panel-red); }
+.panel-sidebar nav button[aria-expanded="true"] { color: var(--panel-ink); }
+.panel-sidebar .sidebar-scroll::-webkit-scrollbar-thumb { background: #cbd1c5; }
+.panel-shell .panel-topbar { min-height: 80px; padding-block: 18px; background: var(--panel-paper); border-color: var(--panel-line); }
+.panel-shell .panel-account { background: white; border-color: var(--panel-line); border-radius: 7px; color: var(--panel-ink); }
+.panel-account-avatar { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: #eaf0e5; color: #405b44; font-size: 11px; font-weight: 600; }
+.panel-content h1 { color: var(--panel-ink); font-weight: 500; letter-spacing: -.045em; }
+.panel-content :is(h2, h3) { letter-spacing: -.025em; }
+.panel-content :is(.text-slate-900, .text-slate-800, .text-gray-900, .text-gray-800, .text-\[\#1B2437\]) { color: var(--panel-ink); }
+.panel-content :is(.text-slate-500, .text-slate-600, .text-gray-500, .text-gray-600) { color: var(--panel-muted); }
+.panel-content :is(.bg-slate-50, .bg-gray-50, .bg-slate-100, .bg-gray-100) { background-color: var(--panel-soft); }
+.panel-content :is(.border-slate-100, .border-slate-200, .border-gray-100, .border-gray-200) { border-color: var(--panel-line); }
+.panel-content :is(.divide-slate-100, .divide-slate-200, .divide-gray-100, .divide-gray-200) > :not([hidden]) ~ :not([hidden]) { border-color: var(--panel-line); }
+.panel-shell :is(.bg-brand-red, .bg-\[\#DC2626\], .bg-red-600) { background-color: var(--panel-red); }
+.panel-shell :is(.text-brand-red, .text-\[\#DC2626\]) { color: var(--panel-red); }
+.panel-content :is(.bg-\[\#1B2437\], .bg-\[\#1b2437\], .bg-\[\#151e2e\], .bg-brand-navy) { background-color: #1c3137; }
+.panel-content :is(.rounded-2xl, .rounded-xl).bg-white { border-radius: 12px; box-shadow: 0 4px 18px #26372b04; }
+.panel-content :is(button, a).rounded-xl { border-radius: 7px; }
+.panel-shell :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]), select, textarea) { border-color: var(--panel-line); border-radius: 7px; accent-color: var(--panel-red); }
+.panel-content :is(input, select, textarea):focus { --tw-ring-color: #ce3b3240; }
+.panel-content table th { background-color: var(--panel-soft); color: var(--panel-muted); font-weight: 600; padding-block: 15px; }
+.panel-content table td { padding-block: 17px; }
+.panel-content .table-row-hover:hover { background: #f5f6ef; }
+.panel-shell :is(button, a, input, select, textarea):focus-visible { outline-color: var(--panel-red); }
+.panel-shell button:disabled { cursor: not-allowed; }
+@media (min-width: 1024px) { .panel-sidebar { width: 248px; } }
+@media (max-width: 640px) {
+  .panel-shell .panel-topbar { min-height: 72px; gap: 8px; }
+  .panel-shell .panel-account { padding: 7px; gap: 7px; }
+  .panel-content h1 { overflow-wrap: anywhere; }
+}

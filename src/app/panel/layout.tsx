@@ -7,6 +7,7 @@ import RouteAlerts from "@/components/RouteAlerts";
 import DemoBanner from "@/components/DemoBanner";
 import ImpersonationBanner from "@/components/ImpersonationBanner";
 import PanelTopbar from "@/components/PanelTopbar";
+import "./panel-theme.css";
 
 export default async function PanelLayout({
   children,

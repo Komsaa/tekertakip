@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import CommandCenterMap from "./CommandCenterMap";
+import { WorkspaceHeader, workspaceStyles as s } from "./workspace/Workspace";
 
 type RouteInfo = {
   id: string;
@@ -61,11 +62,12 @@ export default function OkulDashboard({ routes, alertDocs, initialNotes, today, 
   }
 
   return (
-    <div className="flex flex-col flex-1" style={{ minHeight: 0 }}>
-      <div className="flex flex-col lg:flex-row flex-1 overflow-hidden" style={{ minHeight: 0 }}>
+    <div className={s.workspace}>
+      <WorkspaceHeader eyebrow="Okul servisleri" title="Servisleriniz, güvenle yolda." description={`${companyName} · ${today}`} actions={<Link href="/panel/servis-takip" className={`${s.button} ${s.primary}`}><Bus size={16} /> Servisleri takip et</Link>} />
+      <div className={s.board}>
 
       {/* ── Sol: Canlı Harita ────────────────────────────────────────── */}
-      <div className="hidden lg:flex flex-1 relative bg-[#1B2437] overflow-hidden">
+      <div className={s.mapCard}>
         <CommandCenterMap />
         <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-700 shadow">
           🗺 Canlı Araç Takibi · 30sn
@@ -76,7 +78,7 @@ export default function OkulDashboard({ routes, alertDocs, initialNotes, today, 
       </div>
 
       {/* ── Sağ: Panel ─────────────────────────────────────────────── */}
-      <div className="w-full lg:w-[380px] flex-shrink-0 bg-[#1B2437] flex flex-col overflow-hidden lg:border-l border-white/10">
+      <div className={`${s.operations} flex flex-col`}>
 
         {/* Başlık */}
         <div className="px-4 py-3 border-b border-white/10">
