@@ -33,6 +33,7 @@ const navGroups: NavGroup[] = [
       { href: "/panel/araclar",         icon: Truck,      label: "Araçlar" },
       { href: "/panel/guzergahlar",     icon: Route,      label: "Güzergahlar" },
       { href: "/panel/servis-takip",    icon: Bus,        label: "Servis Takip" },
+      { href: "/panel/sefer-gecmisi", icon: CalendarDays, label: "Sefer Geçmişi" },
       { href: "/panel/konum",           icon: MapPin,     label: "Canlı Konum" },
       { href: "/panel/servis-odemeler", icon: Wallet,     label: "Servis Ödemeleri" },
     ],
@@ -80,7 +81,7 @@ const navGroups: NavGroup[] = [
 ];
 
 const okulAllowed = new Set([
-  "/panel", "/panel/soforler", "/panel/servis-takip", "/panel/konum",
+  "/panel", "/panel/sefer-gecmisi", "/panel/soforler", "/panel/servis-takip", "/panel/konum",
   "/panel/araclar", "/panel/guzergahlar", "/panel/servis-odemeler",
   "/panel/arizalar", "/panel/belgeler", "/panel/evrak-rehberi",
   "/panel/gorevler", "/panel/ayarlar",

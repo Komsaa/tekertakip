@@ -18,7 +18,7 @@ test('invalid calendar dates rejected, leap day accepted', () => {
   for (const d of ['2026-02-29', '2026-04-31', '2026-13-01', '21.10.2026', '', '2016-01-01']) assert.equal(historyDay(d), null);
   assert.ok(historyDay('2024-02-29'));
 });
-function setup({ manager = { role: 'firma', companyId: 'a' }, foreign = false, points = [], records = [], fail = false } = {}) {
+function setup({ manager = { role: 'firma', companyId: 'a' }, foreign = false, points = [], records = [], fail = false, web = false } = {}) {
   const calls = [];
   const prisma = {
     driver: {
@@ -29,7 +29,9 @@ function setup({ manager = { role: 'firma', companyId: 'a' }, foreign = false, p
     driverLocationHistory: { findMany: async q => { calls.push(q); assert.equal(q.where.driver.companyId, 'a'); assert.equal(q.where.driverId, 'd'); assert.equal(q.where.timestamp.gte.toISOString(), '2026-10-20T21:00:00.000Z'); if (fail) throw new Error('secret database error'); return points; } },
     tripAttendance: { findMany: async q => { calls.push(q); assert.equal(q.where.passenger.stop.route.companyId, 'a'); assert.equal(q.where.routeId.in.join(','), 'r'); assert.equal(q.where.date, '2026-10-21'); assert.equal(q.where.driverId, 'd'); return records; } },
   };
-  const { GET } = load(__dirname + '/../app/api/mobile/manager/trip-history/route.ts', {
+  const shared = load(__dirname + '/trip-history-response.ts', { 'next/server': { NextResponse: { json: (body, options) => ({ body, ...options }) } }, '@/lib/prisma': { prisma }, '@/lib/trip-history': { historyDay } });
+  const { GET } = load(__dirname + (web ? '/../app/api/panel/trip-history/route.ts' : '/../app/api/mobile/manager/trip-history/route.ts'), {
+    '@/lib/trip-history-response': shared, 'next-auth': { getServerSession: async () => manager ? { user: manager } : null }, '@/lib/auth': { authOptions: {} },
     'next/server': { NextResponse: { json: (body, options) => ({ body, ...options }) } },
     '@/lib/manager-access': { getActiveManager: async () => manager }, '@/lib/prisma': { prisma }, '@/lib/trip-history': { historyDay },
   });
@@ -56,3 +58,6 @@ test('bad GPS points removed and truncation disclosed', async () => {
   const r = await setup({ points }).get(); assert.equal(r.body.truncated, true); assert.equal(r.body.points.length, 4999); assert.equal(r.body.invalidPointCount, 1);
 });
 test('database errors do not expose internals', async () => { const r = await setup({ fail: true }).get(); assert.equal(r.status, 500); assert.ok(!JSON.stringify(r.body).includes('secret')); });
+
+for (const manager of [null, {role:'driver',companyId:'a'}, {role:'admin',companyId:null}]) test('web rejects unauthorized '+JSON.stringify(manager), async () => {const s=setup({web:true,manager});assert.equal((await s.get()).status,manager?403:401);assert.equal(s.calls.length,0);});
+test('web tenant and day filters use same constrained query',async()=>{assert.equal((await setup({web:true}).get()).status,200); assert.equal((await setup({web:true,foreign:true}).get()).status,404);assert.equal((await setup({web:true}).get('?driverId=d&date=2026-02-30')).status,400);});
