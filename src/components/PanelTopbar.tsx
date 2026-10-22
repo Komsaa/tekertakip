@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ChevronRight, Settings } from "lucide-react";
 
 const labels: Record<string, string> = {
+  "sefer-gecmisi": "Sefer Geçmişi",
   ogrenciler: "Öğrenciler",
   araclar: "Araçlar", soforler: "Şoförler", guzergahlar: "Güzergâhlar",
   "servis-takip": "Servis takibi", konum: "Canlı konum", "servis-odemeler": "Servis ödemeleri",
