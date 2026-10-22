@@ -225,9 +225,10 @@ export default function HomeClient() {
               </a>
             ))}
           </div>
+          <Link href="/login" className={s.mobileLogin}>Giriş yap <ArrowUpRight size={15} /></Link>
           <div className={s.navActions}>
             <Link href="/login">
-              Panel girişi <ArrowUpRight size={15} />
+              Giriş yap <ArrowUpRight size={15} />
             </Link>
             <Link href="/kayit" className={s.button}>
               Demo talep et <ArrowRight size={16} />
@@ -262,7 +263,7 @@ export default function HomeClient() {
                 {label}
               </a>
             ))}
-            <Link href="/login">Panel girişi</Link>
+            <Link href="/login">Giriş yap</Link>
             <Link href="/kayit" className={s.button}>
               Demo talep et <ArrowRight size={16} />
             </Link>
@@ -561,7 +562,7 @@ export default function HomeClient() {
         </div>
         <nav aria-label="Alt menü">
           <Link href="/kayit">İletişim ve demo</Link>
-          <Link href="/login">Panel girişi</Link>
+          <Link href="/login">Giriş yap</Link>
           <Link href="/gizlilik">Gizlilik politikası</Link>
         </nav>
         <small>© {new Date().getFullYear()} TekerTakip</small>

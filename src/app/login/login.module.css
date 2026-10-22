@@ -1,0 +1,9 @@
+.page{min-height:100dvh;background:#f5f5ef;color:#1b2437;display:flex;align-items:center;justify-content:center;padding:48px 24px;position:relative}
+.backdrop{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.layout{width:100%;max-width:1040px;display:grid;grid-template-columns:1.1fr 1fr;gap:70px;align-items:center;position:relative}
+.intro{padding:20px 0}.eyebrow{font-size:11px;letter-spacing:2px;font-weight:700;color:#72806f;margin-top:18px;display:block}
+.headline{font-size:55px;letter-spacing:-2.5px;line-height:1.12;font-weight:500;margin:30px 0 20px}.headline span{color:#bc3931}
+.description{max-width:360px;color:#667064;font-size:15px;line-height:1.8}.homeLink{display:inline-block;margin-top:30px;color:#475544;font-size:14px}
+.card{background:white;border:1px solid #e1e5da;border-radius:24px;padding:40px;box-shadow:0 24px 80px #26372b0b}.formTitle{font-size:32px;letter-spacing:-1px;font-weight:650;margin:12px 0 6px}.formIntro{color:#71806f;font-size:14px;margin-bottom:30px}
+.card input{min-height:50px;font-size:16px;border-radius:10px;background:#fafbf8}.card label{font-size:13px;font-weight:600}.card input:focus-visible{outline:2px solid #79916c;outline-offset:2px}.footer{grid-column:1/-1;text-align:center;font-size:13px}
+@media(max-width:700px){.page{padding:24px 20px;align-items:flex-start}.layout{grid-template-columns:1fr;gap:16px;max-width:440px}.intro{text-align:center;padding:0}.intro svg{width:44px;height:44px}.intro>div{margin-bottom:8px}.headline,.description,.homeLink{display:none}.intro .eyebrow{margin-top:10px}.card{padding:26px 22px;border-radius:20px}.formTitle{font-size:28px}.footer{margin-top:6px}}

@@ -4,6 +4,8 @@ import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, LogIn, AlertCircle } from "lucide-react";
+import Link from "next/link";
+import s from "./login.module.css";
 import { LogoIcon } from "@/components/Logo";
 
 export default function LoginPage() {
@@ -40,9 +42,9 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#1B2437] flex items-center justify-center p-4">
+    <div className={s.page}>
       {/* Arka plan deseni */}
-      <div className="absolute inset-0 overflow-hidden">
+      <div className={s.backdrop}>
         <div
           className="absolute inset-0 opacity-5"
           style={{
@@ -52,24 +54,24 @@ export default function LoginPage() {
         />
       </div>
 
-      <div className="w-full max-w-md relative z-10">
+      <div className={s.layout}>
         {/* Logo */}
-        <div className="text-center mb-8">
+        <div className={s.intro}>
           <div className="inline-flex items-center justify-center mb-6">
-            <LogoIcon size={80} className="text-white" />
+            <LogoIcon size={80} className="text-[#1B2437]" />
           </div>
-          <h1 className="text-white font-black text-3xl tracking-wide">
+          <h1 className="text-slate-900 font-black text-3xl tracking-wide">
             teker<span className="text-[#DC2626]">takip</span>
           </h1>
-          <p className="text-slate-400 text-sm mt-2">Yönetim Paneli</p>
+          <p className={s.eyebrow}>FİLO YÖNETİM PLATFORMU</p><h2 className={s.headline}>Yolun tamamı,<br/><span>tek ekranda.</span></h2><p className={s.description}>Güzergâhlarınızı, şoförlerinizi ve seferlerinizi yönetmek için çalışma alanınıza giriş yapın.</p><Link href="/" className={s.homeLink}>← Ana sayfaya dön</Link>
         </div>
 
         {/* Form Card */}
-        <div className="bg-white rounded-2xl shadow-2xl p-8">
-          <h2 className="text-xl font-bold text-slate-800 mb-6">Giriş Yap</h2>
+        <div className={s.card}>
+          <span className={s.eyebrow}>TEKRAR HOŞ GELDİNİZ</span><h1 className={s.formTitle}>Giriş yap</h1><p className={s.formIntro}>TekerTakip hesabınızla devam edin.</p>
 
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-700 text-sm">
+            <div role="alert" className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-700 text-sm">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
               {error}
             </div>
@@ -86,6 +88,8 @@ export default function LoginPage() {
                 placeholder="kullanici_adi"
                 required
                 autoComplete="username"
+                autoCapitalize="none"
+                spellCheck={false}
                 className="mt-1"
               />
             </div>
@@ -106,6 +110,8 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? "Şifreyi gizle" : "Şifreyi göster"}
+                  aria-pressed={showPassword}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -129,8 +135,8 @@ export default function LoginPage() {
         </div>
 
         {/* Geri dön */}
-        <div className="text-center mt-6">
-          <a href="/" className="text-slate-400 hover:text-white text-sm transition-colors">
+        <div className={s.footer}>
+          <a href="/" className="text-slate-600 hover:text-slate-900 text-sm transition-colors">
             ← Ana siteye dön
           </a>
         </div>

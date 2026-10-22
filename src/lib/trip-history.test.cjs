@@ -29,7 +29,7 @@ function setup({ manager = { role: 'firma', companyId: 'a' }, foreign = false, p
     driverLocationHistory: { findMany: async q => { calls.push(q); assert.equal(q.where.driver.companyId, 'a'); assert.equal(q.where.driverId, 'd'); assert.equal(q.where.timestamp.gte.toISOString(), '2026-10-20T21:00:00.000Z'); if (fail) throw new Error('secret database error'); return points; } },
     tripAttendance: { findMany: async q => { calls.push(q); assert.equal(q.where.passenger.stop.route.companyId, 'a'); assert.equal(q.where.routeId.in.join(','), 'r'); assert.equal(q.where.date, '2026-10-21'); assert.equal(q.where.driverId, 'd'); return records; } },
   };
-  const shared = load(__dirname + '/trip-history-response.ts', { 'next/server': { NextResponse: { json: (body, options) => ({ body, ...options }) } }, '@/lib/prisma': { prisma }, '@/lib/trip-history': { historyDay } });
+  const shared = load(__dirname + '/trip-history-response.ts', { 'next/server': { NextResponse: { json: (body, options) => ({ body, ...options }) } }, '@/lib/prisma': { prisma }, '@/lib/trip-history': { historyDay }, '@/lib/gps-trip-matching': { matchGpsTrips: () => ({trips:[]}) }, '@/lib/history-route-shapes': { historyRouteShape: async r => r } });
   const { GET } = load(__dirname + (web ? '/../app/api/panel/trip-history/route.ts' : '/../app/api/mobile/manager/trip-history/route.ts'), {
     '@/lib/trip-history-response': shared, 'next-auth': { getServerSession: async () => manager ? { user: manager } : null }, '@/lib/auth': { authOptions: {} },
     'next/server': { NextResponse: { json: (body, options) => ({ body, ...options }) } },
