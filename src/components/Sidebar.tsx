@@ -7,7 +7,7 @@ import { LogoIcon } from "@/components/Logo";
 import {
   LayoutDashboard, Users, Truck, ClipboardList, Fuel,
   LogOut, Menu, X, Route, CalendarDays, Wallet, MapPin,
-  ShieldCheck, Sparkles, Wrench, Banknote, Settings, FileText, ListChecks,
+  ShieldCheck, Sparkles, Wrench, Banknote, FileText, ListChecks,
   Receipt, HandCoins, Bus, CreditCard, ChevronDown, BarChart3, AlertTriangle,
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
@@ -68,7 +68,6 @@ const navGroups: NavGroup[] = [
       { href: "/panel/belgeler", icon: FileText, label: "Belgeler" },
       { href: "/panel/evrak-rehberi", icon: FileText, label: "Evrak Rehberi" },
       { href: "/panel/gorevler", icon: ListChecks, label: "Görevler" },
-      { href: "/panel/ayarlar", icon: Settings, label: "Ayarlar" },
     ],
   },
   {
@@ -84,7 +83,7 @@ const okulAllowed = new Set([
   "/panel", "/panel/sefer-gecmisi", "/panel/soforler", "/panel/servis-takip", "/panel/konum",
   "/panel/araclar", "/panel/guzergahlar", "/panel/servis-odemeler",
   "/panel/arizalar", "/panel/belgeler", "/panel/evrak-rehberi",
-  "/panel/gorevler", "/panel/ayarlar",
+  "/panel/gorevler",
 ]);
 
 interface SidebarProps { userName: string; role?: string; companyType?: string; companyId?: string | null }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import PanelPasswordDialog from "./PanelPasswordDialog";
 
 // ─── Tipler ───────────────────────────────────────────────────────────────────
 type Company = {
@@ -83,6 +84,7 @@ export default function AdminClient() {
 
   // Panel kullanıcıları
   const [panelUsers, setPanelUsers] = useState<PanelUser[]>([]);
+  const [passwordUser, setPasswordUser] = useState<PanelUser | null>(null);
   const [newUserForm, setNewUserForm] = useState({ username: "", password: "", name: "", phone: "", role: "firma", companyId: "", newCompanyName: "", mobileUsername: "", mobilePin: "" });
   const [newUserError, setNewUserError] = useState("");
   const [newUserSaving, setNewUserSaving] = useState(false);
@@ -542,7 +544,8 @@ export default function AdminClient() {
           </div>
 
           {/* Kullanıcı listesi */}
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+          <p className="rounded-xl bg-amber-50 p-4 text-sm text-amber-900">Mevcut şifreler geri okunamaz. Kullanıcının şifresini bilmiyorsanız “Şifre belirle” ile yeni bir şifre kaydedebilirsiniz. Yeni şifreyi bu işlem sırasında gösterip gizleyebilirsiniz.</p>
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-slate-500 border-b border-slate-100 text-xs uppercase tracking-wider bg-slate-50">
@@ -572,6 +575,7 @@ export default function AdminClient() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex gap-2">
+                        <button onClick={() => setPasswordUser(u)} className="text-xs bg-slate-900 hover:bg-slate-700 text-white px-3 py-1.5 rounded-lg font-medium whitespace-nowrap">Şifre belirle</button>
                         <button onClick={() => openEditUser(u)} className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg font-medium">Düzenle</button>
                         <button onClick={() => deletePanelUser(u.id)} className="text-xs text-red-400 hover:text-red-600 px-2 py-1">Sil</button>
                       </div>
@@ -587,6 +591,8 @@ export default function AdminClient() {
           <p className="text-xs text-slate-400">Not: .env dosyasındaki admin hesapları bu listede görünmez.</p>
         </div>
       )}
+
+      {passwordUser && <PanelPasswordDialog key={passwordUser.id} user={passwordUser} onClose={() => setPasswordUser(null)} />}
 
       {/* ── KULLANICI DÜZENLEME MODAL ── */}
       {editingUser && (

@@ -5,6 +5,10 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/tenant";
 import bcrypt from "bcryptjs";
 
+function passwordError(value: unknown) {
+  return typeof value !== "string" || value.length < 8 || Buffer.byteLength(value, "utf8") > 72;
+}
+
 function dbErr(e: unknown) {
   if (e && typeof e === "object" && "code" in e) {
     const code = (e as { code: string }).code;
@@ -41,6 +45,7 @@ export async function POST(req: NextRequest) {
   if (!username || !password || !name) {
     return NextResponse.json({ error: "username, password ve name zorunlu" }, { status: 400 });
   }
+  if (passwordError(password)) return NextResponse.json({ error: "Şifre en az 8 karakter olmalı ve UTF-8 olarak 72 baytı aşmamalı." }, { status: 400 });
   if ((role ?? "firma") === "firma" && !companyId) {
     return NextResponse.json({ error: "Firma kullanıcısı için şirket seçimi zorunlu" }, { status: 400 });
   }
@@ -69,6 +74,7 @@ export async function PUT(req: NextRequest) {
 
   const { id, name, phone, role, active, password, companyId, mobileUsername, mobilePin } = await req.json();
   if (!id) return NextResponse.json({ error: "id zorunlu" }, { status: 400 });
+  if (password !== undefined && password !== "" && passwordError(password)) return NextResponse.json({ error: "Şifre en az 8 karakter olmalı ve UTF-8 olarak 72 baytı aşmamalı." }, { status: 400 });
   if (role === "firma" && companyId !== undefined && !companyId) {
     return NextResponse.json({ error: "Firma kullanıcısı için şirket seçimi zorunlu" }, { status: 400 });
   }
