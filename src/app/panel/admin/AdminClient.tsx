@@ -89,6 +89,8 @@ export default function AdminClient() {
   const [newUserError, setNewUserError] = useState("");
   const [newUserSaving, setNewUserSaving] = useState(false);
   const [editingUser, setEditingUser] = useState<PanelUser | null>(null);
+  const [editUserError, setEditUserError] = useState("");
+  const [editUserSaving, setEditUserSaving] = useState(false);
   const [editUserForm, setEditUserForm] = useState({ name: "", phone: "", role: "firma", password: "", active: true, companyId: "", mobileUsername: "", mobilePin: "" });
 
   // Mobil kullanıcılar (şöförler)
@@ -274,12 +276,22 @@ export default function AdminClient() {
   }
 
   async function savePanelUser() {
-    if (!editingUser) return;
+    if (!editingUser || editUserSaving) return;
+    setEditUserError(""); setEditUserSaving(true);
     const body: Record<string, unknown> = { id: editingUser.id, ...editUserForm, companyId: editUserForm.companyId || null, mobileUsername: editUserForm.mobileUsername || null, mobilePin: editUserForm.mobilePin || undefined };
     if (!editUserForm.password) delete body.password;
-    await fetch("/api/admin/panel-users", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-    setEditingUser(null);
-    fetchPanelUsers();
+    try {
+      const response = await fetch("/api/admin/panel-users", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      if (!response.ok) {
+        const result = await response.json().catch(() => null);
+        setEditUserError(result?.error || "Kullanıcı kaydedilemedi.");
+        return;
+      }
+      setEditUserForm(form => ({ ...form, password: "", mobilePin: "" }));
+      setEditingUser(null);
+      fetchPanelUsers();
+    } catch { setEditUserError("Bağlantı kurulamadı. Tekrar deneyin."); }
+    finally { setEditUserSaving(false); }
   }
 
   async function deletePanelUser(id: string) {
@@ -289,6 +301,7 @@ export default function AdminClient() {
   }
 
   function openEditUser(u: PanelUser) {
+    setEditUserError("");
     setEditingUser(u);
     setEditUserForm({ name: u.name, phone: u.phone ?? "", role: u.role, password: "", active: u.active, companyId: u.companyId ?? "", mobileUsername: u.mobileUsername ?? "", mobilePin: "" });
   }
@@ -514,7 +527,7 @@ export default function AdminClient() {
                 <input placeholder="ataservis" className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#DC2626]" value={newUserForm.username} onChange={(e) => setNewUserForm((f) => ({ ...f, username: e.target.value }))} />
               </div>
               <div>
-                <label className="block text-xs text-slate-500 font-medium mb-1">Şifre *</label>
+                <label className="block text-xs text-slate-500 font-medium mb-1">Şifre * (en az 8 karakter)</label>
                 <input placeholder="Şifre" type="text" className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm font-mono text-[#DC2626] focus:outline-none focus:ring-2 focus:ring-[#DC2626]" value={newUserForm.password} onChange={(e) => setNewUserForm((f) => ({ ...f, password: e.target.value }))} />
               </div>
               <div>
@@ -615,7 +628,7 @@ export default function AdminClient() {
                 </div>
               </div>
               <div>
-                <label className="block text-xs text-slate-500 font-medium mb-1">Yeni Şifre <span className="text-slate-300">(boş bırakırsan değişmez)</span></label>
+                <label className="block text-xs text-slate-500 font-medium mb-1">Yeni Şifre <span className="text-slate-500">(en az 8 karakter; boş bırakırsan değişmez)</span></label>
                 <input type="text" className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm font-mono text-[#DC2626] focus:outline-none focus:ring-2 focus:ring-[#DC2626]" placeholder="Yeni şifre gir" value={editUserForm.password} onChange={(e) => setEditUserForm((f) => ({ ...f, password: e.target.value }))} />
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -650,8 +663,9 @@ export default function AdminClient() {
               </label>
             </div>
             <div className="flex gap-3 p-5 border-t border-slate-100">
-              <button onClick={() => setEditingUser(null)} className="flex-1 py-2.5 border border-slate-200 text-slate-600 rounded-xl text-sm font-medium hover:bg-slate-50">İptal</button>
-              <button onClick={savePanelUser} className="flex-1 py-2.5 bg-[#DC2626] hover:bg-[#B91C1C] text-white rounded-xl text-sm font-semibold">Kaydet</button>
+              {editUserError && <p role="alert" className="text-sm text-red-700">{editUserError}</p>}
+              <button onClick={() => setEditingUser(null)} disabled={editUserSaving} className="flex-1 py-2.5 border border-slate-200 text-slate-600 rounded-xl text-sm font-medium hover:bg-slate-50">İptal</button>
+              <button onClick={savePanelUser} disabled={editUserSaving} className="flex-1 py-2.5 bg-[#DC2626] hover:bg-[#B91C1C] text-white rounded-xl text-sm font-semibold disabled:opacity-40">{editUserSaving ? "Kaydediliyor…" : "Kaydet"}</button>
             </div>
           </div>
         </div>
