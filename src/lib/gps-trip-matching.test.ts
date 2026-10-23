@@ -51,3 +51,30 @@ test("missing final stop coordinates suppress ETA even with road geometry",()=>{
   const end=matchGpsTrips([point(0,0),point(.5,2),point(1,4)],[{...route,missingCoordinates:1}],start+3600000).trips[0];
   assert.equal(end.status,"partial");
 });
+
+test("short route detour remains in the run and keeps the dropoff observation",()=>{
+  const r=matchGpsTrips([point(0,0),point(.2,2),point(.35,3,27.805),point(.5,4),point(.65,5,27.806),point(.85,6),point(1,8)],[route],start+3600000);
+  assert.equal(r.trips.length,1); assert.equal(r.trips[0].uncertainPointCount,2);
+  assert.equal(r.trips[0].stopVisits[1].status,"observed");
+  assert.equal(r.trips[0].stopVisits[1].observedAt,point(1,8).timestamp);
+});
+test("extra work after dropoff is not joined when returning near the same endpoint",()=>{
+  const r=matchGpsTrips([point(0,0),point(.5,2),point(1,4),point(1,6,27.806),point(1,8)],[route],start+3600000);
+  assert.equal(r.trips.length,3); assert.equal(r.trips[1].kind,"outside");
+  assert.equal(r.trips[0].points.length,3);
+});
+test("distant detour and long gap cannot bridge separate trips",()=>{
+  for(const gapPoint of [point(.4,4,27.83),point(.4,20,27.806)]) {
+    const endMinute=gapPoint.timestamp===point(.4,20,27.806).timestamp?22:6;
+    const r=matchGpsTrips([point(0,0),point(.2,2),gapPoint,point(.8,endMinute),point(1,endMinute+2)],[route],start+3600000);
+    assert.ok(r.trips.length>1); assert.ok(r.trips.every(t=>t.uncertainPointCount===0));
+  }
+});
+test("missing coordinates are distinct from no observation and other-section evidence",()=>{
+  const withMissing={...route,stops:[...route.stops,{id:"missing",name:"Other school",lat:null,lng:null}]};
+  const r=matchGpsTrips([point(0,0),point(.1,1),point(.2,2),point(.8,30),point(.9,31),point(1,32)],[withMissing],start+3600000);
+  assert.equal(r.trips[0].stopVisits[2].status,"missing_coordinates");
+  assert.equal(r.trips[0].stopVisits[1].status,"not_observed");
+  assert.equal(r.trips[0].stopVisits[1].otherSectionAt,point(1,32).timestamp);
+  assert.equal(r.trips[1].stopVisits[1].status,"observed");
+});
